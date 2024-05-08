@@ -241,7 +241,7 @@ helpAction cmd amts
         putStrLn "  -t, --times [CONFIGURATION]     calculate the number of years required to crack your passwords"
         putStrLn ""
         putStrLn "arguments:"
-        putStrLn "  [CONFIGURATION] stands for a list of string-number pairs that defines the synbols used in hashes"
+        putStrLn "  [CONFIGURATION] stands for a list of string-number pairs that defines the symbols used in hashes"
         putStrLn "  PUBLIC stands for public key, a memorable string indicative of the password destination"
         putStrLn "  CHOICE stands for choice private key, one of 2 private keys known only to the user"
         putStrLn "  SHUFFLE stands for shuffle private key, used to encrypt the choice key"
