@@ -169,7 +169,6 @@ numberOfHashes amts = (product $ zipWith cnk fsts snds) * (factorial $ sum snds)
 -- Number of private keys that are guaranteed to produce distinct hashes
 numberOfPrivateChoiceKeys :: [(Integer, Integer)] -> Integer
 numberOfPrivateChoiceKeys amts = ((product . map chooseSpread) amts) * ((mergeListsSpread . map snd) amts)
--- numberOfPrivateChoiceKeys = product . map chooseSpread
 
 -- Number of private keys that are guaranteed to produce distinct hashes
 numberOfPrivateShuffleKeys :: [Integer] -> Integer
@@ -183,7 +182,6 @@ numberOfRepetitions = numberOfPrivateShuffleKeys
 numberOfPublicKeys :: [(Integer, Integer)] -> Integer
 numberOfPublicKeys = numberOfPrivateChoiceKeys
 
--- maxLengthOfPublicKey :: [Integer] -> Integer
 maxLengthOfPublicKey :: [(Integer, Integer)] -> Integer
 maxLengthOfPublicKey amts = getBiggestPower 0 $ (len . show) (numberOfPublicKeys amts)
     where
