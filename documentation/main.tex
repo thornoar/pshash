@@ -36,11 +36,12 @@
 
 \thispagestyle{empty}
 \vspace*{.6in}
-{ \Huge\bfseries On rearrangement hashing with Haskell }\par
-\vspace*{.1in}
+{ \Huge\bfseries On rearrangement hashing }\par
+{ \Huge\bfseries with Haskell }\par
+\vspace*{.2in}
 { \Large Roman Maksimovich }
 \par
-\vspace*{3.5in}
+\vspace*{3.4in}
 { \Large\bfseries Abstract }\par
 \vspace*{.1in}
 \hrule
@@ -66,11 +67,11 @@
 The motivation behind the topic lies in the management of personal passwords. Nowadays, the average person requires tens of different passwords for different websites and services. Overall, one can distinguish between two ways of managing this set of passwords:
 
 \begin{itemize}
-    \item \textbf{Keeping everything in one's head.} This is a method employed by many, yet it inevitably leads to certain risks. First of all, in order to fit the passwords in memory, one will probably make them similar to each other, or at least have them follow a simple pattern like "[shortened name of website]+[fixed phrase]". As a result, if even one password is guessed or leaked, it will be almost trivial to retrieve most of the others, following the pattern. Furthermore, the passwords themselves will tend to be memorable and connected to one's personal life, which will make them easier to guess. There is, after all, a limit to one's imagination.
-    \item \textbf{Storing the passwords in a secure location.} Arguably, this is a better method, but there is a natural risk of this location being revealed, or of the passwords being lost, especially if they are stored physically on a piece of paper. Currently, various "password managers" are available, which are software programs that will create and store your passwords for you. It is usually unclear, however, how this software works and whether it can be trusted with one's potentially very sensitive passwords. After all, guessing the password to the password manager is enough to have all the other passwords exposed.
+    \item \textbf{Keeping everything in one's head.} This is a method employed by many, yet it inevitably leads to certain risks. First of all, in order to fit the passwords in memory, one will probably make them similar to each other, or at least have them follow a simple pattern like ``[shortened name of website]+[fixed phrase]''. As a result, if even one password is guessed or leaked, it will be almost trivial to retrieve most of the others, following the pattern. Furthermore, the passwords themselves will tend to be memorable and connected to one's personal life, which will make them easier to guess. There is, after all, a limit to one's imagination.
+    \item \textbf{Storing the passwords in a secure location.} Arguably, this is a better method, but there is a natural risk of this location being revealed, or of the passwords being lost, especially if they are stored physically on a piece of paper. Currently, various ``password managers'' are available, which are software programs that will create and store your passwords for you. It is usually unclear, however, how this software works and whether it can be trusted with one's potentially very sensitive passwords. After all, guessing the password to the password manager is enough to have all the other passwords exposed.
 \end{itemize}
 
-In this paper I suggest a way of doing neither of these things. The user will not know the passwords or have any connection to them whatsoever, and at the same time the passwords will not be stored anywhere, physically or digitally. In this system, every password is a cryptographic hash produced by a fixed hashing algorithm. The algorithm requires two inputs: one public key, i.e. the name of the website or service, and one (or more) private key, which is an arbitrary positive integer known only to the user. Every time when retrieving a password, the user will use the keys to re-create it from scratch. Therefore, in order to be reliable, the algorithm must be "pure", i.e. must always return the same output given the same input. Additionally, the algorithm must be robust enough so that, even if a hacker had full access to it and its working, they would still not be able to guess the user's private key or the passwords that it produces. These considerations naturally lead to exploring pure mathematical functions as hashing algorithms and implementing them in a functional programming language such as Haskell.
+In this paper I suggest a way of doing neither of these things. The user will not know the passwords or have any connection to them whatsoever, and at the same time the passwords will not be stored anywhere, physically or digitally. In this system, every password is a cryptographic hash produced by a fixed hashing algorithm. The algorithm requires two inputs: one public key, i.e. the name of the website or service, and one (or more) private key, which is an arbitrary positive integer known only to the user. Every time when retrieving a password, the user will use the keys to re-create it from scratch. Therefore, in order to be reliable, the algorithm must be ``pure'', i.e. must always return the same output given the same input. Additionally, the algorithm must be robust enough so that, even if a hacker had full access to it and its working, they would still not be able to guess the user's private key or the passwords that it produces. These considerations naturally lead to exploring pure mathematical functions as hashing algorithms and implementing them in a functional programming language such as Haskell.
 
 \section{The theory}
 
@@ -82,7 +83,7 @@ Symbols $ A $, $ B $, $ C $ will denote arbitrary sets (unless specified otherwi
 
 By $ E $ we will commonly understand a finite enumerated set of distinct elements, called a \emph{source}. When multiple sources $ E_0 $, $ E_1 $, ..., $ E_{N-1} $ are considered, we take none of them to share any elements between each other. In other words, their pair-wise intersections will be assumed to be empty.
 
-The symbol "$ \# $" will be used to describe the number of ways to make a combinatorial selection. For example, $ \#^m(E) $ is the number of ways to choose $ m $ elements from a source $ E $ with significant order.
+The symbol ``$ \# $'' will be used to describe the number of ways to make a combinatorial selection. For example, $ \#^m(E) $ is the number of ways to choose $ m $ elements from a source $ E $ with significant order.
 
 The expression $ [A] $ will denote the set of all ordered lists composed from elements of the set $ A $. We assume that all elements in a list are distinct. Every list can therefore be considered a source. The subset $ [A]_m \subset [A] $ will include only the lists of length $ m $. Extending the notation, we will define $ [A_0, A_1, ..., A_{N-1}] $ as the set of lists $ \alpha = [a_0, a_1, ..., a_{N-1}] $ of length $ N $ where the first element is from $ A_0 $, the second from $ A_1 $, and so on, until the last one from $ A_{N-1} $. Finally, if $ \alpha \in [A] $ and $ \beta \in [B] $, the list $ \alpha \dop \beta \in [A \cup B] $ will be the concatenation of lists $ \alpha $ and $ \beta $.
 
@@ -168,7 +169,7 @@ These properties make the choice function a fine candidate for a hash mapping. S
     $ E = \mbox{\texttt{"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789!@\#\$\%"}} $
 \end{center}
 
-The choice function gives us a way to enumerate all possible ways to select a sub-list from $ E $. What's more, these selections can be made more "random" and unpredictable by means of complicating the argument shift function $ T $. A reasonable practice is to set $ T(\lui{n}k) $ to the ASCII value of the character $ E \elt \lui{n}k $. This way, each chosen character will influence the choice of the next, creating what is called a "chaotic system", where its behavior is fully determined, but even small changes to inputs eventually produce large changes in the output. Here is a little input-output table for the choice function of order 10 with the specified source and shift function:
+The choice function gives us a way to enumerate all possible ways to select a sub-list from $ E $. What is more, these selections can be made more ``random'' and unpredictable by means of complicating the argument shift function $ T $. A reasonable practice is to set $ T(\lui{n}k) $ to the ASCII value of the character $ E \elt \lui{n}k $. This way, each chosen character will influence the choice of the next, creating what is called a ``chaotic system'', where its behavior is fully determined, but even small changes to inputs eventually produce large changes in the output. Here is a little input-output table for the choice function of order 10 with the specified source and shift function:
 
 \begin{center}
 \def\arraystretch{1.3}
@@ -198,7 +199,7 @@ There is, however, a serious problem. This selection method does not guarantee t
     In this context, the list $ \conf $ will be called a \emph{source configuration}.
 \end{definition}
 
-In other words, the elevated choice function is a "mapping" of the choice function over a list of sources, it selects a sub-list from every source and then composes the results in a list, which we will call a \emph{multiselection}. A trivial application of proposition \ref{map} shows that the spread of $ \CC(\conf, -) $ is at least
+In other words, the elevated choice function is a ``mapping'' of the choice function over a list of sources, it selects a sub-list from every source and then composes the results in a list, which we will call a \emph{multiselection}. A trivial application of proposition \ref{map} shows that the spread of $ \CC(\conf, -) $ is at least
 \begin{equation}\label{elspr}
     \prod\limits_{i = 0}^{N-1} \spr{\C^{m_i}(E_i, -)} = \prod\limits_{i = 0}^{N-1} (n_i \mid m_i)!
 \end{equation}
@@ -327,7 +328,7 @@ However, we still have one problem left: our current hash function is bijective,
     The hash function makes a multiselection from every source in the configuration, then merges them together with the merge function, and finally reshuffles the resulting list.
 \end{definition}
 
-Note that the term "hash" is used loosely here, as it may not adhere to the formal definition of a cryptographic hash. Still, such naming is somewhat justified, given that $ \H $ is designed to be a uniformly distributed encryption mapping that is very hard to invert. We will now discuss the properties of $ \H(\conf, k_1, k_2) $ for a given source configuration $ \conf $:
+Note that the term ``hash'' is used loosely here, as it may not adhere to the formal definition of a cryptographic hash. Still, such naming is somewhat justified, given that $ \H $ is designed to be a uniformly distributed encryption mapping that is very hard to invert. We will now discuss the properties of $ \H(\conf, k_1, k_2) $ for a given source configuration $ \conf $:
 
 \begin{itemize}
     \item \textbf{Injectivity.}
@@ -388,7 +389,7 @@ In this subsection, we will use a specific source configuration $ \conf $, parti
 
 Therefore, every password produced with this configuration will contain a total of 32 symbols, 10, 10, 6 and 6 from their respective categories.
 
-Now, let's imagine that you have inserted your two private keys into the function and got a password out of it. A sophisticated hacker sets their mind to crack your password whatever it takes. They are very smart and they have a supercomputer that can perform 1,000,000,000,000 password checks in a second, or one picosecond to check one password or key. What's more, they got their hands on the hash function and the configuration you use, so they can try to reverse-engineer your password.
+Now, let's imagine that you have inserted your two private keys into the function and got a password out of it. A sophisticated hacker sets their mind to crack your password whatever it takes. They are very smart and they have a supercomputer that can perform 1,000,000,000,000 password checks in a second, or one picosecond to check one password or key. What is more, they got their hands on the hash function and the configuration you use, so they can try to reverse-engineer your password.
 
 First, they read into the configuration and see the structure of the password. They decide to brute-force it by checking every relevant combination of 30 symbols. Well, they will have to check $ \#^{\H}(\conf) $ combinations, which in our case equals exactly
 \[ \#^{\H}(\conf) = 1,440,574,799,825,106,857,997,997,293,535,752,397,195,837,440,000,000,000 \approx 10^{54}. \]
@@ -423,7 +424,7 @@ But anyway, how can \emph{you} get some of those hashes yourself?
 
 \subsection{A brief introduction to Haskell}
 
-Haskell, named after mathematician Haskell Curry, is one of the most renown functional programming languages. The term "functional" here refers to the following principles:
+Haskell, named after mathematician Haskell Curry, is one of the most renown functional programming languages. The term ``functional'' here refers to the following principles:
 
 \begin{itemize}
     \item \textbf{Function purity.} While in standard procedural languages a function is usually just a macro, i.e. a piece of code that can be run multiple times, in Haskell and other functional languages functions are understood mathematically. They are abstract and immutable objects that accept inputs and return outputs. They do not have access to any external variables that are not functions themselves. That property is called \emph{purity}.
@@ -434,7 +435,7 @@ It is obvious that the hashing algorithm, which is basically a mathematical func
 
 \subsection{The \texttt{pshash} program}
 
-\texttt{pshash} (from "password-hash") is the name of the implementation of the hash function described in the previous section. There is no front-end or GUI, it is only a command-line utility designed to be simple and lightweight. The source, written in Haskell, as well as the binaries of the program, are available at \url{https://github.com/thornoar/password-hash}. The code repeats the definitions explained in the previous section almost verbatim --- such is the benefit of functional programming.\\
+\texttt{pshash} (from ``password-hash'') is the name of the implementation of the hash function described in the previous section. There is no front-end or GUI, it is only a command-line utility designed to be simple and lightweight. The source, written in Haskell, as well as the binaries of the program, are available at \url{https://github.com/thornoar/password-hash}. The code repeats the definitions explained in the previous section almost verbatim --- such is the benefit of functional programming.\\
 
 The program accepts three arguments: the public key and two private keys, returning a hash using its builtin source configuration. On demand, the user may pass a different configuration as the first optional argument, but this is not recommended, since it will have to be done every time. Instead, it is suggested to download the source, change the default configuration in the code, and then compile it to a new executable. You can run \texttt{"pshash~--help"} to see all available options.\\
 
