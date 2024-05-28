@@ -1,4 +1,6 @@
 import Data.Char (ord)
+import Data.Map (Map, member, (!), empty, insert, singleton)
+-- import qualified Data.Map as Map
 import System.Environment (getArgs)
 
 -- ┌───────────────────────────┐
@@ -70,6 +72,15 @@ sourceNumbers = "1952074386"
 
 defaultConfiguration :: [([Char], Integer)]
 defaultConfiguration = [(sourceLower, 8), (sourceUpper, 8), (sourceSpecial, 5), (sourceNumbers, 4)]
+
+pinCodeConfiguration :: [([Char], Integer)]
+pinCodeConfiguration = [(sourceNumbers, 4)]
+
+longPinCodeConfiguration :: [([Char], Integer)]
+longPinCodeConfiguration = [(sourceNumbers, 8)]
+
+shortConfiguration :: [([Char], Integer)]
+shortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceSpecial, 4), (sourceNumbers, 4)]
 
 -- ┌───────────────────────────┐
 -- │ HASH GENERATING FUNCTIONS │
@@ -143,7 +154,7 @@ getPublicKey (c:cs) = (toInteger $ ord c) * (128 ^ (length cs)) + getPublicKey c
 breakAtPower :: String -> (String, String)
 breakAtPower s = (fst, snd')
     where
-    (fst, snd) = break (== '^') s
+    (fst, snd) = break (== '-') s
     snd' = if (0 == length snd) then snd else tail snd
 
 getPrivateKey :: String -> Integer
@@ -227,26 +238,32 @@ formatNumber num = reverse $ formatReversed (reverse num)
 -- │ USER INTERFACE │
 -- └────────────────┘
 
--- Prints help information
-helpAction :: String -> [(Integer, Integer)] -> IO ()
-helpAction cmd amts
-    | cmd == "--help" || cmd == "-h" = do
-        putStrLn "usage: pshash [[CONFIGURATION] --OPTION | PUBLIC CHOICE SHUFFLE]"
+-- Prints information
+infoAction :: String -> [(Integer, Integer)] -> IO ()
+infoAction cmd amts
+    | cmd == "help" = do
+        putStrLn "usage: pshash [--help | -[d|c|i] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
         putStrLn ""
         putStrLn "options:"
-        putStrLn "  -h, --help                      show this help message and exit"
-        putStrLn "  -n, --numbers [CONFIGURATION]   print the combinatorial information about the configuration"
-        putStrLn "  -t, --times [CONFIGURATION]     calculate the number of years required to crack your passwords"
+        putStrLn "  --help              show this help message and exit"
+        putStrLn "  -d KEYWORD          specify the default configuration. KEYWORD can be one of the following:"
+        putStrLn "                          pin (4-digit pin code)"
+        putStrLn "                          longpin (8-digit pin code)"
+        putStrLn "                          short (4 symbols of each type)"
+        putStrLn "  -c CONFIGURATION    specify the configuration manually"
+        putStrLn "  -i KEYWORD          show help information. KEYWORD can be one of the following:"
+        putStrLn "                          numbers (show the number of hashes and keys)"
+        putStrLn "                          times (show the times required to crack your passwords)"
+        putStrLn "                          help (show this help message)"
         putStrLn ""
-        putStrLn "arguments:"
-        putStrLn "  [CONFIGURATION] stands for a list of string-number pairs that defines the symbols used in hashes"
+        putStrLn "main arguments:"
         putStrLn "  PUBLIC stands for public key, a memorable string indicative of the password destination"
         putStrLn "  CHOICE stands for choice private key, one of 2 private keys known only to the user"
         putStrLn "  SHUFFLE stands for shuffle private key, used to encrypt the choice key"
         putStrLn ""
-        putStrLn "default configuration:"
+        putStrLn "default configuration (in the absence of -d or -c options):"
         putStrLn $ "  " ++ (show defaultConfiguration)
-    | cmd == "--numbers" || cmd == "-n" = do
+    | cmd == "numbers" = do
         putStrLn $ "total theoretical number of hashes:         " ++
             formatNumber (show $ numberOfHashes amts)
         putStrLn $ "number of choice keys:                      " ++
@@ -257,7 +274,7 @@ helpAction cmd amts
             formatNumber (show $ numberOfRepetitions $ map snd amts)
         putStrLn $ "total hash length:                          " ++ (show $ (sum . map snd) amts) ++ " symbols"
         putStrLn $ "maximum relevant length of the public key:  " ++ (show $ maxLengthOfPublicKey amts) ++ " symbols"
-    | cmd == "--times" || cmd == "-t" = do
+    | cmd == "times" = do
         putStrLn $ "assumed time to check one private key:      " ++ "1 picosecond = 10^(-12) s"
         putStrLn $ let (inY, inAoU) = timeToCrack $ numberOfHashes amts
                 in "time to brute-force your password:          " ++ formatNumber (show inY) ++ " years\n" ++
@@ -265,7 +282,7 @@ helpAction cmd amts
         putStrLn $ let (inY, inAoU) = timeToCrack $ numberOfRepetitions $ map snd amts
                 in "time to retrieve the keys based on a hash:  " ++ formatNumber (show inY) ++ " years\n" ++
                    "                                         or " ++ formatNumber (show inAoU) ++ " ages of the Universe"
-    | otherwise = putStrLn "error: help command not recognized"
+    | otherwise = putStrLn "error: info command not recognized"
 
 -- Prints the hash (password) given public and private strings and a hash configuration
 hashAction :: String -> String -> String -> [([Char], Integer)] -> IO ()
@@ -278,19 +295,38 @@ hashAction publicStr pcs pss config = putStrLn $ getHash config privateChoiceKey
     privateShuffleKey :: Integer
     privateShuffleKey = getPrivateKey pss
 
+-- Parsing command line arguments
+parseArgs :: [String] -> (Bool,Bool,Bool) -> Map String String
+parseArgs [] _ = empty
+parseArgs ("-d":s:rest) trp = insert "default" s $ parseArgs rest trp
+parseArgs ("-c":s:rest) trp = insert "config" s $ parseArgs rest trp
+parseArgs ("-i":s:rest) trp = insert "info" s $ parseArgs rest trp
+parseArgs ("--help":rest) trp = insert "info" "help" $ parseArgs rest trp
+parseArgs (s:rest) (b1,b2,b3)
+    | b3 = parseArgs rest (b1,b2,b3)
+    | b2 = insert "shuffle" s $ parseArgs rest (True,True,True)
+    | b1 = insert "choice" s $ parseArgs rest (True,True,False)
+    | otherwise = insert "public" s $ parseArgs rest (True,False,False)
+
 -- The main process
 main :: IO ()
 main = do
     args <- getArgs
     let
+        parsedArgs :: Map String String
+        parsedArgs = if (0 == length args) then singleton "info" "help" else parseArgs args (False,False,False)
         config :: [([Char], Integer)]
-        config = if (elem (length args) [0,1,3]) then defaultConfiguration else read (args !! 0)
+        config = if (member "default" parsedArgs) then case (parsedArgs ! "default") of
+            "pin" -> pinCodeConfiguration
+            "longpin" -> longPinCodeConfiguration
+            "short" -> shortConfiguration
+            _ -> defaultConfiguration
+            else if (member "config" parsedArgs) then read (parsedArgs ! "config") else defaultConfiguration
         amts :: [(Integer, Integer)]
         amts = map dropElementInfo config
-    case (length args) of
-        0 -> helpAction "--help" []
-        1 -> helpAction (args !! 0) $ amts
-        2 -> helpAction (args !! 1) $ amts
-        3 -> hashAction (args !! 0) (args !! 1) (args !! 2) config
-        4 -> hashAction (args !! 1) (args !! 2) (args !! 3) config
-        _ -> putStrLn "error: too many arguments"
+    if (member "info" parsedArgs) then
+        infoAction (parsedArgs ! "info") amts
+    else
+        if (foldl (\acc s -> acc && member s parsedArgs) True ["public", "choice", "shuffle"])
+        then hashAction (parsedArgs ! "public") (parsedArgs ! "choice") (parsedArgs ! "shuffle") config
+        else putStrLn "error: not all keys are specified"
