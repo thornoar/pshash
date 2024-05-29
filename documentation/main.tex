@@ -47,7 +47,7 @@
 \hrule
 \vspace*{.1in}
 \begin{minipage}{0.9\textwidth}
-    In this paper I introduce and develop a mathematical method of producing a cryptographic hash of adjustable length, given a public key and a pair of private keys. The hashing is done through encoding selections and permutations with natural numbers, and then composing the hash from a set of source strings with respect to the permutations encoded by the keys. The attempts to construct a suitable integer-to-selection mapping lead to interesting mathematical definitions and statements, which are discussed in this paper and applied to give bounds on the reliability of the hashing algorithm. An implementation is provided in the Haskell programming language (source and binary available at \url{https://github.com/thornoar/password-hash}) and applied in the setting of password creation.
+    In this paper I introduce and develop a mathematical method of producing a cryptographic hash of adjustable length, given a public key and a pair of private keys. The hashing is done through encoding selections and permutations with natural numbers, and then composing the hash from a set of source strings with respect to the permutations encoded by the keys. The attempts to construct a suitable integer-to-selection mapping lead to interesting mathematical definitions and statements, which are discussed in this paper and applied to give bounds on the reliability of the hashing algorithm. An implementation is provided in the Haskell programming language (source and binary available at \url{https://github.com/thornoar/pshash}) and applied in the setting of password creation.
 \end{minipage}
 \vspace*{.1in}
 \hrule
@@ -435,7 +435,7 @@ It is obvious that the hashing algorithm, which is basically a mathematical func
 
 \subsection{The \texttt{pshash} program}
 
-\texttt{pshash} (from ``password-hash'') is the name of the implementation of the hash function described in the previous section. There is no front-end or GUI, it is only a command-line utility designed to be simple and lightweight. The source, written in Haskell, as well as the binaries of the program, are available at \url{https://github.com/thornoar/password-hash}. The code repeats the definitions explained in the previous section almost verbatim --- such is the benefit of functional programming.\\
+\texttt{pshash} (from ``password-hash'') is the name of the implementation of the hash function described in the previous section. There is no front-end or GUI, it is only a command-line utility designed to be simple and lightweight. The source, written in Haskell, as well as the binaries of the program, are available at \url{https://github.com/thornoar/pshash}. The code repeats the definitions explained in the previous section almost verbatim --- such is the benefit of functional programming.\\
 
 The program accepts three arguments: the public key and two private keys, returning a hash using its builtin source configuration. On demand, the user may pass a different configuration as the first optional argument, but this is not recommended, since it will have to be done every time. Instead, it is suggested to download the source, change the default configuration in the code, and then compile it to a new executable. You can run \texttt{"pshash~--help"} to see all available options.\\
 

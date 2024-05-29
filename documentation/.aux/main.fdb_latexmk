@@ -1,8 +1,8 @@
 # Fdb version 4
-["pdflatex"] 1716369762 "./main.tex" "main.pdf" "main" 1716369763 0
-  "./main.tex" 1716369757 43485 dce2e8d395ebf0caa6b3c5347c3ebb0d ""
-  ".aux/main.aux" 1716369762 8480 9c793ba7c0d4434311210d9be94d8b82 "pdflatex"
-  ".aux/main.toc" 1716369762 1326 6fb0e124b9ffcb97add47a112d42e1fc "pdflatex"
+["pdflatex"] 1717024915 "./main.tex" "main.pdf" "main" 1717024916 0
+  "./main.tex" 1717024914 43471 9f9e6e195579bb5730c162beffff5b8a ""
+  ".aux/main.aux" 1717024916 8480 9c793ba7c0d4434311210d9be94d8b82 "pdflatex"
+  ".aux/main.toc" 1717024916 1326 6fb0e124b9ffcb97add47a112d42e1fc "pdflatex"
   "/home/ramak/projects/LaTeX-libraries/Graphics.tex" 1711765920 594 c926ead8c5f949a4b468256d6360e479 ""
   "/home/ramak/projects/LaTeX-libraries/Math.tex" 1711765920 9331 53de1034def1fe343cb62832c5d5dbec ""
   "/home/ramak/projects/LaTeX-libraries/Text.tex" 1712425319 1614 4ce7121a4c478c0d98f06484f8cf658d ""
@@ -252,7 +252,7 @@
   "/nix/store/sbn2h0v7vbsg8g6jqwh9m7i9wbrv9q78-texlive-combined-full-2022-final-texmfdist/tex/latex/xifthen/xifthen.sty" 1 5689 1bfa68243e89a54479e7d0580773c57e ""
   "figures/hash.pdf" 1713621839 16523 470074c67f18518beaf3984de40a2703 ""
   "figures/haskell.png" 1713621839 2576 7980f12609cdd78372c2055b90e19746 ""
-  "main.tex" 1716369757 43485 dce2e8d395ebf0caa6b3c5347c3ebb0d ""
+  "main.tex" 1717024914 43471 9f9e6e195579bb5730c162beffff5b8a ""
   (generated)
   ".aux/main.aux"
   ".aux/main.log"
