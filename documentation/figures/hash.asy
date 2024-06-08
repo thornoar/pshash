@@ -1,8 +1,8 @@
 size(x = 7.3 inches);
-settings.outformat = 'pdf';
+settings.outformat = 'svg';
 import export;
-// import smoothmanifold;
-//|return|[../main.tex]
+
+usepackage("euscript");
 
 // smpar(help = true, gridnumber = 10);
 smpar(arrowmargin = .3, gaplength = .4);
@@ -32,7 +32,7 @@ for (int i = 0; i < sizes.length; ++i)
 }
 
 for (int i = 0; i < sources.length; ++i)
-{ draw(sources[i], smoothfill = colors[i]+opacity(op)); }
+{ draw(sources[i], dpar(smoothfill = colors[i]+opacity(op))); }
 
 for (int i = 0; i < sources.length-1; ++i)
 {
@@ -58,7 +58,7 @@ for (int i = 0; i < sizes2.length; ++i)
 }
 
 for (int i = 0; i < selections.length; ++i)
-{ draw(selections[i], smoothfill = colors[i]+opacity(op)); }
+{ draw(selections[i], dpar(smoothfill = colors[i]+opacity(op))); }
 
 for (int i = 0; i < selections.length-1; ++i)
 {
@@ -105,7 +105,7 @@ for (int i = 0; i < merged.length; ++i)
 
 int[] refs = i(2,0,6,1,3,9,4,7,5,8);
 for (int i = 0; i < merged.length; ++i)
-{ draw(merged[i], smoothfill = getcolor(refs[i])+opacity(op)); }
+{ draw(merged[i], dpar(smoothfill = getcolor(refs[i])+opacity(op))); }
 
 pair[][] points = {
      p((11.8, -10.2))
@@ -136,7 +136,7 @@ for (int i = 0; i < shuffled.length; ++i)
 }
 
 for (int i = 0; i < shuffled.length; ++i)
-{ draw(shuffled[i], smoothfill = getcolor(refs[refs2[i]])+opacity(op)); }
+{ draw(shuffled[i], dpar(smoothfill = getcolor(refs[refs2[i]])+opacity(op))); }
 
 pair[][] points2 = {
      p((13.5, -18.4))
@@ -160,10 +160,10 @@ for (int i = 0; i < points2.length; ++i)
 
 shift0 -= distance;
 shift0 -= (0,r);
-draw(shift0--(shift0+(0,shift2.y-shift0.y+r)), dashed, L = Label("$\mathcal{M}\mathcal{C}(\mathfrak{L}, k_1)$", align = 2*E), bar = Bars());
+draw(shift0--(shift0+(0,shift2.y-shift0.y+r)), dashed, L = Label("$\EuScript{M}\EuScript{C}(\mathfrak{L}, k_1)$", align = 2*E), bar = Bars());
 
 shift2 -= (0,r);
 shift2 = (shift0.x, shift2.y);
-draw(shift2--(shift2+(0,shift3.y-shift2.y+r)), dashed, L = Label("$\mathcal{S}(\alpha, k_2)$", align = 2*E), bar = Bars());
+draw(shift2--(shift2+(0,shift3.y-shift2.y+r)), dashed, L = Label("$\mathit{\EuScript{S}}(\alpha, k_2)$", align = 2*E), bar = Bars());
 
-export(margin = 1cm);
+export(margin = 0.5cm);
