@@ -14,8 +14,10 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 // Local definitions
 #show: shorthands.with(
   ($++$, math.union.plus),
-  ($!!$, { h(2pt); math.excl; h(2pt) }),
-  ($::$, { h(2pt); math.colon; h(2pt) }),
+  // ($!!$, { h(2pt); math.excl; h(2pt) }),
+  ($!!$, math.class("binary", [!])),
+  // ($::$, { h(2pt); math.colon; h(2pt) }),
+  ($::$, math.class("binary", [:])),
 )
 #let ch = math.cal([C])
 #let mg = math.cal([M])
@@ -26,7 +28,7 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 #let shuf = math.cal([S])
 #let oval = math.overline(math.alpha)
 #let conf = math.frak([L])
-#let lui(n) = $""^#n #h(-1pt)$
+#let lui(n) = $""^#n #h(-1.5pt)$
 #let lli(n) = [#move(dy:-2pt, $""_#n$) #h(-1pt)]
 #let lun = lui([n])
 #let lln = lli([n])
