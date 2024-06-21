@@ -7,7 +7,7 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 // Library imports
 #import "@local/common:0.0.0": *
 #import "@local/templates:0.0.0": *
-#show: preamble()
+#show: article()
 #import "@local/theorem:0.0.0": *
 #show: theorem
 
