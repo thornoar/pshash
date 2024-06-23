@@ -1,6 +1,5 @@
 import Data.Char (ord)
 import Data.Map (Map, member, (!), empty, insert, singleton)
--- import qualified Data.Map as Map
 import System.Environment (getArgs)
 
 -- ┌───────────────────────────┐
@@ -9,7 +8,7 @@ import System.Environment (getArgs)
 
 factorial :: Integer -> Integer
 factorial 0 = 1
-factorial n = n * (factorial (n-1))
+factorial n = n * factorial (n-1)
 
 factorial' :: Integer -> Integer -> Integer
 factorial' n 1 = n
@@ -30,7 +29,7 @@ class Shifting a where
 
 -- Extending the Shifting typeclass on lists
 instance (Shifting a) => Shifting [a] where
-    shift = sum . (map shift)
+    shift = sum . map shift
 
 -- Characters shift keys by their ACSII values, amplified
 instance Shifting Char where
@@ -45,7 +44,7 @@ mapHashing f spr (a:as) key = b : mapHashing f spr as nextKey
     nextKey = keyDiv + shift b
 
 composeHashing :: (a -> Integer -> b) -> (b -> Integer -> c) -> (a -> Integer -> Integer -> c)
-composeHashing f g a key1 key2 = g (f a key1) key2
+composeHashing f g a key1 = g (f a key1)
 
 composeHashing' :: (Shifting b) => (a -> Integer -> b) -> (a -> Integer) -> (b -> Integer -> c) -> (a -> Integer -> c)
 composeHashing' f spr g a key = g b nextKey
@@ -90,7 +89,7 @@ shortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceSpecial, 4), (s
 chooseOrdered :: (Eq a, Shifting a) => ([a], Integer) -> Integer -> [a]
 chooseOrdered (_, 0) _ = []
 chooseOrdered ([], _) _ = []
-chooseOrdered (src, m) key  = curElt : chooseOrdered (filter (\e -> e /= curElt) src, m-1) nextKey
+chooseOrdered (src, m) key  = curElt : chooseOrdered (filter (/= curElt) src, m-1) nextKey
     where
     (keyDiv, keyMod) = divMod key $ len src
     curElt = src !! fromIntegral keyMod
@@ -106,10 +105,10 @@ mergeTwoLists [] lst2 _ = lst2
 mergeTwoLists lst1 [] _ = lst1
 mergeTwoLists lst1 lst2 key
     | curKey < spr1 =
-        let elt = (head lst1)
+        let elt = head lst1
         in elt : mergeTwoLists (tail lst1) lst2 (curKey + shift elt)
     | otherwise =
-        let elt = (head lst2)
+        let elt = head lst2
         in elt : mergeTwoLists lst1 (tail lst2) (curKey - spr1 + shift elt)
     where
     mergeTwoBoundary :: Integer -> Integer -> Integer
@@ -140,7 +139,7 @@ getHash :: (Eq a, Shifting a) => [([a], Integer)] -> Integer -> Integer -> [a]
 getHash = composeHashing getChoiceAndMerge shuffleList
     where
     shuffleList :: (Eq a, Shifting a) => [a] -> Integer -> [a]
-    shuffleList src key = chooseOrdered (src, len src) key
+    shuffleList src = chooseOrdered (src, len src)
 
 -- ┌──────────────┐
 -- │ READING KEYS │
@@ -149,13 +148,13 @@ getHash = composeHashing getChoiceAndMerge shuffleList
 -- Convert a string to a public key by using the base-128 number system.
 getPublicKey :: String -> Integer
 getPublicKey "" = 0
-getPublicKey (c:cs) = (toInteger $ ord c) * (128 ^ (length cs)) + getPublicKey cs
+getPublicKey (c:cs) = toInteger (ord c) * (128 ^ length cs) + getPublicKey cs
 
 breakAtPower :: String -> (String, String)
 breakAtPower s = (fst, snd')
     where
     (fst, snd) = break (== '-') s
-    snd' = if (0 == length snd) then snd else tail snd
+    snd' = if null snd then snd else tail snd
 
 getPrivateKey :: String -> Integer
 getPrivateKey s = base ^ pow
@@ -164,7 +163,7 @@ getPrivateKey s = base ^ pow
     base :: Integer
     base = read baseStr
     pow :: Integer
-    pow = if (0 == length powStr) then 1 else read powStr
+    pow = if null powStr then 1 else read powStr
 
 -- ┌──────────────────┐
 -- │ COUNTING NUMBERS │
@@ -172,7 +171,7 @@ getPrivateKey s = base ^ pow
 
 -- Total theoretical number of distinct hash sequences arising from given source list
 numberOfHashes :: [(Integer, Integer)] -> Integer
-numberOfHashes amts = (product $ zipWith cnk fsts snds) * (factorial $ sum snds)
+numberOfHashes amts = product (zipWith cnk fsts snds) * factorial (sum snds)
     where
     fsts = map fst amts
     snds = map snd amts
@@ -206,7 +205,7 @@ maxLengthOfPublicKey amts = getBiggestPower 0 $ (len . show) (numberOfPublicKeys
             | otherwise = 3
     getBiggestPower :: Integer -> Integer -> Integer
     getBiggestPower guess bound
-        | (get128PowerLength $ guess + 1) < bound = getBiggestPower (guess + 1) bound
+        | get128PowerLength (guess + 1) < bound = getBiggestPower (guess + 1) bound
         | otherwise = guess + 1
 
 -- time to check one password, in picoseconds
@@ -224,7 +223,7 @@ ageOfUniverse = 13.787E9
 timeToCrack :: Integer -> (Integer, Integer)
 timeToCrack num = (floor inYears, floor inAgesOfUniverse)
     where
-    inYears = (fromIntegral num) * timeToCheck / psInYear
+    inYears = (timeToCheck / psInYear) * fromIntegral num
     inAgesOfUniverse = inYears / ageOfUniverse
 
 formatNumber :: String -> String
@@ -262,7 +261,7 @@ infoAction cmd amts
         putStrLn "  SHUFFLE stands for shuffle private key, used to encrypt the choice key"
         putStrLn ""
         putStrLn "default configuration (in the absence of -d or -c options):"
-        putStrLn $ "  " ++ (show defaultConfiguration)
+        putStrLn $ "  " ++ show defaultConfiguration
     | cmd == "numbers" = do
         putStrLn $ "total theoretical number of hashes:         " ++
             formatNumber (show $ numberOfHashes amts)
@@ -314,19 +313,21 @@ main = do
     args <- getArgs
     let
         parsedArgs :: Map String String
-        parsedArgs = if (0 == length args) then singleton "info" "help" else parseArgs args (False,False,False)
+        parsedArgs = if null args then singleton "info" "help" else parseArgs args (False,False,False)
         config :: [([Char], Integer)]
-        config = if (member "default" parsedArgs) then case (parsedArgs ! "default") of
-            "pin" -> pinCodeConfiguration
-            "longpin" -> longPinCodeConfiguration
-            "short" -> shortConfiguration
-            _ -> defaultConfiguration
-            else if (member "config" parsedArgs) then read (parsedArgs ! "config") else defaultConfiguration
+        config
+          | member "default" parsedArgs = case (parsedArgs ! "default") of
+              "pin" -> pinCodeConfiguration
+              "longpin" -> longPinCodeConfiguration
+              "short" -> shortConfiguration
+              _ -> defaultConfiguration
+          | member "config" parsedArgs = read (parsedArgs ! "config")
+          | otherwise = defaultConfiguration
         amts :: [(Integer, Integer)]
         amts = map dropElementInfo config
-    if (member "info" parsedArgs) then
+    if member "info" parsedArgs then
         infoAction (parsedArgs ! "info") amts
     else
-        if (foldl (\acc s -> acc && member s parsedArgs) True ["public", "choice", "shuffle"])
+        if foldl (\acc s -> acc && member s parsedArgs) True ["public", "choice", "shuffle"]
         then hashAction (parsedArgs ! "public") (parsedArgs ! "choice") (parsedArgs ! "shuffle") config
         else putStrLn "error: not all keys are specified"
