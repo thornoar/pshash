@@ -1,5 +1,5 @@
 import Data.Char (ord)
-import Data.Map (Map, member, (!), empty, insert, singleton)
+import Data.Map (Map, empty, insert, member, singleton, (!))
 import System.Environment (getArgs)
 
 -- ┌───────────────────────────┐
@@ -8,7 +8,7 @@ import System.Environment (getArgs)
 
 factorial :: Integer -> Integer
 factorial 0 = 1
-factorial n = n * factorial (n-1)
+factorial n = n * factorial (n - 1)
 
 factorial' :: Integer -> Integer -> Integer
 factorial' n 1 = n
@@ -25,20 +25,20 @@ dropElementInfo (src, m) = (len src, m)
 
 -- A typeclass that defines how elements act on integers for shifting the key in recursive calls
 class Shifting a where
-    shift :: a -> Integer
+  shift :: a -> Integer
 
 -- Extending the Shifting typeclass on lists
 instance (Shifting a) => Shifting [a] where
-    shift = sum . map shift
+  shift = sum . map shift
 
 -- Characters shift keys by their ACSII values, amplified
 instance Shifting Char where
-    shift = toInteger . ord
+  shift = toInteger . ord
 
 mapHashing :: (Shifting b) => (a -> Integer -> b) -> (a -> Integer) -> ([a] -> Integer -> [b])
 mapHashing _ _ [] _ = []
-mapHashing f spr (a:as) key = b : mapHashing f spr as nextKey
-    where
+mapHashing f spr (a : as) key = b : mapHashing f spr as nextKey
+  where
     (keyDiv, keyMod) = divMod key $ spr a
     b = f a keyMod
     nextKey = keyDiv + shift b
@@ -48,7 +48,7 @@ composeHashing f g a key1 = g (f a key1)
 
 composeHashing' :: (Shifting b) => (a -> Integer -> b) -> (a -> Integer) -> (b -> Integer -> c) -> (a -> Integer -> c)
 composeHashing' f spr g a key = g b nextKey
-    where
+  where
     (keyDiv, keyMod) = divMod key $ spr a
     b = f a keyMod
     nextKey = keyDiv + shift b
@@ -89,8 +89,8 @@ shortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceSpecial, 4), (s
 chooseOrdered :: (Eq a, Shifting a) => ([a], Integer) -> Integer -> [a]
 chooseOrdered (_, 0) _ = []
 chooseOrdered ([], _) _ = []
-chooseOrdered (src, m) key  = curElt : chooseOrdered (filter (/= curElt) src, m-1) nextKey
-    where
+chooseOrdered (src, m) key = curElt : chooseOrdered (filter (/= curElt) src, m - 1) nextKey
+  where
     (keyDiv, keyMod) = divMod key $ len src
     curElt = src !! fromIntegral keyMod
     nextKey = keyDiv + shift curElt
@@ -104,13 +104,13 @@ mergeTwoLists :: (Shifting a) => [a] -> [a] -> Integer -> [a]
 mergeTwoLists [] lst2 _ = lst2
 mergeTwoLists lst1 [] _ = lst1
 mergeTwoLists lst1 lst2 key
-    | curKey < spr1 =
-        let elt = head lst1
-        in elt : mergeTwoLists (tail lst1) lst2 (curKey + shift elt)
-    | otherwise =
-        let elt = head lst2
-        in elt : mergeTwoLists lst1 (tail lst2) (curKey - spr1 + shift elt)
-    where
+  | curKey < spr1 =
+      let elt = head lst1
+       in elt : mergeTwoLists (tail lst1) lst2 (curKey + shift elt)
+  | otherwise =
+      let elt = head lst2
+       in elt : mergeTwoLists lst1 (tail lst2) (curKey - spr1 + shift elt)
+  where
     mergeTwoBoundary :: Integer -> Integer -> Integer
     mergeTwoBoundary m1 m2 = div (factorial (m1 + m2)) (factorial m1 * factorial m2)
     spr1 = mergeTwoBoundary (len lst1 - 1) (len lst2)
@@ -121,9 +121,9 @@ mergeTwoLists lst1 lst2 key
 mergeLists :: (Shifting a) => [[a]] -> Integer -> [a]
 mergeLists [] _ = []
 mergeLists [l] _ = l
-mergeLists [l1,l2] key = mergeTwoLists l1 l2 key
-mergeLists (l:ls) key = mergeTwoLists l (mergeLists ls keyMod) nextKey
-    where
+mergeLists [l1, l2] key = mergeTwoLists l1 l2 key
+mergeLists (l : ls) key = mergeTwoLists l (mergeLists ls keyMod) nextKey
+  where
     (keyDiv, keyMod) = divMod key $ mergeListsSpread $ map len ls
     nextKey = keyDiv + shift l
 
@@ -131,13 +131,14 @@ mergeListsSpread :: [Integer] -> Integer
 mergeListsSpread amts = div (factorial $ sum amts) (product $ map factorial amts)
 
 getChoiceAndMerge :: (Eq a, Shifting a) => [([a], Integer)] -> Integer -> [a]
-getChoiceAndMerge = let chooseSpread' = chooseSpread . dropElementInfo in
-    composeHashing' (mapHashing chooseOrdered chooseSpread') (product . map chooseSpread') mergeLists
+getChoiceAndMerge =
+  let chooseSpread' = chooseSpread . dropElementInfo
+   in composeHashing' (mapHashing chooseOrdered chooseSpread') (product . map chooseSpread') mergeLists
 
 -- Get a hash sequence from a key and a source configuration
 getHash :: (Eq a, Shifting a) => [([a], Integer)] -> Integer -> Integer -> [a]
 getHash = composeHashing getChoiceAndMerge shuffleList
-    where
+  where
     shuffleList :: (Eq a, Shifting a) => [a] -> Integer -> [a]
     shuffleList src = chooseOrdered (src, len src)
 
@@ -148,17 +149,17 @@ getHash = composeHashing getChoiceAndMerge shuffleList
 -- Convert a string to a public key by using the base-128 number system.
 getPublicKey :: String -> Integer
 getPublicKey "" = 0
-getPublicKey (c:cs) = toInteger (ord c) * (128 ^ length cs) + getPublicKey cs
+getPublicKey (c : cs) = toInteger (ord c) * (128 ^ length cs) + getPublicKey cs
 
 breakAtPower :: String -> (String, String)
 breakAtPower s = (fst, snd')
-    where
+  where
     (fst, snd) = break (== '-') s
     snd' = if null snd then snd else tail snd
 
 getPrivateKey :: String -> Integer
 getPrivateKey s = base ^ pow
-    where
+  where
     (baseStr, powStr) = breakAtPower s
     base :: Integer
     base = read baseStr
@@ -172,7 +173,7 @@ getPrivateKey s = base ^ pow
 -- Total theoretical number of distinct hash sequences arising from given source list
 numberOfHashes :: [(Integer, Integer)] -> Integer
 numberOfHashes amts = product (zipWith cnk fsts snds) * factorial (sum snds)
-    where
+  where
     fsts = map fst amts
     snds = map snd amts
 
@@ -194,19 +195,19 @@ numberOfPublicKeys = numberOfPrivateChoiceKeys
 
 maxLengthOfPublicKey :: [(Integer, Integer)] -> Integer
 maxLengthOfPublicKey amts = getBiggestPower 0 $ (len . show) (numberOfPublicKeys amts)
-    where
+  where
     get128PowerLength :: Integer -> Integer
-    get128PowerLength p = 2*p + 3 * pDiv + npMod
-        where
+    get128PowerLength p = 2 * p + 3 * pDiv + npMod
+      where
         (pDiv, pMod) = divMod p 28
         npMod
-            | pMod < 10 = 1
-            | pMod < 19 = 2
-            | otherwise = 3
+          | pMod < 10 = 1
+          | pMod < 19 = 2
+          | otherwise = 3
     getBiggestPower :: Integer -> Integer -> Integer
     getBiggestPower guess bound
-        | get128PowerLength (guess + 1) < bound = getBiggestPower (guess + 1) bound
-        | otherwise = guess + 1
+      | get128PowerLength (guess + 1) < bound = getBiggestPower (guess + 1) bound
+      | otherwise = guess + 1
 
 -- time to check one password, in picoseconds
 timeToCheck :: Double
@@ -222,15 +223,15 @@ ageOfUniverse = 13.787E9
 -- returns the time to conduct [input] operations, both in years and in ages of the Universe
 timeToCrack :: Integer -> (Integer, Integer)
 timeToCrack num = (floor inYears, floor inAgesOfUniverse)
-    where
+  where
     inYears = (timeToCheck / psInYear) * fromIntegral num
     inAgesOfUniverse = inYears / ageOfUniverse
 
 formatNumber :: String -> String
 formatNumber num = reverse $ formatReversed (reverse num)
-    where
+  where
     formatReversed :: String -> String
-    formatReversed (a:b:c:d:str) = a:b:c:',':formatReversed (d:str)
+    formatReversed (a : b : c : d : str) = a : b : c : ',' : formatReversed (d : str)
     formatReversed str = str
 
 -- ┌────────────────┐
@@ -240,53 +241,67 @@ formatNumber num = reverse $ formatReversed (reverse num)
 -- Prints information
 infoAction :: String -> [(Integer, Integer)] -> IO ()
 infoAction cmd amts
-    | cmd == "help" = do
-        putStrLn "usage: pshash [--help | -[d|c|i] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
-        putStrLn ""
-        putStrLn "options:"
-        putStrLn "  --help              show this help message and exit"
-        putStrLn "  -d KEYWORD          specify the default configuration. KEYWORD can be one of the following:"
-        putStrLn "                          pin (4-digit pin code)"
-        putStrLn "                          longpin (8-digit pin code)"
-        putStrLn "                          short (4 symbols of each type)"
-        putStrLn "  -c CONFIGURATION    specify the configuration manually"
-        putStrLn "  -i KEYWORD          show help information. KEYWORD can be one of the following:"
-        putStrLn "                          numbers (show the number of hashes and keys)"
-        putStrLn "                          times (show the times required to crack your passwords)"
-        putStrLn "                          help (show this help message)"
-        putStrLn ""
-        putStrLn "main arguments:"
-        putStrLn "  PUBLIC stands for public key, a memorable string indicative of the password destination"
-        putStrLn "  CHOICE stands for choice private key, one of 2 private keys known only to the user"
-        putStrLn "  SHUFFLE stands for shuffle private key, used to encrypt the choice key"
-        putStrLn ""
-        putStrLn "default configuration (in the absence of -d or -c options):"
-        putStrLn $ "  " ++ show defaultConfiguration
-    | cmd == "numbers" = do
-        putStrLn $ "total theoretical number of hashes:         " ++
-            formatNumber (show $ numberOfHashes amts)
-        putStrLn $ "number of choice keys:                      " ++
-            formatNumber (show $ numberOfPrivateChoiceKeys amts)
-        putStrLn $ "number of shuffle keys:                     " ++
-            formatNumber (show $ numberOfPrivateShuffleKeys $ map snd amts)
-        putStrLn $ "number of key pairs with the same hash:     " ++
-            formatNumber (show $ numberOfRepetitions $ map snd amts)
-        putStrLn $ "total hash length:                          " ++ (show $ (sum . map snd) amts) ++ " symbols"
-        putStrLn $ "maximum relevant length of the public key:  " ++ (show $ maxLengthOfPublicKey amts) ++ " symbols"
-    | cmd == "times" = do
-        putStrLn $ "assumed time to check one private key:      " ++ "1 picosecond = 10^(-12) s"
-        putStrLn $ let (inY, inAoU) = timeToCrack $ numberOfHashes amts
-                in "time to brute-force your password:          " ++ formatNumber (show inY) ++ " years\n" ++
-                   "                                         or " ++ formatNumber (show inAoU) ++ " ages of the Universe"
-        putStrLn $ let (inY, inAoU) = timeToCrack $ numberOfRepetitions $ map snd amts
-                in "time to retrieve the keys based on a hash:  " ++ formatNumber (show inY) ++ " years\n" ++
-                   "                                         or " ++ formatNumber (show inAoU) ++ " ages of the Universe"
-    | otherwise = putStrLn "error: info command not recognized"
+  | cmd == "help" = do
+      putStrLn "usage: pshash [--help | -[d|c|i] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
+      putStrLn ""
+      putStrLn "options:"
+      putStrLn "  --help              show this help message and exit"
+      putStrLn "  -d KEYWORD          specify the default configuration. KEYWORD can be one of the following:"
+      putStrLn "                          pin (4-digit pin code)"
+      putStrLn "                          longpin (8-digit pin code)"
+      putStrLn "                          short (4 symbols of each type)"
+      putStrLn "  -c CONFIGURATION    specify the configuration manually"
+      putStrLn "  -i KEYWORD          show help information. KEYWORD can be one of the following:"
+      putStrLn "                          numbers (show the number of hashes and keys)"
+      putStrLn "                          times (show the times required to crack your passwords)"
+      putStrLn "                          help (show this help message)"
+      putStrLn ""
+      putStrLn "main arguments:"
+      putStrLn "  PUBLIC stands for public key, a memorable string indicative of the password destination"
+      putStrLn "  CHOICE stands for choice private key, one of 2 private keys known only to the user"
+      putStrLn "  SHUFFLE stands for shuffle private key, used to encrypt the choice key"
+      putStrLn ""
+      putStrLn "default configuration (in the absence of -d or -c options):"
+      putStrLn $ "  " ++ show defaultConfiguration
+  | cmd == "numbers" = do
+      putStrLn $
+        "total theoretical number of hashes:         "
+          ++ formatNumber (show $ numberOfHashes amts)
+      putStrLn $
+        "number of choice keys:                      "
+          ++ formatNumber (show $ numberOfPrivateChoiceKeys amts)
+      putStrLn $
+        "number of shuffle keys:                     "
+          ++ formatNumber (show $ numberOfPrivateShuffleKeys $ map snd amts)
+      putStrLn $
+        "number of key pairs with the same hash:     "
+          ++ formatNumber (show $ numberOfRepetitions $ map snd amts)
+      putStrLn $ "total hash length:                          " ++ (show $ (sum . map snd) amts) ++ " symbols"
+      putStrLn $ "maximum relevant length of the public key:  " ++ (show $ maxLengthOfPublicKey amts) ++ " symbols"
+  | cmd == "times" = do
+      putStrLn $ "assumed time to check one private key:      " ++ "1 picosecond = 10^(-12) s"
+      putStrLn $
+        let (inY, inAoU) = timeToCrack $ numberOfHashes amts
+         in "time to brute-force your password:          "
+              ++ formatNumber (show inY)
+              ++ " years\n"
+              ++ "                                         or "
+              ++ formatNumber (show inAoU)
+              ++ " ages of the Universe"
+      putStrLn $
+        let (inY, inAoU) = timeToCrack $ numberOfRepetitions $ map snd amts
+         in "time to retrieve the keys based on a hash:  "
+              ++ formatNumber (show inY)
+              ++ " years\n"
+              ++ "                                         or "
+              ++ formatNumber (show inAoU)
+              ++ " ages of the Universe"
+  | otherwise = putStrLn "error: info command not recognized"
 
 -- Prints the hash (password) given public and private strings and a hash configuration
 hashAction :: String -> String -> String -> [([Char], Integer)] -> IO ()
 hashAction publicStr pcs pss config = putStrLn $ getHash config privateChoiceKey privateShuffleKey
-    where
+  where
     publicKey :: Integer
     publicKey = getPublicKey publicStr
     privateChoiceKey :: Integer
@@ -295,39 +310,38 @@ hashAction publicStr pcs pss config = putStrLn $ getHash config privateChoiceKey
     privateShuffleKey = getPrivateKey pss
 
 -- Parsing command line arguments
-parseArgs :: [String] -> (Bool,Bool,Bool) -> Map String String
+parseArgs :: [String] -> (Bool, Bool, Bool) -> Map String String
 parseArgs [] _ = empty
-parseArgs ("-d":s:rest) trp = insert "default" s $ parseArgs rest trp
-parseArgs ("-c":s:rest) trp = insert "config" s $ parseArgs rest trp
-parseArgs ("-i":s:rest) trp = insert "info" s $ parseArgs rest trp
-parseArgs ("--help":rest) trp = insert "info" "help" $ parseArgs rest trp
-parseArgs (s:rest) (b1,b2,b3)
-    | b3 = parseArgs rest (b1,b2,b3)
-    | b2 = insert "shuffle" s $ parseArgs rest (True,True,True)
-    | b1 = insert "choice" s $ parseArgs rest (True,True,False)
-    | otherwise = insert "public" s $ parseArgs rest (True,False,False)
+parseArgs ("-d" : s : rest) trp = insert "default" s $ parseArgs rest trp
+parseArgs ("-c" : s : rest) trp = insert "config" s $ parseArgs rest trp
+parseArgs ("-i" : s : rest) trp = insert "info" s $ parseArgs rest trp
+parseArgs ("--help" : rest) trp = insert "info" "help" $ parseArgs rest trp
+parseArgs (s : rest) (b1, b2, b3)
+  | b3 = parseArgs rest (b1, b2, b3)
+  | b2 = insert "shuffle" s $ parseArgs rest (True, True, True)
+  | b1 = insert "choice" s $ parseArgs rest (True, True, False)
+  | otherwise = insert "public" s $ parseArgs rest (True, False, False)
 
 -- The main process
 main :: IO ()
 main = do
-    args <- getArgs
-    let
-        parsedArgs :: Map String String
-        parsedArgs = if null args then singleton "info" "help" else parseArgs args (False,False,False)
-        config :: [([Char], Integer)]
-        config
-          | member "default" parsedArgs = case (parsedArgs ! "default") of
-              "pin" -> pinCodeConfiguration
-              "longpin" -> longPinCodeConfiguration
-              "short" -> shortConfiguration
-              _ -> defaultConfiguration
-          | member "config" parsedArgs = read (parsedArgs ! "config")
-          | otherwise = defaultConfiguration
-        amts :: [(Integer, Integer)]
-        amts = map dropElementInfo config
-    if member "info" parsedArgs then
-        infoAction (parsedArgs ! "info") amts
+  args <- getArgs
+  let parsedArgs :: Map String String
+      parsedArgs = if null args then singleton "info" "help" else parseArgs args (False, False, False)
+      config :: [([Char], Integer)]
+      config
+        | member "default" parsedArgs = case (parsedArgs ! "default") of
+            "pin" -> pinCodeConfiguration
+            "longpin" -> longPinCodeConfiguration
+            "short" -> shortConfiguration
+            _ -> defaultConfiguration
+        | member "config" parsedArgs = read (parsedArgs ! "config")
+        | otherwise = defaultConfiguration
+      amts :: [(Integer, Integer)]
+      amts = map dropElementInfo config
+  if member "info" parsedArgs
+    then infoAction (parsedArgs ! "info") amts
     else
-        if foldl (\acc s -> acc && member s parsedArgs) True ["public", "choice", "shuffle"]
+      if foldl (\acc s -> acc && member s parsedArgs) True ["public", "choice", "shuffle"]
         then hashAction (parsedArgs ! "public") (parsedArgs ! "choice") (parsedArgs ! "shuffle") config
         else putStrLn "error: not all keys are specified"
