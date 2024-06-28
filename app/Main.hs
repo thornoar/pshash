@@ -1,3 +1,5 @@
+module Main where
+
 import Data.Char (ord)
 import Data.Map (Map, empty, insert, member, singleton, (!))
 import System.Environment (getArgs)
@@ -152,10 +154,10 @@ getPublicKey "" = 0
 getPublicKey (c : cs) = toInteger (ord c) * (128 ^ length cs) + getPublicKey cs
 
 breakAtPower :: String -> (String, String)
-breakAtPower s = (fst, snd')
+breakAtPower s = (s1, s2')
   where
-    (fst, snd) = break (== '-') s
-    snd' = if null snd then snd else tail snd
+    (s1, s2) = break (== '-') s
+    s2' = if null s2 then s2 else tail s2
 
 getPrivateKey :: String -> Integer
 getPrivateKey s = base ^ pow
@@ -179,7 +181,7 @@ numberOfHashes amts = product (zipWith cnk fsts snds) * factorial (sum snds)
 
 -- Number of private keys that are guaranteed to produce distinct hashes
 numberOfPrivateChoiceKeys :: [(Integer, Integer)] -> Integer
-numberOfPrivateChoiceKeys amts = ((product . map chooseSpread) amts) * ((mergeListsSpread . map snd) amts)
+numberOfPrivateChoiceKeys amts = (product . map chooseSpread) amts * (mergeListsSpread . map snd) amts
 
 -- Number of private keys that are guaranteed to produce distinct hashes
 numberOfPrivateShuffleKeys :: [Integer] -> Integer
@@ -276,8 +278,8 @@ infoAction cmd amts
       putStrLn $
         "number of key pairs with the same hash:     "
           ++ formatNumber (show $ numberOfRepetitions $ map snd amts)
-      putStrLn $ "total hash length:                          " ++ (show $ (sum . map snd) amts) ++ " symbols"
-      putStrLn $ "maximum relevant length of the public key:  " ++ (show $ maxLengthOfPublicKey amts) ++ " symbols"
+      putStrLn $ "total hash length:                          " ++ show ((sum . map snd) amts) ++ " symbols"
+      putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
   | cmd == "times" = do
       putStrLn $ "assumed time to check one private key:      " ++ "1 picosecond = 10^(-12) s"
       putStrLn $
@@ -330,7 +332,7 @@ main = do
       parsedArgs = if null args then singleton "info" "help" else parseArgs args (False, False, False)
       config :: [([Char], Integer)]
       config
-        | member "default" parsedArgs = case (parsedArgs ! "default") of
+        | member "default" parsedArgs = case parsedArgs ! "default" of
             "pin" -> pinCodeConfiguration
             "longpin" -> longPinCodeConfiguration
             "short" -> shortConfiguration
