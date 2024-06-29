@@ -25,15 +25,12 @@ len = toInteger . length
 dropElementInfo :: ([a], Integer) -> (Integer, Integer)
 dropElementInfo (src, m) = (len src, m)
 
--- A typeclass that defines how elements act on integers for shifting the key in recursive calls
 class Shifting a where
   shift :: a -> Integer
 
--- Extending the Shifting typeclass on lists
 instance (Shifting a) => Shifting [a] where
   shift = sum . map shift
 
--- Characters shift keys by their ACSII values, amplified
 instance Shifting Char where
   shift = toInteger . ord
 
@@ -87,7 +84,6 @@ shortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceSpecial, 4), (s
 -- │ HASH GENERATING FUNCTIONS │
 -- └───────────────────────────┘
 
--- Choose an ordered sequence of `m` elements from the list `src`.
 chooseOrdered :: (Eq a, Shifting a) => ([a], Integer) -> Integer -> [a]
 chooseOrdered (_, 0) _ = []
 chooseOrdered ([], _) _ = []
@@ -97,11 +93,9 @@ chooseOrdered (src, m) key = curElt : chooseOrdered (filter (/= curElt) src, m -
     curElt = src !! fromIntegral keyMod
     nextKey = keyDiv + shift curElt
 
--- On the integer segment from 0 to [this] the previous function is injective (in fact bijective)
 chooseSpread :: (Integer, Integer) -> Integer
 chooseSpread (n, m) = factorial' n m
 
--- Combine two lits into one, preserving the order of elements in each one
 mergeTwoLists :: (Shifting a) => [a] -> [a] -> Integer -> [a]
 mergeTwoLists [] lst2 _ = lst2
 mergeTwoLists lst1 [] _ = lst1
@@ -119,7 +113,6 @@ mergeTwoLists lst1 lst2 key
     spr2 = mergeTwoBoundary (len lst1) (len lst2 - 1)
     curKey = mod key (spr1 + spr2)
 
--- Extend the previous function on an arbitrary list of lists
 mergeLists :: (Shifting a) => [[a]] -> Integer -> [a]
 mergeLists [] _ = []
 mergeLists [l] _ = l
@@ -148,7 +141,6 @@ getHash = composeHashing getChoiceAndMerge shuffleList
 -- │ READING KEYS │
 -- └──────────────┘
 
--- Convert a string to a public key by using the base-128 number system.
 getPublicKey :: String -> Integer
 getPublicKey "" = 0
 getPublicKey (c : cs) = toInteger (ord c) * (128 ^ length cs) + getPublicKey cs
@@ -172,26 +164,21 @@ getPrivateKey s = base ^ pow
 -- │ COUNTING NUMBERS │
 -- └──────────────────┘
 
--- Total theoretical number of distinct hash sequences arising from given source list
 numberOfHashes :: [(Integer, Integer)] -> Integer
 numberOfHashes amts = product (zipWith cnk fsts snds) * factorial (sum snds)
   where
     fsts = map fst amts
     snds = map snd amts
 
--- Number of private keys that are guaranteed to produce distinct hashes
 numberOfPrivateChoiceKeys :: [(Integer, Integer)] -> Integer
 numberOfPrivateChoiceKeys amts = (product . map chooseSpread) amts * (mergeListsSpread . map snd) amts
 
--- Number of private keys that are guaranteed to produce distinct hashes
 numberOfPrivateShuffleKeys :: [Integer] -> Integer
 numberOfPrivateShuffleKeys = factorial . sum
 
--- Approximately [this] many keys will produce the same hash
 numberOfRepetitions :: [Integer] -> Integer
 numberOfRepetitions = numberOfPrivateShuffleKeys
 
--- Number of public keys that are guaranteed to produce distinct hashes
 numberOfPublicKeys :: [(Integer, Integer)] -> Integer
 numberOfPublicKeys = numberOfPrivateChoiceKeys
 
@@ -211,18 +198,15 @@ maxLengthOfPublicKey amts = getBiggestPower 0 $ (len . show) (numberOfPublicKeys
       | get128PowerLength (guess + 1) < bound = getBiggestPower (guess + 1) bound
       | otherwise = guess + 1
 
--- time to check one password, in picoseconds
 timeToCheck :: Double
 timeToCheck = 1.0
 
--- number of picoseconds in a year
 psInYear :: Double
 psInYear = 3.15576E19
 
 ageOfUniverse :: Double
 ageOfUniverse = 13.787E9
 
--- returns the time to conduct [input] operations, both in years and in ages of the Universe
 timeToCrack :: Integer -> (Integer, Integer)
 timeToCrack num = (floor inYears, floor inAgesOfUniverse)
   where
@@ -240,7 +224,6 @@ formatNumber num = reverse $ formatReversed (reverse num)
 -- │ USER INTERFACE │
 -- └────────────────┘
 
--- Prints information
 infoAction :: String -> [(Integer, Integer)] -> IO ()
 infoAction cmd amts
   | cmd == "help" = do
@@ -300,7 +283,6 @@ infoAction cmd amts
               ++ " ages of the Universe"
   | otherwise = putStrLn "error: info command not recognized"
 
--- Prints the hash (password) given public and private strings and a hash configuration
 hashAction :: String -> String -> String -> [([Char], Integer)] -> IO ()
 hashAction publicStr pcs pss config = putStrLn $ getHash config privateChoiceKey privateShuffleKey
   where
@@ -311,7 +293,6 @@ hashAction publicStr pcs pss config = putStrLn $ getHash config privateChoiceKey
     privateShuffleKey :: Integer
     privateShuffleKey = getPrivateKey pss
 
--- Parsing command line arguments
 parseArgs :: [String] -> (Bool, Bool, Bool) -> Map String String
 parseArgs [] _ = empty
 parseArgs ("-d" : s : rest) trp = insert "default" s $ parseArgs rest trp
@@ -324,7 +305,6 @@ parseArgs (s : rest) (b1, b2, b3)
   | b1 = insert "choice" s $ parseArgs rest (True, True, False)
   | otherwise = insert "public" s $ parseArgs rest (True, False, False)
 
--- The main process
 main :: IO ()
 main = do
   args <- getArgs
