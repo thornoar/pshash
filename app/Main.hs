@@ -1,7 +1,7 @@
 module Main where
 
 import Data.Char (ord)
-import Data.Map (Map, empty, insert, member, singleton, (!))
+import Data.Map (Map, empty, insert, member, (!))
 import System.Environment (getArgs)
 
 -- ┌───────────────────────────┐
@@ -309,7 +309,7 @@ main :: IO ()
 main = do
   args <- getArgs
   let parsedArgs :: Map String String
-      parsedArgs = if null args then singleton "info" "help" else parseArgs args (False, False, False)
+      parsedArgs = parseArgs args (False, False, False)
       config :: [([Char], Integer)]
       config
         | member "default" parsedArgs = case parsedArgs ! "default" of
@@ -321,9 +321,14 @@ main = do
         | otherwise = defaultConfiguration
       amts :: [(Integer, Integer)]
       amts = map dropElementInfo config
+  let getKey :: String -> IO String
+      getKey str = if member str parsedArgs
+                   then return $ parsedArgs ! str
+                   else getLine
   if member "info" parsedArgs
-    then infoAction (parsedArgs ! "info") amts
-    else
-      if foldl (\acc s -> acc && member s parsedArgs) True ["public", "choice", "shuffle"]
-        then hashAction (parsedArgs ! "public") (parsedArgs ! "choice") (parsedArgs ! "shuffle") config
-        else putStrLn "error: not all keys are specified"
+  then infoAction (parsedArgs ! "info") amts
+  else do
+    publicKey <- getKey "public"
+    choiceKey <- getKey "choice"
+    shuffleKey <- getKey "shuffle"
+    hashAction publicKey choiceKey shuffleKey config
