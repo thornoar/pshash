@@ -4,6 +4,9 @@ import Data.Char (ord)
 import Data.Map (Map, empty, insert, member, (!))
 import System.Environment (getArgs)
 
+currentVersion :: String
+currentVersion = "0.1.2.0"
+
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
 -- └───────────────────────────┘
@@ -71,14 +74,26 @@ sourceNumbers = "1952074386"
 defaultConfiguration :: [([Char], Integer)]
 defaultConfiguration = [(sourceLower, 8), (sourceUpper, 8), (sourceSpecial, 5), (sourceNumbers, 4)]
 
-pinCodeConfiguration :: [([Char], Integer)]
-pinCodeConfiguration = [(sourceNumbers, 4)]
-
-longPinCodeConfiguration :: [([Char], Integer)]
-longPinCodeConfiguration = [(sourceNumbers, 8)]
+mediumConfiguration :: [([Char], Integer)]
+mediumConfiguration = [(sourceLower, 5), (sourceUpper, 5), (sourceSpecial, 5), (sourceNumbers, 5)]
 
 shortConfiguration :: [([Char], Integer)]
 shortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceSpecial, 4), (sourceNumbers, 4)]
+
+anlongConfiguration :: [([Char], Integer)]
+anlongConfiguration = [(sourceLower, 7), (sourceUpper, 7), (sourceNumbers, 7)]
+
+anshortConfiguration :: [([Char], Integer)]
+anshortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceNumbers, 4)]
+
+pinCodeConfiguration :: [([Char], Integer)]
+pinCodeConfiguration = [(sourceNumbers, 4)]
+
+mediumPinCodeConfiguration :: [([Char], Integer)]
+mediumPinCodeConfiguration = [(sourceNumbers, 6)]
+
+longPinCodeConfiguration :: [([Char], Integer)]
+longPinCodeConfiguration = [(sourceNumbers, 8)]
 
 -- ┌───────────────────────────┐
 -- │ HASH GENERATING FUNCTIONS │
@@ -225,16 +240,21 @@ formatNumber num = reverse $ formatReversed (reverse num)
 -- └────────────────┘
 
 infoAction :: String -> [(Integer, Integer)] -> IO ()
-infoAction cmd amts
-  | cmd == "help" = do
-      putStrLn "usage: pshash [--help | -[d|c|i] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
+infoAction "help" _ = do
+      putStrLn "usage: pshash [--help | -[d|s|c|i] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
       putStrLn ""
       putStrLn "options:"
       putStrLn "  --help              show this help message and exit"
       putStrLn "  -d KEYWORD          specify the default configuration. KEYWORD can be one of the following:"
-      putStrLn "                          pin (4-digit pin code)"
-      putStrLn "                          longpin (8-digit pin code)"
+      putStrLn "                          long (8 upper case, 8 lower case, 5 special characters, 4 digits) -- the default"
+      putStrLn "                          medium (5 symbols of each type)"
       putStrLn "                          short (4 symbols of each type)"
+      putStrLn "                          anlong (7 upper case, 7 lower case, 7 digits)"
+      putStrLn "                          anshort (4 upper case, 4 lower case, 4 digits)"
+      putStrLn "                          pin (4-digit pin code)"
+      putStrLn "                          mediumpin (6-digit pin code)"
+      putStrLn "                          longpin (8-digit pin code)"
+      putStrLn "  -s \"(L, U, S, D)\"   specify how many Lower case, Upper case, Special characters, and Digits should be used"
       putStrLn "  -c CONFIGURATION    specify the configuration manually"
       putStrLn "  -i KEYWORD          show help information. KEYWORD can be one of the following:"
       putStrLn "                          numbers (show the number of hashes and keys)"
@@ -248,7 +268,8 @@ infoAction cmd amts
       putStrLn ""
       putStrLn "default configuration (in the absence of -d or -c options):"
       putStrLn $ "  " ++ show defaultConfiguration
-  | cmd == "numbers" = do
+infoAction "version" _ = putStrLn currentVersion
+infoAction "numbers" amts = do
       putStrLn $
         "total theoretical number of hashes:         "
           ++ formatNumber (show $ numberOfHashes amts)
@@ -263,7 +284,7 @@ infoAction cmd amts
           ++ formatNumber (show $ numberOfRepetitions $ map snd amts)
       putStrLn $ "total hash length:                          " ++ show ((sum . map snd) amts) ++ " symbols"
       putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
-  | cmd == "times" = do
+infoAction "times" amts = do
       putStrLn $ "assumed time to check one private key:      " ++ "1 picosecond = 10^(-12) s"
       putStrLn $
         let (inY, inAoU) = timeToCrack $ numberOfHashes amts
@@ -281,7 +302,7 @@ infoAction cmd amts
               ++ "                                         or "
               ++ formatNumber (show inAoU)
               ++ " ages of the Universe"
-  | otherwise = putStrLn "error: info command not recognized"
+infoAction _ _ = putStrLn "error: info command not recognized"
 
 hashAction :: String -> String -> String -> [([Char], Integer)] -> IO ()
 hashAction publicStr pcs pss config = putStrLn $ getHash config privateChoiceKey privateShuffleKey
@@ -296,9 +317,11 @@ hashAction publicStr pcs pss config = putStrLn $ getHash config privateChoiceKey
 parseArgs :: [String] -> (Bool, Bool, Bool) -> Map String String
 parseArgs [] _ = empty
 parseArgs ("-d" : s : rest) trp = insert "default" s $ parseArgs rest trp
+parseArgs ("-s" : s : rest) trp = insert "select" s $ parseArgs rest trp
 parseArgs ("-c" : s : rest) trp = insert "config" s $ parseArgs rest trp
 parseArgs ("-i" : s : rest) trp = insert "info" s $ parseArgs rest trp
 parseArgs ("--help" : rest) trp = insert "info" "help" $ parseArgs rest trp
+parseArgs ("--version" : rest) trp = insert "info" "version" $ parseArgs rest trp
 parseArgs (s : rest) (b1, b2, b3)
   | b3 = parseArgs rest (b1, b2, b3)
   | b2 = insert "shuffle" s $ parseArgs rest (True, True, True)
@@ -313,10 +336,17 @@ main = do
       config :: [([Char], Integer)]
       config
         | member "default" parsedArgs = case parsedArgs ! "default" of
-            "pin" -> pinCodeConfiguration
-            "longpin" -> longPinCodeConfiguration
+            "long" -> defaultConfiguration
+            "medium" -> mediumConfiguration
             "short" -> shortConfiguration
+            "anlong" -> anlongConfiguration
+            "anshort" -> anshortConfiguration
+            "pin" -> pinCodeConfiguration
+            "mediumpin" -> mediumPinCodeConfiguration
+            "longpin" -> longPinCodeConfiguration
             _ -> defaultConfiguration
+        | member "select" parsedArgs = let (a,b,c,d) = read (parsedArgs ! "select")
+                                        in [(sourceLower, a), (sourceUpper, b), (sourceSpecial, c), (sourceNumbers, d)]
         | member "config" parsedArgs = read (parsedArgs ! "config")
         | otherwise = defaultConfiguration
       amts :: [(Integer, Integer)]
