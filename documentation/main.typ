@@ -39,7 +39,7 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 #let keywords = ("Combinatorics", "Hash", "Security", "Haskell", "Functional programming")
 #show: title([ On rearrangement hashing with Haskell ], abstract: [
   In this paper I introduce and develop a mathematical method of producing a cryptographic hash of adjustable length, given a public key and a pair of private keys. The hashing is done through encoding selections and permutations with natural numbers, and then composing the hash from a set of source strings with respect to the permutations encoded by the keys. The attempts to construct a suitable integer-to-selection mapping lead to interesting mathematical definitions and statements, which are discussed in this paper and applied to give bounds on the reliability of the hashing algorithm. An implementation is provided in the Haskell programming language (source and binary available at https://github.com/thornoar/pshash) and applied in the setting of password creation.
-], keywords: keywords, logo: image("figures/haskell.png", width: 20%), keywordlength: 60%)
+], date: datetime(year: 2024, month: 3, day: 26), keywords: keywords, logo: image("figures/haskell.png", width: 20%), keywordlength: 60%)
 
 = Introduction
 
@@ -61,13 +61,13 @@ Symbols $A$, $B$, $C$ will denote arbitrary sets (unless specified otherwise). $
 
 By $E$ we will commonly understand a finite enumerated set of distinct elements, called a _source._ When multiple sources $E_0$, $E_1$, ..., $E_(N-1)$ are considered, we take none of them to share any elements between each other. In other words, their pair-wise intersections will be assumed to be empty.
 
-The symbol "$\# $" will be used to describe the number of ways to make a combinatorial selection. For example, $\#^m(E)$ is the number of ways to choose $m$ elements from a source $E$ with significant order.
+The symbol "$\# $" will be used to describe the number of ways to make a combinatorial selection. For example, $\#^m (E)$ is the number of ways to choose $m$ elements from a source $E$ with significant order.
 
 The expression $[A]$ will denote the set of all ordered lists composed from elements of the set $A$. We assume that all elements in a list are distinct. Every list can therefore be considered a source. The subset $[A]_m subset [A]$ will include only the lists of length $m$. Extending the notation, we will define $[A_0, A_1, ..., A_(N-1)]$ as the set of lists $alpha = [a_0, a_1, ..., a_(N-1)]$ of length $N$ where the first element is from $A_0$, the second from $A_1$, and so on, until the last one from $A_(N-1)$. Finally, if $alpha in [A]$ and $beta in [B]$, the list $alpha ++ beta in [A union B]$ will be the concatenation of lists $alpha$ and $beta$.
 
 Let $alpha$ be a list. $|alpha|$ will denote its length, while $alpha :: i$ will represent its $i$-th element, with the enumeration starting from $i = 0$. On the contrary, the expression $alpha !! i$ will denote the list $alpha$ without its $i$-th element. All sources are associated with the ordered list of all their elements, and thus expressions such as $E :: i$ and $|E|$ have meaning for a source $E$.
 
-Let $k in NN_0$, $n in NN$. The numbers $lun k, lln k in NN_0$ are defined to be such that $0 <= lun k < n$ and $lln k dot n + lun k = k$. The number $lun k$ is the remainder after division by $n$, and $lln k$ is the result of division.
+Let $k in NN_0$, $n in NN$. The numbers $lun k, lln k in NN_0$ are defined to be such that $0 <= lun k < n$ and\ $lln k dot n + lun k = k$. The number $lun k$ is the remainder after division by $n$, and $lln k$ is the result of division.
 
 For a number $n in NN$, the expression $(n)$ will represent the semi-open integer interval from 0 to $n$: $(n) = \{0, 1, ..., n-1\}$.
 
@@ -244,21 +244,21 @@ We will solve one problem at a time.
   + Either $alpha$ or $beta$ is empty, that is, $m_1 = 0$ or $m_2 = 0$.
     Then set $mg^2 (alpha, beta, k)$ to be equal to $alpha ++ beta$.
   + Neither $alpha$ nor $beta$ is empty.
-    Then we will assume that the merge function is already defined for $(alpha !! 0, beta, -)$ and $(alpha, beta !! 0, -)$. Let $s_1$ be the spread of the function $conf^2 (alpha !! 0, beta, -)$ and $s_2$ be the spread of $mg^2 (alpha, beta !! 0, -)$. Finally, denote the remainder $lui((s_1 + s_2)) k$ by $k'$. The merge of $alpha$ and $beta$ with key $k$ is defined as
+    Then we will assume that the merge function is already defined for $(alpha !! 0, beta, -)$ and $(alpha, beta !! 0, -)$. Let $s_1$ be the spread of the function $conf^2 (alpha !! 0, beta, -)$ and $s_2$ be the spread of $mg^2 (alpha, beta !! 0, -)$. Finally, denote the remainder $lui((s_1 + s_2)) k$ by $k'$. The merge of $alpha$ and $beta$ with key $k$ and an argument shift function $T$ is defined as
     $
       mg^2 (alpha, beta, k) = cases(
         [alpha :: 0] ++ mg^2 (alpha !! 0, hs beta, hs k' + T(k'))\, #h(0.7em) k' < s_1,
         [beta :: 0] ++ mg^2 (alpha, hs beta !! 0, hs k' + T(k'))\, #h(0.7em) #mtxt("otherwise,") 
       )
     $
-    where $T$ is an argument shift function.
+    // where $T$ is an argument shift function.
 ]
 
 The merge function takes two lists and combines them together in one, in such a way that the order of elements in each of the two lists is not disturbed. For example, the merge of $[1,2,3]$ and $[a,b,c]$ with a certain key could be $[1,a,b,2,c,3]$. We will now derive some properties of $M^2$. If $s_1$ and $s_2$ are what they are in the above definition, we immediately see that $M^2(alpha, beta, -)$ is periodic with period $s_1 + s_2$, since it depends only on $k' = #lui($(s_1 + s_2)$)k$. Moreover, it is clear from the definition that $M^2(alpha, beta, -)$ is injective on the interval $((s_1 + s_2))$, which means that its spread is equal exactly to $s_1 + s_2$:
 $
 #spr (mg^2 (alpha, beta, -)) = #spr (mg^2 (alpha !! 0, beta, -)) + #spr (mg^2 (alpha, beta !! 0, -)).
 $ <recspr>
-From this recursive relationship we can derive this useful proposition:
+// From this recursive relationship we can derive this useful proposition:
 
 #prop[
   Let $alpha$ and $beta$ be elements of $[E_1]_(m_1)$ and $[E_2]_(m_2)$ respectively. Then the spread of the corresponding merge function, with respect to the key $k$, is equal to $(m_1 + m_2)!/(m_1 ! dot m_2 !)$.
@@ -356,7 +356,7 @@ Note that the term "hash" is used loosely here, as it may not adhere to the form
   $
     \#^hash (conf) = product_(i=0)^(N-1) mat(n_i; m_i) dot (sum_(i=0)^(N-1) m_i)!
   $
-  Now, due to the fact that all resulting hashes are equally likely for $k_1$, $k_2$ within their respective injectivity intervals, we can calculate the number of different $(k_1, k_2)$ pairs that produce the same hash in a fixed configuration. This number will be denoted by $\#^sect (conf)$:
+  Now, due to the fact that all resulting hashes are equally likely for $k_1$, $k_2$ within their respective injectivity intervals, we can calculate the number of different $(k_1, k_2)$ pairs that produce the same hash in a fixed configuration, $\#^sect (conf)$:
   $
     \#^sect (conf) = (\#^((k_1,k_2)) (conf))/(\#^hash (conf)) = (product_(i=0)^(N-1) (n_i | m_i)! dot ((sum_(i=0)^(N-1) m_i)!)^2 dot (product_(i=0)^(N-1) m_i !)^(-1) #h(-13pt))/(product_(i=0)^(N-1) mat(n_i; m_i) dot (sum_(i=0)^(N-1) m_i)!) =\
     #vphantom(25pt)
@@ -374,7 +374,7 @@ With respect to each of the two keys, $hash$ is an injective function, but in co
 
 The premise of this entire discussion was that one requires many passwords for different purposes. Right now, the only way is to create a new primary-secondary key pair for every new occasion. Considering how large these numbers tend to be, you may as well try to remember the hashes themselves. This is where the public key comes into play. The public key, denoted $p$, is an integer number defined by the environment and available to the public. We will assume that it is the name of the website for which we require a password, like `"google"`, for example, converted into a number by treating the characters in the string as digits in base-128. This number acts on the choice private key by shifting it modulo $\#^smc (conf)$:
 $
-  k_1' = lui(\#^smc (conf))(k_1 + p),
+  k'_1 = lui(\#^smc (conf))(k_1 + p),
 $
 and then this new choice key is plugged into the hash function along with the shuffle key. Due to the injectivity of $hash$ with respect to $k_1$, we see that different public keys produce different output hashes, as long as they remain in the interval $(\#^smc (conf))$. Its influence on $k_1$ is simple and predictable, but it doesn't have to be complex, since the public key is not directly responsible for any encryption. Instead it is designed to be easily remembered.
 
@@ -392,8 +392,8 @@ In this subsection, we will use a specific source configuration $conf$, particul
     table.hline(),
     [0], `"ckapzfitqdxnwehrolmbyvsujg"`,  [26], [10],
     [1], `"RQLIANBKJYVWPTEMCZSFDOGUHX"`,  [26], [10],
-    [2], `"=!*@?$%#&-+^{}"`,              [12], [6],
-    [3], `"1952074386"`,                  [12], [6],
+    [2], `"=!*@?$%#&-+^{}"`,              [14], [6],
+    [3], `"1952074386"`,                  [10], [6],
   ),
   caption: [ An example of a source configuration ]
 )
@@ -402,18 +402,31 @@ Therefore, every password produced with this configuration will contain a total 
 
 Now, let's imagine that you have inserted your two private keys into the function and got a password out of it. A sophisticated hacker sets their mind to crack your password whatever it takes. They are very smart and they have a supercomputer that can perform 1,000,000,000,000 password checks in a second, or one picosecond to check one password or key. What is more, they got their hands on the hash function and the configuration you use, so they can try to reverse-engineer your password.
 
-First, they read into the configuration and see the structure of the password. They decide to brute-force it by checking every relevant combination of 30 symbols. Well, they will have to check $\#^hash (conf)$ combinations, which in our case equals exactly
+First, they read into the configuration and see the structure of the password. They decide to brute-force it by checking every relevant combination of 32 symbols. Well, they will have to check $\#^hash (conf)$ combinations, which in our case equals exactly
 $
-  \#^hash (conf) = 1,440,574,799,825,106,857,997,997,293,535,752,397,195,837,440,000,000,000 approx 10^54.
+  \#^hash (conf) = 4,681,868,099,431,597,288,493,491,203,991,195,290,886,471,680,000,000,000 approx 4 dot 10^54.
 $
 
-Cracking it would take the supercomputer about $ 45,649,060,759,535,167,757,411,626,837,344,256 approx 4 times 10^34 $ years, or about $ 3,311,022,032,315,599,250,522,112 approx 3 times 10^24 $ ages of the Universe.
+Cracking it would take the supercomputer about
+$
+  148,359,447,468,489,290,599,901,768,793,980,928 approx 10^35
+  // 45,649,060,759,535,167,757,411,626,837,344,256 
+$
+years, or about
+$
+  10,760,821,605,025,697,027,325,952 approx 10^25
+$
+ages of the Universe.
 
 Okay, thinks the hacker, no luck. They dig a little deeper into the algorithm and find that your password depends on two private keys. The number of all pairs of such keys is
 $
-  \#^((k_1,k_2)) (conf) = &379,059,652,743,568,391,652,983,773,439,703,034,\
-                          &548,996,102,937,151,934,408,805,894,943,303,270,\
-                          &400,000,000,000,000,000 approx 3 times 10^89
+  \#^((k_1,k_2)) (conf) =
+    1,&231,943,871,416,597,272,872,197,263,679,034,862,\
+    &284,237,334,545,743,786,828,619,158,565,735,628,\
+    &800,000,000,000,000,000 approx 10^90
+    // &379,059,652,743,568,391,652,983,773,439,703,034,\
+    // &548,996,102,937,151,934,408,805,894,943,303,270,\
+    // &400,000,000,000,000,000 approx 3 times 10^89
 $
 
 This one is going to take billions of billions times longer than the previous one.
