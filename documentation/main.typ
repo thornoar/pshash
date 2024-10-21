@@ -14,9 +14,7 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 // Local definitions
 #show: shorthands.with(
   ($++$, math.union.plus),
-  // ($!!$, { h(2pt); math.excl; h(2pt) }),
   ($!!$, math.class("binary", [!])),
-  // ($::$, { h(2pt); math.colon; h(2pt) }),
   ($::$, math.class("binary", [:])),
 )
 #let ch = math.cal([C])
