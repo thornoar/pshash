@@ -5,7 +5,7 @@ import Data.Map (Map, empty, insert, member, (!))
 import System.Environment (getArgs)
 
 currentVersion :: String
-currentVersion = "0.1.3.0"
+currentVersion = "0.1.3.1"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -55,6 +55,8 @@ composeHashing' f spr g a key = g b nextKey
     b = f a keyMod
     nextKey = keyDiv + shift b
 
+type Configuration = [([Char], Integer)]
+
 -- ┌─────────────────────────────────────────────────────┐
 -- │ PRE-DEFINED STRINGS FROM WHICH HASHES WILL BE DRAWN │
 -- └─────────────────────────────────────────────────────┘
@@ -71,28 +73,28 @@ sourceSpecial = "=!*@?$%#&-+^"
 sourceNumbers :: [Char]
 sourceNumbers = "1952074386"
 
-defaultConfiguration :: [([Char], Integer)]
+defaultConfiguration :: Configuration
 defaultConfiguration = [(sourceLower, 8), (sourceUpper, 8), (sourceSpecial, 5), (sourceNumbers, 4)]
 
-mediumConfiguration :: [([Char], Integer)]
+mediumConfiguration :: Configuration
 mediumConfiguration = [(sourceLower, 5), (sourceUpper, 5), (sourceSpecial, 5), (sourceNumbers, 5)]
 
-shortConfiguration :: [([Char], Integer)]
+shortConfiguration :: Configuration
 shortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceSpecial, 4), (sourceNumbers, 4)]
 
-anlongConfiguration :: [([Char], Integer)]
+anlongConfiguration :: Configuration
 anlongConfiguration = [(sourceLower, 7), (sourceUpper, 7), (sourceNumbers, 7)]
 
-anshortConfiguration :: [([Char], Integer)]
+anshortConfiguration :: Configuration
 anshortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceNumbers, 4)]
 
-pinCodeConfiguration :: [([Char], Integer)]
+pinCodeConfiguration :: Configuration
 pinCodeConfiguration = [(sourceNumbers, 4)]
 
-mediumPinCodeConfiguration :: [([Char], Integer)]
+mediumPinCodeConfiguration :: Configuration
 mediumPinCodeConfiguration = [(sourceNumbers, 6)]
 
-longPinCodeConfiguration :: [([Char], Integer)]
+longPinCodeConfiguration :: Configuration
 longPinCodeConfiguration = [(sourceNumbers, 8)]
 
 -- ┌───────────────────────────┐
@@ -145,7 +147,6 @@ getChoiceAndMerge =
   let chooseSpread' = chooseSpread . dropElementInfo
    in composeHashing' (mapHashing chooseOrdered chooseSpread') (product . map chooseSpread') mergeLists
 
--- Get a hash sequence from a key and a source configuration
 getHash :: (Eq a, Shifting a) => [([a], Integer)] -> Integer -> Integer -> [a]
 getHash = composeHashing getChoiceAndMerge shuffleList
   where
@@ -246,6 +247,23 @@ formatDouble (digit:rest) places
 numberOfPlaces :: Int
 numberOfPlaces = 4
 
+-- ┌─────────────────────┐
+-- │ FINAL HASH FUNCTION │
+-- └─────────────────────┘
+
+getFinalHash :: Configuration -> String -> String -> String -> String
+getFinalHash config publicStr choiceStr shuffleStr = getHash config privateChoiceKey privateShuffleKey
+  where
+    publicKey :: Integer
+    publicKey = getPublicKey publicStr
+    privateChoiceKey :: Integer
+    privateChoiceKey = mod (publicKey + getPrivateKey choiceStr) $ (numberOfPrivateChoiceKeys . map dropElementInfo) config
+    privateShuffleKey :: Integer
+    privateShuffleKey = getPrivateKey shuffleStr
+
+getFinalDefaultHash :: String -> String -> String -> String
+getFinalDefaultHash = getFinalHash defaultConfiguration
+
 -- ┌────────────────┐
 -- │ USER INTERFACE │
 -- └────────────────┘
@@ -340,15 +358,8 @@ infoAction "times" amts = do
               ++ " ages of the Universe"
 infoAction cmd _ = putStrLn $ "error: info command not recognized: " ++ cmd
 
-hashAction :: String -> String -> String -> [([Char], Integer)] -> IO ()
-hashAction publicStr pcs pss config = putStrLn $ getHash config privateChoiceKey privateShuffleKey
-  where
-    publicKey :: Integer
-    publicKey = getPublicKey publicStr
-    privateChoiceKey :: Integer
-    privateChoiceKey = mod (publicKey + getPrivateKey pcs) $ (numberOfPrivateChoiceKeys . map dropElementInfo) config
-    privateShuffleKey :: Integer
-    privateShuffleKey = getPrivateKey pss
+hashAction :: Configuration -> String -> String -> String -> IO ()
+hashAction config public choice shuffle = putStrLn $ getFinalHash config public choice shuffle
 
 parseArgs :: [String] -> (Bool, Bool, Bool) -> Map String String
 parseArgs [] _ = empty
@@ -369,7 +380,7 @@ main = do
   args <- getArgs
   let parsedArgs :: Map String String
       parsedArgs = parseArgs args (False, False, False)
-      config :: [([Char], Integer)]
+      config :: Configuration
       config
         | member "default" parsedArgs = case parsedArgs ! "default" of
             "long" -> defaultConfiguration
@@ -397,4 +408,4 @@ main = do
     publicKey <- getKey "public"
     choiceKey <- getKey "choice"
     shuffleKey <- getKey "shuffle"
-    hashAction publicKey choiceKey shuffleKey config
+    hashAction config publicKey choiceKey shuffleKey
