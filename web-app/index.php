@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html>
 <head>
     <title>pshash</title>
 </head>
@@ -12,3 +14,4 @@
 
     This is the page to to execute the pshash program.
 </body>
+</html>
