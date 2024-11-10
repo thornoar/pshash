@@ -1,4 +1,4 @@
-# `pshash` -- the functional password manager
+# `pshash`: a functional password manager
 
 ## Synopsis
 

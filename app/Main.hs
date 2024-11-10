@@ -5,7 +5,7 @@ import Data.Map (Map, empty, insert, member, (!))
 import System.Environment (getArgs)
 
 currentVersion :: String
-currentVersion = "0.1.2.1"
+currentVersion = "0.1.3.0"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -213,27 +213,38 @@ maxLengthOfPublicKey amts = getBiggestPower 0 $ (len . show) (numberOfPublicKeys
       | get128PowerLength (guess + 1) < bound = getBiggestPower (guess + 1) bound
       | otherwise = guess + 1
 
-timeToCheck :: Double
-timeToCheck = 1.0
+timeToChechPicos :: Double
+timeToChechPicos = 100.0
 
 psInYear :: Double
 psInYear = 3.15576E19
 
-ageOfUniverse :: Double
-ageOfUniverse = 13.787E9
+ageOfUniverseYears :: Double
+ageOfUniverseYears = 13.787E9
 
-timeToCrack :: Integer -> (Integer, Integer)
-timeToCrack num = (floor inYears, floor inAgesOfUniverse)
+timeToCrack :: Integer -> (Double, Double)
+timeToCrack num = (inYears, inAgesOfUniverse)
   where
-    inYears = (timeToCheck / psInYear) * fromIntegral num
-    inAgesOfUniverse = inYears / ageOfUniverse
+    inYears = (timeToChechPicos / psInYear) * fromIntegral num
+    inAgesOfUniverse = inYears / ageOfUniverseYears
 
-formatNumber :: String -> String
-formatNumber num = reverse $ formatReversed (reverse num)
+formatInteger :: String -> String
+formatInteger num = reverse $ formatReversed (reverse num)
   where
     formatReversed :: String -> String
     formatReversed (a : b : c : d : str) = a : b : c : ',' : formatReversed (d : str)
     formatReversed str = str
+
+formatDouble :: String -> Int -> String
+formatDouble "" _ = ""
+formatDouble ('e':'-':rest) _ = " * 10^(-" ++ rest ++ ")"
+formatDouble ('e':rest) _ = " * 10^" ++ rest
+formatDouble (digit:rest) places
+  | places == 0 = formatDouble rest places
+  | otherwise = digit : formatDouble rest (places-1)
+
+numberOfPlaces :: Int
+numberOfPlaces = 4
 
 -- ┌────────────────┐
 -- │ USER INTERFACE │
@@ -241,11 +252,11 @@ formatNumber num = reverse $ formatReversed (reverse num)
 
 infoAction :: String -> [(Integer, Integer)] -> IO ()
 infoAction "help" _ = do
-      putStrLn $ "this is pshash, version " ++ currentVersion
-      putStrLn "usage: pshash [--help | -[d|s|c|i] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
+      putStrLn "usage: pshash [--help | --version | -[d|s|c|i] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
       putStrLn ""
       putStrLn "options:"
       putStrLn "  --help              show this help message and exit"
+      putStrLn "  --version           print the current version of pshash"
       putStrLn "  -d KEYWORD          specify the default configuration. KEYWORD can be one of the following:"
       putStrLn "                          long (8 upper case, 8 lower case, 5 special characters, 4 digits) -- the default"
       putStrLn "                          medium (5 symbols of each type)"
@@ -263,47 +274,71 @@ infoAction "help" _ = do
       putStrLn "                          help (show this help message)"
       putStrLn ""
       putStrLn "main arguments:"
-      putStrLn "  PUBLIC stands for public key, a memorable string indicative of the password destination"
-      putStrLn "  CHOICE stands for choice private key, one of 2 private keys known only to the user"
-      putStrLn "  SHUFFLE stands for shuffle private key, used to encrypt the choice key"
+      putStrLn "  PUBLIC stands for public key, a memorable string indicative of the password destination (e.g. \"google\", \"steam\")"
+      putStrLn "  CHOICE stands for choice private key, one of 2 large numbers known only to the user"
+      putStrLn "  SHUFFLE stands for shuffle private key, a number used to encrypt the choice key"
       putStrLn ""
-      putStrLn "default configuration (in the absence of -d or -c options):"
+      putStrLn "default configuration (in the absence of -d, -s or -c options):"
       putStrLn $ "  " ++ show defaultConfiguration
 infoAction "version" _ = putStrLn currentVersion
-infoAction "numbers" amts = do
-      putStrLn $
-        "total theoretical number of hashes:         "
-          ++ formatNumber (show $ numberOfHashes amts)
-      putStrLn $
-        "number of choice keys:                      "
-          ++ formatNumber (show $ numberOfPrivateChoiceKeys amts)
-      putStrLn $
-        "number of shuffle keys:                     "
-          ++ formatNumber (show $ numberOfPrivateShuffleKeys $ map snd amts)
-      putStrLn $
-        "number of key pairs with the same hash:     "
-          ++ formatNumber (show $ numberOfRepetitions $ map snd amts)
-      putStrLn $ "total hash length:                          " ++ show ((sum . map snd) amts) ++ " symbols"
-      putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
+infoAction "numbers" amts =
+  let numHashes = numberOfHashes amts
+      numHashesDouble = fromIntegral numHashes :: Double
+      numChoice = numberOfPrivateChoiceKeys amts
+      numChoiceDouble = fromIntegral numChoice :: Double
+      numShuffle = numberOfPrivateShuffleKeys $ map snd amts
+      numShuffleDouble = fromIntegral numShuffle :: Double
+      numRepetitions = numberOfRepetitions $ map snd amts
+      numRepetitionsDouble = fromIntegral numRepetitions :: Double
+   in do
+  putStrLn $ "using the following configuration distribution: " ++ show amts
+  putStrLn ""
+  putStrLn $
+    "total theoretical number of hashes:         "
+      ++ formatInteger (show numHashes) ++ " = "
+      ++ formatDouble (show numHashesDouble) numberOfPlaces
+  putStrLn $
+    "number of choice keys:                      "
+      ++ formatInteger (show numChoice) ++ " = "
+      ++ formatDouble (show numChoiceDouble) numberOfPlaces
+  putStrLn $
+    "number of shuffle keys:                     "
+      ++ formatInteger (show numShuffle) ++ " = "
+      ++ formatDouble (show numShuffleDouble) numberOfPlaces
+  putStrLn $
+    "number of key pairs with the same hash:     "
+      ++ formatInteger (show numRepetitions) ++ " = "
+      ++ formatDouble (show numRepetitionsDouble) numberOfPlaces
+  putStrLn $ "total hash length:                          " ++ show ((sum . map snd) amts) ++ " symbols"
+  putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
 infoAction "times" amts = do
-      putStrLn $ "assumed time to check one private key:      " ++ "1 picosecond = 10^(-12) s"
+      putStrLn $ "using the following distribution:               " ++ show amts
+      putStrLn $ "assumed number of password checks per second:   " ++ "10 billion = 10^10"
+      putStrLn $ "time to check one password:                     " ++ "10^(-10) s = 0.1 nanosecond"
+      putStrLn ""
       putStrLn $
         let (inY, inAoU) = timeToCrack $ numberOfHashes amts
-         in "time to brute-force your password:          "
-              ++ formatNumber (show inY)
-              ++ " years\n"
-              ++ "                                         or "
-              ++ formatNumber (show inAoU)
+            inAoUInteger = floor inAoU :: Integer
+            inYInteger = floor inY :: Integer
+         in "time to brute-force your password:              "
+              ++ formatInteger (show inYInteger) ++ " = "
+              ++ formatDouble (show inY) numberOfPlaces ++ " years\n"
+              ++ "                                             or "
+              ++ formatInteger (show inAoUInteger) ++ " = "
+              ++ formatDouble (show inAoU) numberOfPlaces
               ++ " ages of the Universe"
       putStrLn $
         let (inY, inAoU) = timeToCrack $ numberOfRepetitions $ map snd amts
-         in "time to retrieve the keys based on a hash:  "
-              ++ formatNumber (show inY)
-              ++ " years\n"
-              ++ "                                         or "
-              ++ formatNumber (show inAoU)
+            inAoUInteger = floor inAoU :: Integer
+            inYInteger = floor inY :: Integer
+         in "time to retrieve the keys based on a hash:      "
+              ++ formatInteger (show inYInteger) ++ " = "
+              ++ formatDouble (show inY) numberOfPlaces ++ " years\n"
+              ++ "                                             or "
+              ++ formatInteger (show inAoUInteger) ++ " = "
+              ++ formatDouble (show inAoU) numberOfPlaces
               ++ " ages of the Universe"
-infoAction _ _ = putStrLn "error: info command not recognized"
+infoAction cmd _ = putStrLn $ "error: info command not recognized: " ++ cmd
 
 hashAction :: String -> String -> String -> [([Char], Integer)] -> IO ()
 hashAction publicStr pcs pss config = putStrLn $ getHash config privateChoiceKey privateShuffleKey
