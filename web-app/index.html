@@ -6,10 +6,10 @@
 <body>
     <script LANGUAGE="JavaScript">
         var publicStr = prompt("Enter the public key");
-        var choiceStr = prompt("Enter private choice key");
-        var shuffleStr = prompt("Enter private shuffle key");
-        // document.write(getHash(publicStr, choiceStr, shuffleStr))
-        alert(getFinalHash(defaultConfiguration, publicStr, choiceStr, shuffleStr))
+        var choiceStr = prompt("Enter the private choice key");
+        var shuffleStr = prompt("Enter the private shuffle key");
+        var keyword = prompt("Enter the configuration keyword (skip for default)")
+        alert(getFinalHash(determineConfiguration(keyword), publicStr, choiceStr, shuffleStr))
     </script>
 </body>
 </html>

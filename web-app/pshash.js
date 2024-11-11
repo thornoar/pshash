@@ -219,6 +219,18 @@ function numberOfPrivateChoiceKeys (amts) {
     return prod(amts.map(chooseSpread)) * mergeListsSpread(amts.map((lst) => lst[1]))
 }
 
+function determineConfiguration (str) {
+    if (str == "") return defaultConfiguration
+    if (str == "long") return defaultConfiguration
+    if (str == "medium") return mediumConfiguration
+    if (str == "short") return shortConfiguration
+    if (str == "anlong") return anlongConfiguration
+    if (str == "anshort") return anshortConfiguration
+    if (str == "pin") return pinCodeConfiguration
+    if (str == "mediumpin") return mediumPinCodeConfiguration
+    if (str == "longpin") return longPinCodeConfiguration
+}
+
 function getFinalHash (config, publicStr, choiceStr, shuffleStr) {
     var publicArr = arr(publicStr)
     var choiceArr = arr(choiceStr)
