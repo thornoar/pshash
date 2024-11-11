@@ -2,7 +2,11 @@ const currentVersion = "0.1.3.0-web"
 
 // General-purpose functions
 
-function arr(str) {
+function test (str) {
+    return str + "hahaha"
+}
+
+function arr (str) {
     return str.split("")
 }
 
