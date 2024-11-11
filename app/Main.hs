@@ -16,7 +16,7 @@ factorial 0 = 1
 factorial n = n * factorial (n - 1)
 
 factorial' :: Integer -> Integer -> Integer
-factorial' n 1 = n
+factorial' _ 0 = 1
 factorial' n m = (n - (m - 1)) * factorial' n (m - 1)
 
 cnk :: Integer -> Integer -> Integer

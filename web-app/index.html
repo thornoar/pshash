@@ -5,15 +5,11 @@
 </head>
 <body>
     <script LANGUAGE="JavaScript">
-        var publicKey = prompt("Enter the public key");
-        var privateKey1 = prompt("Enter private choice key");
-        var privateKey2 = prompt("Enter private shuffle key");
-        document.write(publicKey)
+        var publicStr = prompt("Enter the public key");
+        var choiceStr = prompt("Enter private choice key");
+        var shuffleStr = prompt("Enter private shuffle key");
+        // document.write(getHash(publicStr, choiceStr, shuffleStr))
+        alert(getFinalHash(defaultConfiguration, publicStr, choiceStr, shuffleStr))
     </script>
-    <h2>
-    pshash: a functional password creation utility
-    </h2>
-
-    This is the page to to execute the pshash program.
 </body>
 </html>
