@@ -156,7 +156,6 @@ function mergeLists (lsts, key) {
     var l = lsts[0]
     var rest = lsts.slice(1)
     var s = mergeListsSpread(rest.map((lst) => lst.length))
-    // var keyDiv = Math.floor(key / s)
     var keyDiv = key / s
     var keyMod = key % s
     var nextKey = keyDiv + shiftlst(l)
@@ -164,7 +163,6 @@ function mergeLists (lsts, key) {
 }
 
 function dropElementInfo (source) {
-    // return config.map((lst) => [lst[0].length].concat(lst.slice(1)))
     return [source[0].length, source[1]]
 }
 
@@ -226,19 +224,10 @@ function getFinalHash (config, publicStr, choiceStr, shuffleStr) {
     var choiceArr = arr(choiceStr)
     var shuffleArr = arr(shuffleStr)
 
-    // console.log(config)
-    // console.log(publicArr)
-    // console.log(choiceArr)
-    // console.log(shuffleArr)
-
     var publicKey = getPublicKey(publicArr)
     var div = numberOfPrivateChoiceKeys(config.map(dropElementInfo))
     var choiceKey = (publicKey + getPrivateKey(choiceArr)) % div
     var shuffleKey = getPrivateKey(shuffleArr)
-
-    // console.log(publicKey)
-    // console.log(choiceKey)
-    // console.log(shuffleKey)
 
     return getHash(config, choiceKey, shuffleKey).join("")
 }
