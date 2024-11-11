@@ -463,8 +463,4 @@ The program accepts three arguments: the public key and two private keys, return
 
 *! Important notice !*
 
-The program is _extremely sensitive to changes._ Thus, before using it to create passwords, make sure that the configuration is set to your liking, save the executable and do _not_ change it afterwards. Any small change, and all your passwords will be lost. You will have to undo the change to retrieve them. Additionally, it is advised to store the program openly on the internet, in case you lose your local copy. This way, you can access it from anywhere with an internet connection. Currently, there are pre-compiled binaries for Linux (NixOS, Debian, Fedora, and Arch), as well as Windows and Android.
-
-== Future plans
-
-The main problem with this implementation is the lack of accessibility. A good solution would be to create and host a website where the algorithm would be implemented, so that hashes could be generated from any device with an internet browser.
+The program is _extremely sensitive to changes._ Thus, before using it to create passwords, make sure that the configuration is set to your liking, save the executable and do _not_ change it afterwards. Any small change, and all your passwords will be lost. You will have to undo the change to retrieve them. Additionally, it is advised to store the program openly on the internet, in case you lose your local copy. This way, you can access it from anywhere with an internet connection. Currently, there are pre-compiled binaries for Linux (NixOS, Debian, Fedora, and Arch), as well as Windows and Android. There is also a web version at https://thornoar.github.io/pshash/web-app/.
