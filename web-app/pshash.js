@@ -205,7 +205,7 @@ function breakArray (arr, elt) {
 
 function getPrivateKey (arr) {
     var broken = breakArray(arr, '-')
-    if (broken.length == 1) { return parseInt(broken[0].join("")) }
+    if (broken.length == 1) { return BigInt(parseInt(broken[0].join(""))) }
     else {
         var base = BigInt(parseInt(broken[0].join("")))
         var pow = BigInt(parseInt(broken[1].join("")))
