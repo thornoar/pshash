@@ -1,14 +1,16 @@
 <html>
 <head>
     <title>pshash</title>
-    <script LANGUAGE="JavaScript">
-        var publicKey = prompt("Enter public key");
-        var privateKey1 = prompt("Enter private choice key");
-        var privateKey2 = prompt("Enter private shuffle key");
-        document.write(publicKey)
-    </script>
+    <script src="./pshash.js" type="text/javascript"></script>
 </head>
 <body>
+    <script LANGUAGE="JavaScript">
+        // import * as lib from "./export.js";
+        var publicKey = prompt("Enter the public key");
+        var privateKey1 = prompt("Enter private choice key");
+        var privateKey2 = prompt("Enter private shuffle key");
+        document.write(h$main(publicKey + " " + privateKey1 + " " + privateKey2))
+    </script>
     <h2>
     pshash: a functional password creation utility
     </h2>
