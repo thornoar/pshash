@@ -216,10 +216,6 @@ function getPrivateKey (arr) {
     }
 }
 
-function numberOfPrivateChoiceKeys (amts) {
-    return prod(amts.map(chooseSpread)) * mergeListsSpread(amts.map((lst) => lst[1]))
-}
-
 function determineConfiguration (str) {
     if (str == "") return defaultConfiguration
     if (str == "long") return defaultConfiguration
@@ -231,6 +227,12 @@ function determineConfiguration (str) {
     if (str == "mediumpin") return mediumPinCodeConfiguration
     if (str == "longpin") return longPinCodeConfiguration
     return defaultConfiguration
+}
+
+// Computing the final hash
+
+function numberOfPrivateChoiceKeys (amts) {
+    return prod(amts.map(chooseSpread)) * mergeListsSpread(amts.map((lst) => lst[1]))
 }
 
 function getFinalHash (config, publicStr, choiceStr, shuffleStr) {
