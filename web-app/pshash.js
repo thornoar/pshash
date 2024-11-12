@@ -70,21 +70,21 @@ function composeHashingP (f, spr, g, a, key) {
     return g(b, nextKey)
 }
 
-const sourceLower = arr("ckapzfitqdxnwehrolmbyvsujg")
-const sourceUpper = arr("RQLIANBKJYVWPTEMCZSFDOGUHX")
-const sourceSpecial = arr("=!*@?$%#&-+^")
-const sourceNumbers = arr("1952074386")
+const sourceLower = Object.freeze(arr("ckapzfitqdxnwehrolmbyvsujg"))
+const sourceUpper = Object.freeze(arr("RQLIANBKJYVWPTEMCZSFDOGUHX"))
+const sourceSpecial = Object.freeze(arr("=!*@?$%#&-+^"))
+const sourceNumbers = Object.freeze(arr("1952074386"))
 
-const defaultConfiguration = [[sourceLower, 8], [sourceUpper, 8], [sourceSpecial, 5], [sourceNumbers, 4]]
-const mediumConfiguration = [[sourceLower, 5], [sourceUpper, 5], [sourceSpecial, 5], [sourceNumbers, 5]]
-const shortConfiguration = [[sourceLower, 4], [sourceUpper, 4], [sourceSpecial, 4], [sourceNumbers, 4]]
-const anlongConfiguration = [[sourceLower, 7], [sourceUpper, 7], [sourceNumbers, 7]]
-const anshortConfiguration = [[sourceLower, 4], [sourceUpper, 4], [sourceNumbers, 4]]
-const pinCodeConfiguration = [[sourceNumbers, 4]]
-const mediumPinCodeConfiguration = [[sourceNumbers, 6]]
-const longPinCodeConfiguration = [[sourceNumbers, 8]]
+const defaultConfiguration = Object.freeze([[sourceLower, 8], [sourceUpper, 8], [sourceSpecial, 5], [sourceNumbers, 4]])
+const mediumConfiguration = Object.freeze([[sourceLower, 5], [sourceUpper, 5], [sourceSpecial, 5], [sourceNumbers, 5]])
+const shortConfiguration = Object.freeze([[sourceLower, 4], [sourceUpper, 4], [sourceSpecial, 4], [sourceNumbers, 4]])
+const anlongConfiguration = Object.freeze([[sourceLower, 7], [sourceUpper, 7], [sourceNumbers, 7]])
+const anshortConfiguration = Object.freeze([[sourceLower, 4], [sourceUpper, 4], [sourceNumbers, 4]])
+const pinCodeConfiguration = Object.freeze([[sourceNumbers, 4]])
+const mediumPinCodeConfiguration = Object.freeze([[sourceNumbers, 6]])
+const longPinCodeConfiguration = Object.freeze([[sourceNumbers, 8]])
 
-const testConf = [[sourceLower, 1]]
+const testConf = Object.freeze([[sourceLower, 1]])
 
 // Hash-generating functions
 
@@ -95,10 +95,11 @@ function chooseOrdered (source, key) {
         var keyDiv = key / s
         var keyMod = key % s
         var curElt = source[0][keyMod]
-        source[0].splice(Number(keyMod), 1)
-        source[1] -= 1
+        var nextSource = [source[0].toSpliced(Number(keyMod), 1), source[1]-1]
+        // source[0].splice(Number(keyMod), 1)
+        // source[1] -= 1
         var nextKey = keyDiv + shift(curElt)
-        return [curElt].concat(chooseOrdered(source, nextKey))
+        return [curElt].concat(chooseOrdered(nextSource, nextKey))
     }
 }
 

@@ -2,18 +2,41 @@
 <head>
     <title>pshash</title>
     <script src="./pshash.js" type="text/javascript"></script>
+    <style>
+    body { font-size: 14pt; }
+    button { font-size: 14pt; }
+    input[type='text'] { font-size: 14pt; }
+    input[type='password'] { font-size: 14pt; }
+    div {
+        color: #000;
+        background-color: #FFF;
+    }
+
+    .hidden {
+        color: #FFF;
+    }
+    </style>
 </head>
 <body>
-    <h1>
-    <script LANGUAGE="JavaScript">
-        var publicStr = prompt("Enter the public key");
-        var choiceStr = prompt("Enter the private choice key");
-        var shuffleStr = prompt("Enter the private shuffle key");
-        var keyword = prompt("Enter the configuration keyword (skip for default)")
-        var hash = getFinalHash(determineConfiguration(keyword), publicStr, choiceStr, shuffleStr)
-        document.write(hash)
-        alert(hash)
-    </script>
-    </h1>
+    <h2>
+        The pshash pseudo-hash function interface
+    </h2>
+
+    <p>
+    Specify the configuration keyword (skip for default). See the <a href="file:///home/ramak/projects/pshash/help/index.html">help</a> for help.
+    </p>
+    <input type="text" id="configKeyword" value="">
+    <p>Enter the public key:</p>
+    <input type="text" id="publicStr" value="">
+    <p>Enter the private choice key:</p>
+    <input type="password" id="choiceStr" value="">
+    <p>Enter the private shuffle key:</p>
+    <input type="password" id="shuffleStr" value="">
+
+    <p><button onclick="copyToClipboard()">Copy to clipboard</button> <i id="copymessage"></i> </p>
+    <p><button onclick="showHash()">Show hash</button> <span id="output"></span> </p>
+    
+
+    <script src="./run.js" type="text/javascript"></script>
 </body>
 </html>
