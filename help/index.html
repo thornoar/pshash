@@ -5,19 +5,22 @@
 <body>
     <h2>Help information</h2>
 
-    The work of the pshash pseudo-hash function is pictured here:
+    The work of the pshash pseudo-hash function is pictured like that:
 
     <p>
     <IMG SRC="../documentation/figures/hash.svg" ALIGN=top WIDTH=650>
     </p>
 
-    <p>The first stage is the Merge-Choice stage (MC), which takes a source configuration L and a key k<sub>1</sub> (the private choice key), picking the given amounts of elements from the sources and then shuffling them between each other. The second, Shuffle stage takes the resulting list of elements and a second key k<sub>2</sub> (the private shuffle key), performing a second shuffle on the list. This is done to ensure that multiple pairs of keys return the same funal pseudo-hash, and thus the user's particular pair is impossible to guess.</p>
+    <p>Here, every set of same-colored circles represents a <em>source</em>, i.e. an array of characters. A <em>source configuration</em> is an array of sources paired with the amounts of symbols to be picked from each source. For example, here the function will pick two circles from the red source and four circles from the green source.</p>
+
+    <p>The first stage is the Merge-Choice stage (MC), which takes a source configuration L and a key k<sub>1</sub> (the private choice key), picking the given amounts of elements from the sources and then shuffling them all together. The second, Shuffle stage takes the resulting list of elements and a second key k<sub>2</sub> (the private shuffle key), performing a second shuffle on the list. This is done to ensure that multiple pairs of keys return the same funal pseudo-hash, and thus the user's particular pair is impossible to guess.</p>
 
     <p>
     The pshash function accepts the following inputs:
     <ul>
         <li>
-            A <em>source configuration</em>, that is, a set of data that specifies what strings to pick characters from and how many to pick. There are predefined constants available under the keywords:
+            A source configuration keyword, which can be one of the following:
+            <!-- that is, a set of data that specifies what strings to pick characters from and how many to pick. There are predefined constants available under the keywords: -->
 
             <ul>
                 <li> <em>long</em> (8 upper case, 8 lower case, 5 special characters, 4 digits). This is the default configuration. </li>

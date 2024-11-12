@@ -10,6 +10,7 @@
     div {
         color: #000;
         background-color: #FFF;
+        margin: 2pt;
     }
 
     .hidden {
@@ -19,19 +20,41 @@
 </head>
 <body>
     <h2>
-        The pshash pseudo-hash function interface
+        The pshash function interface
     </h2>
-
+    
     <p>
-    Specify the configuration keyword (skip for default). See the <a href="https://thornoar.github.io/pshash/help/">help</a> for help.
-    </p>
+    <div>
+    Specify the configuration keyword.
+    <!-- (one of long, <em>medium</em>, <em>short</em>, <em>anlong</em>, <em>anshort</em>, <em>pin</em>, <em>mediumpin</em>, <em>longpin</em>). -->
+    See the <a href="https://thornoar.github.io/pshash/help/">help</a> for help.
+    </div>
+    <div>
+    Available values: <em>medium</em>, <em>short</em>, <em>anlong</em>, <em>anshort</em>, <em>pin</em>, <em>mediumpin</em>, <em>longpin</em>.
+    </div>
+    <div>
+    Leave blank for default.
+    </div>
     <input type="text" id="configKeyword" value="">
-    <p>Enter the public key:</p>
+    </p>
+    <p>
+    <div>
+    Enter the public key (a string):
+    </div>
     <input type="text" id="publicStr" value="">
-    <p>Enter the private choice key:</p>
+    </p>
+    <p>
+    <div>
+    Enter the private choice key (a number):
+    </div>
     <input type="password" id="choiceStr" value="">
-    <p>Enter the private shuffle key:</p>
+    </p>
+    <p>
+    <div>
+    Enter the private shuffle key (a number):
+    </div>
     <input type="password" id="shuffleStr" value="">
+    </p>
 
     <p><button onclick="copyToClipboard()">Copy to clipboard</button> <i id="copymessage"></i> </p>
     <p><button onclick="showHash()">Show hash</button> <span id="output"></span> </p>
