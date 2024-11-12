@@ -22,10 +22,14 @@
     <h2>
         The pshash function interface
     </h2>
+
+    <p>
+    To generate a password, provide the following inputs.
+    </p>
     
     <p>
     <div>
-    Specify the configuration keyword.
+    1. Specify the configuration keyword.
     <!-- (one of long, <em>medium</em>, <em>short</em>, <em>anlong</em>, <em>anshort</em>, <em>pin</em>, <em>mediumpin</em>, <em>longpin</em>). -->
     See the <a href="https://thornoar.github.io/pshash/help/">help</a> for help.
     </div>
@@ -39,25 +43,25 @@
     </p>
     <p>
     <div>
-    Enter the public key (a string):
+    2. Enter the public key (a word):
     </div>
     <input type="text" id="publicStr" value="">
     </p>
     <p>
     <div>
-    Enter the private choice key (a number):
+    3. Enter the private choice key (a number):
     </div>
     <input type="password" id="choiceStr" value="">
     </p>
     <p>
     <div>
-    Enter the private shuffle key (a number):
+    4. Enter the private shuffle key (a number):
     </div>
     <input type="password" id="shuffleStr" value="">
     </p>
 
-    <p><button onclick="copyToClipboard()">Copy to clipboard</button> <i id="copymessage"></i> </p>
-    <p><button onclick="showHash()">Show hash</button> <span id="output"></span> </p>
+    <p><button onclick="copyToClipboard()">Compute hash and copy to clipboard</button> <i id="copymessage"></i> </p>
+    <p><button onclick="showHash()">Compute and show hash</button> <span id="output"></span> </p>
     
 
     <script src="./run.js" type="text/javascript"></script>
