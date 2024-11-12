@@ -1,0 +1,25 @@
+<html>
+<head>
+    <title>pshash -- quick</title>
+    <script src="../../app/pshash.js" type="text/javascript"></script>
+</head>
+<body>
+    <script LANGUAGE="JavaScript">
+        var keyword = prompt("Configuration");
+        var publicStr = prompt("Public key");
+        var choiceStr = prompt("Choice key");
+        var shuffleStr = prompt("Shuffle key");
+        function toClipboard () {
+            var hash = getFinalHash(determineConfiguration(keyword), publicStr, choiceStr, shuffleStr);
+            navigator.clipboard.writeText(hash)
+            .then(() => {
+                alert("successfully copied");
+            }).catch(() => {
+                alert("something went wrong");
+            });
+        }
+    </script>
+
+    <h1><button onclick="toClipboard()">Compute</button></h1>
+</body>
+</html>
