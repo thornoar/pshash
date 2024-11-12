@@ -30,7 +30,6 @@
     <p>
     <div>
     1. Specify the configuration keyword.
-    <!-- (one of long, <em>medium</em>, <em>short</em>, <em>anlong</em>, <em>anshort</em>, <em>pin</em>, <em>mediumpin</em>, <em>longpin</em>). -->
     See the <a href="https://thornoar.github.io/pshash/help/">help</a> for help.
     </div>
     <div>
@@ -39,31 +38,31 @@
     <div>
     Leave blank for default.
     </div>
-    <input type="text" id="configKeyword" value="">
+    <input type="text" id="configKeyword" value="" onchange="refreshOutput()">
     </p>
     <p>
     <div>
     2. Enter the public key (a word):
     </div>
-    <input type="text" id="publicStr" value="">
+    <input type="text" id="publicStr" value="" onchange="refreshOutput()">
     </p>
     <p>
     <div>
     3. Enter the private choice key (a number):
     </div>
-    <input type="password" id="choiceStr" value="">
+    <input type="password" id="choiceStr" value="" onchange="refreshOutput()">
     </p>
     <p>
     <div>
     4. Enter the private shuffle key (a number):
     </div>
-    <input type="password" id="shuffleStr" value="">
+    <input type="password" id="shuffleStr" value="" onchange="refreshOutput()">
     </p>
 
-    <p><button onclick="copyToClipboard()">Compute hash and copy to clipboard</button> <i id="copymessage"></i> </p>
-    <p><button onclick="showHash()">Compute and show hash</button> <span id="output"></span> </p>
-    
-
     <script src="./run.js" type="text/javascript"></script>
+
+    <p><button onclick="copyToClipboard()">Compute hash and copy to clipboard</button> <span id="copymessage"></span> </p>
+    <p><button onclick="showHash()"><span id="showbutton">Compute and show hash</span></button> <span id="output"></span> </p>
+    
 </body>
 </html>

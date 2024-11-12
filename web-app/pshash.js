@@ -230,6 +230,7 @@ function determineConfiguration (str) {
     if (str == "pin") return pinCodeConfiguration
     if (str == "mediumpin") return mediumPinCodeConfiguration
     if (str == "longpin") return longPinCodeConfiguration
+    return defaultConfiguration
 }
 
 function getFinalHash (config, publicStr, choiceStr, shuffleStr) {
