@@ -251,7 +251,7 @@ numberOfPlaces = 4
 -- │ FINAL HASH FUNCTION │
 -- └─────────────────────┘
 
-getFinalHash :: Configuration -> String -> String -> String -> String
+getFinalHash :: Configuration -> String -> String -> String -> [Char]
 getFinalHash config publicStr choiceStr shuffleStr = getHash config privateChoiceKey privateShuffleKey
   where
     publicKey :: Integer
