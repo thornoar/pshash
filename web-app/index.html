@@ -29,32 +29,44 @@
     
     <p>
     <div>
-    1. Specify the configuration keyword.
+    1. Specify the source configuration keyword.
     See the <a href="https://thornoar.github.io/pshash/help/">help</a> for help.
     </div>
     <div>
     Available values: <em>medium</em>, <em>short</em>, <em>anlong</em>, <em>anshort</em>, <em>pin</em>, <em>mediumpin</em>, <em>longpin</em>.
     </div>
     <div>
-    Leave blank for default.
+    Any other value (including empty) will default to <em>long</em>.
     </div>
     <input type="text" id="configKeyword" value="" onchange="refreshOutput()">
     </p>
     <p>
     <div>
-    2. Enter the public key (a word):
+    2. Enter the public key.
+    </div>
+    <div>
+    The value should be a word describing the purpose of the password.
     </div>
     <input type="text" id="publicStr" value="" onchange="refreshOutput()">
     </p>
     <p>
     <div>
-    3. Enter the private choice key (a number):
+    3. Enter the private choice key.
+    </div>
+    <div>
+    The value should be a positive integer, like "29429".
+    </div>
+    <div>
+    The input "634-35" means "634 to the power of 35".
     </div>
     <input type="password" id="choiceStr" value="" onchange="refreshOutput()">
     </p>
     <p>
     <div>
-    4. Enter the private shuffle key (a number):
+    4. Enter the private shuffle key.
+    </div>
+    <div>
+    The same input rules apply.
     </div>
     <input type="password" id="shuffleStr" value="" onchange="refreshOutput()">
     </p>
