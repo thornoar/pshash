@@ -9,9 +9,10 @@ import Data.Map (Map, empty, insert, member, (!))
 import System.Environment (getArgs)
 import Data.List (elemIndex)
 import Data.Maybe (fromJust)
+import Text.Read (readMaybe)
 
 currentVersion :: String
-currentVersion = "0.1.4.0"
+currentVersion = "0.1.5.0"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -277,39 +278,6 @@ mediumPinCodeConfiguration = [(sourceNumbers, 6)]
 longPinCodeConfiguration :: [([Char], Integer)]
 longPinCodeConfiguration = [(sourceNumbers, 8)]
 
--- ┌──────────────┐
--- │ READING KEYS │
--- └──────────────┘
-
-getPublicKey' :: String -> Integer
-getPublicKey' "" = 0
-getPublicKey' (c:cs) = toInteger (ord c) + 128 * getPublicKey' cs
-
-getPublicKey :: String -> Integer
-getPublicKey = getPublicKey' . reverse
-
-getPublicStr' :: Integer -> String
-getPublicStr' 0 = ""
-getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128)
-
-getPublicStr :: Integer -> String
-getPublicStr = reverse . getPublicStr'
-
-breakAtPower :: String -> (String, String)
-breakAtPower s = (s1, s2')
-  where
-    (s1, s2) = break (== '-') s
-    s2' = if null s2 then s2 else tail s2
-
-getPrivateKey :: String -> Integer
-getPrivateKey s = base ^ pow
-  where
-    (baseStr, powStr) = breakAtPower s
-    base :: Integer
-    base = read baseStr
-    pow :: Integer
-    pow = if null powStr then 1 else read powStr
-
 -- ┌──────────────────┐
 -- │ COUNTING NUMBERS │
 -- └──────────────────┘
@@ -393,47 +361,143 @@ formatDouble (digit:rest) places
 numberOfPlaces :: Int
 numberOfPlaces = 4
 
+-- ┌────────────────┐
+-- │ ERROR HANDLING │
+-- └────────────────┘
+
+data Handle a = Content a | Error [String] deriving (Read, Show)
+instance Functor Handle where
+  fmap f ma = case ma of
+    Error msg -> Error msg
+    Content a -> Content (f a)
+instance Applicative Handle where
+  pure = Content
+  mf <*> ma = case mf of
+    Error msg -> case ma of
+      Error msg' -> Error (msg ++ msg')
+      _ -> Error msg
+    Content f -> fmap f ma
+instance Monad Handle where
+  return = pure
+  mval >>= f = case mval of
+    Error msg -> Error msg
+    Content a -> f a
+
+readOutput :: (Read a) => String -> String -> Handle a
+readOutput msg str = case readMaybe str of
+  Nothing -> Error [msg ++ ": " ++ str]
+  Just a -> Content a
+
+fmap2 :: (Monad m) => (a -> b -> c) -> (m a -> b -> m c)
+fmap2 f ma b = fmap (`f` b) ma
+
+printOutput :: Handle String -> IO ()
+printOutput (Error msg) =
+  let f str = putStrLn $ "\ESC[1;31merror:\ESC[0m " ++ str ++ "." -- ]] 
+   in mapM_ f msg
+printOutput (Content str) = putStrLn str
+
+-- ┌──────────────┐
+-- │ READING KEYS │
+-- └──────────────┘
+
+getPublicKey' :: String -> Integer
+getPublicKey' "" = 0
+getPublicKey' (c:cs) = toInteger (ord c) + 128 * getPublicKey' cs
+
+getPublicKey :: String -> Integer
+getPublicKey = getPublicKey' . reverse
+
+getPublicStr' :: Integer -> String
+getPublicStr' 0 = ""
+getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128)
+
+getPublicStr :: Integer -> String
+getPublicStr = reverse . getPublicStr'
+
+breakAtPower :: String -> (String, String)
+breakAtPower s = (s1, s2')
+  where
+    (s1, s2) = break (== '-') s
+    s2' = if null s2 then s2 else tail s2
+
+getPrivateKey :: String -> Handle Integer
+getPrivateKey s = liftA2 (^) base pow
+  where
+    (baseStr, powStr) = breakAtPower s
+    base :: Handle Integer
+    base = readOutput "Could not read base in private key" baseStr
+    pow :: Handle Integer
+    pow = if null powStr then Content 1 else readOutput "Could not read exponent in private key" powStr
+
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
 -- └─────────────────────┘
 
-getFinalHash :: [([Char], Integer)] -> String -> String -> String -> [Char]
-getFinalHash config publicStr choiceStr shuffleStr = getHash config choiceKey shuffleKey
+getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Handle [Char]
+getFinalHash config publicStr choiceStr shuffleStr = liftA2 (getHash config) choiceKey shuffleKey
   where
     publicKey = getPublicKey publicStr
-    choiceKey = mod (publicKey + getPrivateKey choiceStr) $ chooseAndMergeSpread' config
+    choiceKey = liftA2 mod ((+publicKey) <$> getPrivateKey choiceStr) $ return (chooseAndMergeSpread' config)
     shuffleKey = getPrivateKey shuffleStr
 
 -- ┌─────────────────┐
 -- │ QUERY FUNCTIONS │
 -- └─────────────────┘
 
-retrievePublicKey :: [([Char], Integer)] -> String -> String -> [Char] -> String
+checkHashValidity :: [([Char], Integer)] -> [Char] -> Handle [Char]
+checkHashValidity config []
+  | sum (map snd config) == 0 = Content []
+  | otherwise = Error ["Invalid hash: too few symbols"]
+checkHashValidity _ (e:rest)
+  | elem e rest = Error ["Invalid hash: element " ++ show e ++ " is repeating."]
+checkHashValidity config (e:rest) =
+  let findIndex :: (Eq a, Show a) => [[a]] -> a -> Handle Int
+      findIndex [] a = Error ["Invalid hash: element " ++ show a ++ " is absent from configuration"]
+      findIndex (as:asrest) a
+        | elem a as = Content 0
+        | otherwise = (+1) <$> findIndex asrest a
+   in findIndex (map fst config) e >>=
+        \ind -> let src = config !! ind in
+          if 0 == snd src
+          then Error ["Invalid hash: too many elements from one source; " ++ show e ++ " doesn't fit"]
+          else (e:) <$> checkHashValidity (take ind config ++ [(fst src, snd src - 1)] ++ drop (ind+1) config) rest
+
+retrievePublicKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle String
 retrievePublicKey config choiceStr shuffleStr hashStr =
   let shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = getPrivateKey choiceStr
-      choiceKey = getHashI' config hashStr shuffleKey
-   in getPublicStr $ mod (choiceKey - preChoiceKey) (numberOfPublicKeys' config)
+      hash = checkHashValidity config hashStr
+      choiceKey = liftA2 (getHashI' config) hash shuffleKey
+   in getPublicStr <$> fmap2 mod (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
 
-retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Integer
+retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =
   let publicKey = getPublicKey publicStr
       shuffleKey = getPrivateKey shuffleStr
-      preChoiceKey = getHashI' config hashStr shuffleKey
+      preChoiceKey = liftA2 (getHashI' config) hash shuffleKey
+      hash = checkHashValidity config hashStr
       choiceMergeSpr = chooseAndMergeSpread' config
-   in mod (preChoiceKey - publicKey) choiceMergeSpr
+   in fmap2 mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
 
-retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Integer
+retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle Integer
 retrieveShuffleKey config publicStr choiceStr hashStr =
-  let publicKey = getPublicKey publicStr
-      choiceKey = mod (publicKey + getPrivateKey choiceStr) $ numberOfChoiceKeys' config
-   in getHashI config hashStr choiceKey
+  let ifEqual :: (Eq a) => Handle [a] -> Handle [a] -> Handle [a]
+      ifEqual (Error msg1) _ = Error msg1
+      ifEqual _ (Error _) = Error [".."]
+      ifEqual (Content lst1) (Content lst2)
+        | all (`elem` lst2) lst1 = Content lst1
+        | otherwise = Error ["The given choice key does not produce the given hash"]
+      publicKey = getPublicKey publicStr
+      choiceKey = fmap2 mod (fmap (+ publicKey) (getPrivateKey choiceStr)) (numberOfChoiceKeys' config)
+      hash = checkHashValidity config hashStr
+      preHash = ifEqual (fmap (chooseAndMerge config) choiceKey) hash
+   in liftA2 shuffleListI preHash hash
 
 -- ┌────────────────┐
 -- │ USER INTERFACE │
 -- └────────────────┘
 
--- TODO: Update
 infoAction :: [([Char], Integer)] -> String -> IO ()
 infoAction config "help" = do
       putStrLn "usage: pshash [--help | --version | -[d|s|c|i|q] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
@@ -535,10 +599,10 @@ infoAction config "times" = let amts = map dropElementInfo config in do
 infoAction _ cmd = putStrLn $ "error: info command not recognized: " ++ cmd
 
 queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO ()
-queryAction config "public" choiceStr shuffleStr hashStr = putStrLn $ retrievePublicKey config choiceStr shuffleStr hashStr
-queryAction config "choice" publicStr shuffleStr hashStr = print $ retrieveChoiceKey config publicStr shuffleStr hashStr
-queryAction config "shuffle" publicStr choiceStr hashStr = print $ retrieveShuffleKey config publicStr choiceStr hashStr
-queryAction config "hash" choiceStr shuffleStr publicStr = putStrLn $ getFinalHash config publicStr choiceStr shuffleStr
+queryAction config "public" choiceStr shuffleStr hashStr = printOutput $ retrievePublicKey config choiceStr shuffleStr hashStr
+queryAction config "choice" publicStr shuffleStr hashStr = printOutput . fmap show $ retrieveChoiceKey config publicStr shuffleStr hashStr
+queryAction config "shuffle" publicStr choiceStr hashStr = printOutput . fmap show $ retrieveShuffleKey config publicStr choiceStr hashStr
+queryAction config "hash" choiceStr shuffleStr publicStr = printOutput $ getFinalHash config publicStr choiceStr shuffleStr
 queryAction _ kw _ _ _ = putStrLn $ "error: query keyword not recognized: " ++ kw
 
 listPairsAction :: [([Char], Integer)] -> String -> [Char] -> IO ()
@@ -549,7 +613,7 @@ listPairsAction config publicStr hashStr =
    in mapM_ g [0 .. numberOfShuffleKeys' config - 1]
 
 hashAction :: [([Char], Integer)] -> String -> String -> String -> IO ()
-hashAction config publicStr choiceStr shuffleStr = putStrLn $ getFinalHash config publicStr choiceStr shuffleStr
+hashAction config publicStr choiceStr shuffleStr = printOutput $ getFinalHash config publicStr choiceStr shuffleStr
 
 parseArgs :: (Bool, Bool, Bool) -> [String] -> Map String String
 parseArgs _ [] = empty
