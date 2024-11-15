@@ -242,7 +242,7 @@ We will solve one problem at a time.
   + Either $alpha$ or $beta$ is empty, that is, $m_1 = 0$ or $m_2 = 0$.
     Then set $mg^2 (alpha, beta, k)$ to be equal to $alpha ++ beta$.
   + Neither $alpha$ nor $beta$ is empty.
-    Then we will assume that the merge function is already defined for $(alpha !! 0, beta, -)$ and $(alpha, beta !! 0, -)$. Let $s_1$ be the spread of the function $conf^2 (alpha !! 0, beta, -)$ and $s_2$ be the spread of $mg^2 (alpha, beta !! 0, -)$. Finally, denote the remainder $lui((s_1 + s_2)) k$ by $k'$. The merge of $alpha$ and $beta$ with key $k$ and an argument shift function $T$ is defined as
+    Then we will assume that the merge function is already defined for $(alpha !! 0, beta, -)$ and $(alpha, beta !! 0, -)$. Let $s_1$ be the spread of the function $mg^2 (alpha !! 0, beta, -)$ and $s_2$ be the spread of $mg^2 (alpha, beta !! 0, -)$. Finally, denote the remainder $lui((s_1 + s_2)) k$ by $k'$. The merge of $alpha$ and $beta$ with key $k$ and an argument shift function $T$ is defined as
     $
       mg^2 (alpha, beta, k) = cases(
         [alpha :: 0] ++ mg^2 (alpha !! 0, hs beta, hs k' + T(k'))\, #h(0.7em) k' < s_1,
@@ -252,7 +252,7 @@ We will solve one problem at a time.
     // where $T$ is an argument shift function.
 ]
 
-The merge function takes two lists and combines them together in one, in such a way that the order of elements in each of the two lists is not disturbed. For example, the merge of $[1,2,3]$ and $[a,b,c]$ with a certain key could be $[1,a,b,2,c,3]$. We will now derive some properties of $M^2$. If $s_1$ and $s_2$ are what they are in the above definition, we immediately see that $M^2(alpha, beta, -)$ is periodic with period $s_1 + s_2$, since it depends only on $k' = #lui($(s_1 + s_2)$)k$. Moreover, it is clear from the definition that $M^2(alpha, beta, -)$ is injective on the interval $((s_1 + s_2))$, which means that its spread is equal exactly to $s_1 + s_2$:
+The merge function takes two lists and combines them together in one, in such a way that the order of elements in each of the two lists is not disturbed. For example, the merge of $[1,2,3]$ and $[a,b,c]$ with a certain key could be $[1,a,b,2,c,3]$. We will now derive some properties of $mg^2$. If $s_1$ and $s_2$ are what they are in the above definition, we immediately see that $mg^2(alpha, beta, -)$ is periodic with period $s_1 + s_2$, since it depends only on $k' = #lui($(s_1 + s_2)$)k$. Moreover, it is clear from the definition that $mg^2(alpha, beta, -)$ is injective on the interval $((s_1 + s_2))$, which means that its spread is equal exactly to $s_1 + s_2$:
 $
 #spr (mg^2 (alpha, beta, -)) = #spr (mg^2 (alpha !! 0, beta, -)) + #spr (mg^2 (alpha, beta !! 0, -)).
 $ <recspr>
