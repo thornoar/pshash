@@ -1,7 +1,5 @@
 module Test where
 
-import Main
-
 -- ┌────────────────────┐
 -- │ INVERSE VALIDATION │
 -- └────────────────────┘
