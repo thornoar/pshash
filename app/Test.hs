@@ -1,3 +1,5 @@
+module Test where
+
 -- ┌────────────────────┐
 -- │ INVERSE VALIDATION │
 -- └────────────────────┘
