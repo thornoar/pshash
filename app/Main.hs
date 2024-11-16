@@ -12,7 +12,7 @@ import Data.Maybe (fromJust)
 import Text.Read (readMaybe)
 
 currentVersion :: String
-currentVersion = "0.1.5.0"
+currentVersion = "0.1.6.0"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -391,11 +391,11 @@ readOutput msg str = case readMaybe str of
 fmap2 :: (Monad m) => (a -> b -> c) -> (m a -> b -> m c)
 fmap2 f ma b = fmap (`f` b) ma
 
-printOutput :: Handle String -> IO ()
-printOutput (Error msg) =
-  let f str = putStrLn $ "\ESC[1;31merror:\ESC[0m " ++ str ++ "." -- ]] 
-   in mapM_ f msg
-printOutput (Content str) = putStrLn str
+-- printOutput :: Handle String -> IO ()
+-- printOutput (Error msg) =
+--   let f str = putStrLn $ "\ESC[1;31merror:\ESC[0m " ++ str ++ "." -- ]] 
+--    in mapM_ f msg
+-- printOutput (Content str) = putStrLn str
 
 -- ┌──────────────┐
 -- │ READING KEYS │
@@ -463,6 +463,19 @@ checkHashValidity config (e:rest) =
           then Error ["Invalid hash: too many elements from one source; " ++ show e ++ " doesn't fit"]
           else (e:) <$> checkHashValidity (take ind config ++ [(fst src, snd src - 1)] ++ drop (ind+1) config) rest
 
+checkConfigValidity :: [([Char], Integer)] -> Handle [([Char], Integer)]
+checkConfigValidity [] = Error ["Cannot have empty configuration"]
+checkConfigValidity [(lst, num)]
+  | num <= 0 = Error ["Invalid configuration: numbers must be positive"]
+  | num > length' lst = Error ["Invalid configuration: too many elements drawn from \"" ++ lst ++ "\""]
+  | otherwise = Content [(lst, num)]
+checkConfigValidity (src : rest) = case checkConfigValidity [src] of
+  Error msg -> Error msg
+  Content src' -> (src' ++) <$> checkConfigValidity rest
+
+getConfigFromSpec :: (Integer,Integer,Integer,Integer) -> [([Char],Integer)]
+getConfigFromSpec (a,b,c,d) = [(sourceLower, a), (sourceUpper, b), (sourceSpecial, c), (sourceNumbers, d)]
+
 retrievePublicKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle String
 retrievePublicKey config choiceStr shuffleStr hashStr =
   let shuffleKey = getPrivateKey shuffleStr
@@ -498,8 +511,8 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- │ USER INTERFACE │
 -- └────────────────┘
 
-infoAction :: [([Char], Integer)] -> String -> IO ()
-infoAction config "help" = do
+infoAction :: [([Char], Integer)] -> String -> Handle (IO ())
+infoAction config "help" = Content $ do
       putStrLn "usage: pshash [--help | --version | -[d|s|c|i|q] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
       putStrLn ""
       putStrLn "options:"
@@ -537,7 +550,7 @@ infoAction config "help" = do
       putStrLn ""
       putStrLn "using source configuration:"
       putStrLn $ "  " ++ show config
-infoAction _ "version" = putStrLn currentVersion
+infoAction _ "version" = Content $ putStrLn currentVersion
 infoAction config "numbers" =
   let amts = map dropElementInfo config
       numHashes = numberOfHashes amts
@@ -548,7 +561,7 @@ infoAction config "numbers" =
       numShuffleDouble = fromIntegral numShuffle :: Double
       numRepetitions = numberOfRepetitions $ map snd amts
       numRepetitionsDouble = fromIntegral numRepetitions :: Double
-   in do
+   in Content $ do
   putStrLn $ "using the following configuration distribution: " ++ show amts
   putStrLn ""
   putStrLn $
@@ -569,51 +582,73 @@ infoAction config "numbers" =
       ++ formatDouble (show numRepetitionsDouble) numberOfPlaces
   putStrLn $ "total hash length:                          " ++ show ((sum . map snd) amts) ++ " symbols"
   putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
-infoAction config "times" = let amts = map dropElementInfo config in do
-      putStrLn $ "using the following distribution:               " ++ show amts
-      putStrLn $ "assumed number of password checks per second:   " ++ "10 billion = 10^10"
-      putStrLn $ "time to check one password:                     " ++ "10^(-10) s = 0.1 nanosecond"
-      putStrLn ""
-      putStrLn $
-        let (inY, inAoU) = timeToCrack $ numberOfHashes amts
-            inAoUInteger = floor inAoU :: Integer
-            inYInteger = floor inY :: Integer
-         in "time to brute-force your password:              "
-              ++ formatInteger (show inYInteger) ++ " = "
-              ++ formatDouble (show inY) numberOfPlaces ++ " years\n"
-              ++ "                                             or "
-              ++ formatInteger (show inAoUInteger) ++ " = "
-              ++ formatDouble (show inAoU) numberOfPlaces
-              ++ " ages of the Universe"
-      putStrLn $
-        let (inY, inAoU) = timeToCrack $ numberOfRepetitions $ map snd amts
-            inAoUInteger = floor inAoU :: Integer
-            inYInteger = floor inY :: Integer
-         in "time to retrieve the keys based on a hash:      "
-              ++ formatInteger (show inYInteger) ++ " = "
-              ++ formatDouble (show inY) numberOfPlaces ++ " years\n"
-              ++ "                                             or "
-              ++ formatInteger (show inAoUInteger) ++ " = "
-              ++ formatDouble (show inAoU) numberOfPlaces
-              ++ " ages of the Universe"
-infoAction _ cmd = putStrLn $ "error: info command not recognized: " ++ cmd
+infoAction config "times" = let amts = map dropElementInfo config in Content $ do
+  putStrLn $ "using the following distribution:               " ++ show amts
+  putStrLn $ "assumed number of password checks per second:   " ++ "10 billion = 10^10"
+  putStrLn $ "time to check one password:                     " ++ "10^(-10) s = 0.1 nanosecond"
+  putStrLn ""
+  putStrLn $
+    let (inY, inAoU) = timeToCrack $ numberOfHashes amts
+        inAoUInteger = floor inAoU :: Integer
+        inYInteger = floor inY :: Integer
+     in "time to brute-force your password:              "
+          ++ formatInteger (show inYInteger) ++ " = "
+          ++ formatDouble (show inY) numberOfPlaces ++ " years\n"
+          ++ "                                             or "
+          ++ formatInteger (show inAoUInteger) ++ " = "
+          ++ formatDouble (show inAoU) numberOfPlaces
+          ++ " ages of the Universe"
+  putStrLn $
+    let (inY, inAoU) = timeToCrack $ numberOfRepetitions $ map snd amts
+        inAoUInteger = floor inAoU :: Integer
+        inYInteger = floor inY :: Integer
+     in "time to retrieve the keys based on a hash:      "
+          ++ formatInteger (show inYInteger) ++ " = "
+          ++ formatDouble (show inY) numberOfPlaces ++ " years\n"
+          ++ "                                             or "
+          ++ formatInteger (show inAoUInteger) ++ " = "
+          ++ formatDouble (show inAoU) numberOfPlaces
+          ++ " ages of the Universe"
+infoAction _ cmd = Error ["Info command not recognized: " ++ cmd]
 
-queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO ()
-queryAction config "public" choiceStr shuffleStr hashStr = printOutput $ retrievePublicKey config choiceStr shuffleStr hashStr
-queryAction config "choice" publicStr shuffleStr hashStr = printOutput . fmap show $ retrieveChoiceKey config publicStr shuffleStr hashStr
-queryAction config "shuffle" publicStr choiceStr hashStr = printOutput . fmap show $ retrieveShuffleKey config publicStr choiceStr hashStr
-queryAction config "hash" choiceStr shuffleStr publicStr = printOutput $ getFinalHash config publicStr choiceStr shuffleStr
-queryAction _ kw _ _ _ = putStrLn $ "error: query keyword not recognized: " ++ kw
+queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> Handle (IO ())
+queryAction config "public" choiceStr shuffleStr hashStr = putStrLn <$> retrievePublicKey config choiceStr shuffleStr hashStr
+queryAction config "choice" publicStr shuffleStr hashStr = print <$> retrieveChoiceKey config publicStr shuffleStr hashStr
+queryAction config "shuffle" publicStr choiceStr hashStr = print <$> retrieveShuffleKey config publicStr choiceStr hashStr
+queryAction config "hash" choiceStr shuffleStr publicStr = putStrLn <$> getFinalHash config publicStr choiceStr shuffleStr
+queryAction _ kw _ _ _ = Error ["Query keyword not recognized: " ++ kw]
 
-listPairsAction :: [([Char], Integer)] -> String -> [Char] -> IO ()
+listPairsAction :: [([Char], Integer)] -> String -> [Char] -> Handle (IO ())
 listPairsAction config publicStr hashStr =
   let publicKey = getPublicKey publicStr
+      hash = checkHashValidity config hashStr
       g :: Integer -> IO ()
       g key = putStrLn $ show (mod (getHashI' config hashStr key - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show key
-   in mapM_ g [0 .. numberOfShuffleKeys' config - 1]
+   in case hash of
+        Error msg -> Error msg
+        Content _ -> Content $ mapM_ g [0 .. numberOfShuffleKeys' config - 1]
 
-hashAction :: [([Char], Integer)] -> String -> String -> String -> IO ()
-hashAction config publicStr choiceStr shuffleStr = printOutput $ getFinalHash config publicStr choiceStr shuffleStr
+hashAction :: [([Char], Integer)] -> String -> String -> String -> Handle (IO ())
+hashAction config publicStr choiceStr shuffleStr = putStrLn <$> getFinalHash config publicStr choiceStr shuffleStr
+
+getConfig :: Map String String -> Handle [([Char], Integer)]
+getConfig args
+  | member "keyword" args = case args ! "keyword" of
+      "long" -> Content defaultConfiguration
+      "medium" -> Content mediumConfiguration
+      "short" -> Content shortConfiguration
+      "anlong" -> Content anlongConfiguration
+      "anshort" -> Content anshortConfiguration
+      "pin" -> Content pinCodeConfiguration
+      "mediumpin" -> Content mediumPinCodeConfiguration
+      "longpin" -> Content longPinCodeConfiguration
+      str -> Error ["Unrecognized configuration keyword: " ++ str]
+  | member "select" args =
+      readOutput "Tuple does not follow format \"(Int,Int,Int,Int)\"" (args ! "select")
+      >>= (checkConfigValidity . getConfigFromSpec)
+  | member "config" args =
+      readOutput "Invalid configuration" (args ! "config") >>= checkConfigValidity
+  | otherwise = Content defaultConfiguration
 
 parseArgs :: (Bool, Bool, Bool) -> [String] -> Map String String
 parseArgs _ [] = empty
@@ -636,39 +671,29 @@ getKeyStr args str = if member str args
                 then return $ args ! str
                 else getLine
 
-passKeysToAction :: Map String String -> (String -> String -> String -> IO ()) -> IO ()
+passKeysToAction :: Map String String -> (String -> String -> String -> Handle (IO ())) -> IO ()
 passKeysToAction args act = do
   first <- getKeyStr args "first"
   second <- getKeyStr args "second"
   third <- getKeyStr args "third"
-  act first second third
+  toIO $ act first second third
 
-getConfig :: Map String String -> [([Char], Integer)]
-getConfig args
-  | member "keyword" args = case args ! "keyword" of
-      "long" -> defaultConfiguration
-      "medium" -> mediumConfiguration
-      "short" -> shortConfiguration
-      "anlong" -> anlongConfiguration
-      "anshort" -> anshortConfiguration
-      "pin" -> pinCodeConfiguration
-      "mediumpin" -> mediumPinCodeConfiguration
-      "longpin" -> longPinCodeConfiguration
-      _ -> defaultConfiguration
-  | member "select" args = let (a,b,c,d) = read (args ! "select")
-                                  in [(sourceLower, a), (sourceUpper, b), (sourceSpecial, c), (sourceNumbers, d)]
-  | member "config" args = read (args ! "config")
-  | otherwise = defaultConfiguration
+toIO :: Handle (IO ()) -> IO ()
+toIO (Error msg) = 
+  let f str = putStrLn $ "\ESC[1;31merror:\ESC[0m " ++ str ++ "." -- ]] 
+   in mapM_ f msg
+toIO (Content io) = io
 
-getAction :: Map String String -> [([Char], Integer)] -> IO ()
-getAction args config
-  | member "info" args = infoAction config (args ! "info")
+performAction :: Map String String -> Handle [([Char], Integer)] -> IO ()
+performAction _ (Error msg) = toIO (Error msg)
+performAction args (Content config)
+  | member "info" args = toIO $ infoAction config (args ! "info")
   | member "query" args = passKeysToAction args (queryAction config (args ! "query"))
-  | member "list" args = getKeyStr args "first" >>= listPairsAction config (args ! "list")
+  | member "list" args = getKeyStr args "first" >>= toIO . listPairsAction config (args ! "list")
   | otherwise = passKeysToAction args (hashAction config)
 
 bindFunctions :: (a -> b) -> (b -> c) -> (b -> c -> d) -> (a -> d)
 bindFunctions f g h a = let b = f a in h b (g b)
 
 main :: IO ()
-main = getArgs >>= bindFunctions (parseArgs (False, False, False)) getConfig getAction
+main = getArgs >>= bindFunctions (parseArgs (False, False, False)) getConfig performAction
