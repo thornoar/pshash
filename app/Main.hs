@@ -484,7 +484,7 @@ retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handl
 retrieveShuffleKey config publicStr choiceStr hashStr =
   let ifEqual :: (Eq a) => Handle [a] -> Handle [a] -> Handle [a]
       ifEqual (Error msg1) _ = Error msg1
-      ifEqual _ (Error _) = Error [".."]
+      ifEqual _ (Error _) = Content []
       ifEqual (Content lst1) (Content lst2)
         | all (`elem` lst2) lst1 = Content lst1
         | otherwise = Error ["The given choice key does not produce the given hash"]
