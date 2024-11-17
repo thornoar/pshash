@@ -2,6 +2,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# HLINT ignore "Eta reduce" #-}
 {-# HLINT ignore "Use infix" #-}
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 module Main where
 
 import Data.Char (ord, chr)
@@ -10,6 +11,7 @@ import System.Environment (getArgs)
 import Data.List (elemIndex)
 import Data.Maybe (fromJust)
 import Text.Read (readMaybe)
+import Control.Applicative (liftA2)
 
 currentVersion :: String
 currentVersion = "0.1.6.0"
