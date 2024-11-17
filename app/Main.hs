@@ -94,16 +94,12 @@ chooseOrderedSpread' = chooseOrderedSpread . dropElementInfo
 mergeTwoLists :: (Shifting a) => ([a], [a]) -> Integer -> [a]
 mergeTwoLists ([], lst2) _ = lst2
 mergeTwoLists (lst1, []) _ = lst1
-mergeTwoLists (lst1, lst2) key
-  | curKey < spr1 =
-      let elt = head lst1
-       in elt : mergeTwoLists (tail lst1, lst2) (curKey + shift elt)
-  | otherwise =
-      let elt = head lst2
-       in elt : mergeTwoLists (lst1, tail lst2) (curKey - spr1 + shift elt)
+mergeTwoLists (elt1:rest1, elt2:rest2) key
+  | curKey < spr1 = elt1 : mergeTwoLists (rest1, elt2:rest2) (curKey + shift elt1)
+  | otherwise = elt2 : mergeTwoLists (elt1:rest1, rest2) (curKey - spr1 + shift elt2)
   where
-    spr1 = mergeTwoListsSpread (length' lst1 - 1, length' lst2)
-    spr2 = mergeTwoListsSpread (length' lst1, length' lst2 - 1)
+    spr1 = mergeTwoListsSpread (length' rest1, length' rest2 + 1)
+    spr2 = mergeTwoListsSpread (length' rest1 + 1, length' rest2)
     curKey = mod key (spr1 + spr2)
 
 mergeTwoListsSpread :: (Integer, Integer) -> Integer
@@ -393,12 +389,6 @@ readOutput msg str = case readMaybe str of
 fmap2 :: (Monad m) => (a -> b -> c) -> (m a -> b -> m c)
 fmap2 f ma b = fmap (`f` b) ma
 
--- printOutput :: Handle String -> IO ()
--- printOutput (Error msg) =
---   let f str = putStrLn $ "\ESC[1;31merror:\ESC[0m " ++ str ++ "." -- ]] 
---    in mapM_ f msg
--- printOutput (Content str) = putStrLn str
-
 -- ┌──────────────┐
 -- │ READING KEYS │
 -- └──────────────┘
@@ -421,7 +411,7 @@ breakAtPower :: String -> (String, String)
 breakAtPower s = (s1, s2')
   where
     (s1, s2) = break (== '-') s
-    s2' = if null s2 then s2 else tail s2
+    s2' = if null s2 then s2 else drop 1 s2
 
 getPrivateKey :: String -> Handle Integer
 getPrivateKey s = liftA2 (^) base pow
