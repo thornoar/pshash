@@ -14,7 +14,7 @@ import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
 
 currentVersion :: String
-currentVersion = "0.1.6.0"
+currentVersion = "0.1.6.1"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
