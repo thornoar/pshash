@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.6.0
+
+* More error catching, now the algorithm checks validity of configuration settings
+
 ## 0.1.5.0 -- 15.11.2024
 
 * Implemented error handling.

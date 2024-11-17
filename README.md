@@ -12,10 +12,12 @@ First of all, you can use the algorithm online at https://thornoar.github.io/psh
 - You can build `pshash` with Nix flakes by invoking `nix build github:thornoar/pshash`, there are two outputs: `#dynamic` for dynamic linking, and `#static` for static linking (will take a lot longer to build).
 - You can install `pshash` with `cabal-install` by cloning this repo and running `cabal update && cabal install`.
 - You can simply compile the Haskell file `app/Main.hs` with `ghc`, given that it finds the necessary libraries.
-- You can directly download the relevant executables from the `pshash-bin` repo: https://github.com/thornoar/pshash-bin
+- You can directly download the relevant pre-compiled executables from the `pshash-bin` repo: https://github.com/thornoar/pshash-bin
 
 ## Version details
 
-You can contact me via email: `r.a.maksimovich@gmail.com`, or on Telegram: `@thornoar`.
+The latest version is 0.1.6.0, available on NixOS, Debian, Arch, and Windows. The Fedora and Android binaries are out-of-date.
 
-The latest version is 0.1.2.1, available on NixOS, Debian and Windows. The Fedora, Android and Arch binaries are out-of-date.
+## Contact
+
+You can contact me via email: `r.a.maksimovich@gmail.com`, or on Telegram/Instagram: `@thornoar`.
