@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.7.0
+
+* Redesigned error catching, fixed minor bugs.
+
 ## 0.1.6.3
 
 * Improved error message formatting.
