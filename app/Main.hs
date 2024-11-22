@@ -1,7 +1,7 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# LANGUAGE TupleSections #-}
 {-# HLINT ignore "Eta reduce" #-}
 {-# HLINT ignore "Use infix" #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 module Main where
 
@@ -193,11 +193,11 @@ mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
   | m == e2 =
     let prevKey = mergeTwoListsI (e1:rest1, rest2) ms
      in spr1 + mod (prevKey - shift m) spr2
-  | otherwise = -1 -- error
+  | otherwise = -1
   where
     spr1 = mergeTwoListsSpread (length' rest1, 1 + length' rest2)
     spr2 = mergeTwoListsSpread (1 + length' rest1, length' rest2)
-mergeTwoListsI (_, _) [] = -1 -- error
+mergeTwoListsI (_, _) [] = -1
 
 mergeListsI :: (Shifting a, Eq a) => [[a]] -> [a] -> Integer
 mergeListsI [] _ = 0
