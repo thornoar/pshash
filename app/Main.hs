@@ -3,6 +3,8 @@
 {-# HLINT ignore "Eta reduce" #-}
 {-# HLINT ignore "Use infix" #-}
 {-# OPTIONS_GHC -Wno-unused-imports #-}
+{-# LANGUAGE GADTs #-}
+-- {-# LANGUAGE TypeOperators #-}
 module Main where
 
 import Data.Char (ord, chr)
@@ -14,7 +16,7 @@ import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
 
 currentVersion :: String
-currentVersion = "0.1.6.1"
+currentVersion = "0.1.6.2"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -363,27 +365,33 @@ numberOfPlaces = 4
 -- │ ERROR HANDLING │
 -- └────────────────┘
 
-data Handle a = Content a | Error [String] deriving (Read, Show)
+data Trace = String :=> [Trace] deriving (Read, Show)
+
+data Handle a = Content a | Error Trace deriving (Read, Show)
+
+newError :: String -> Handle a
+newError = Error . (:=> [])
+
 instance Functor Handle where
   fmap f ma = case ma of
-    Error msg -> Error msg
+    Error tr -> Error ("Trace in application of `fmap`..." :=> [tr])
     Content a -> Content (f a)
 instance Applicative Handle where
   pure = Content
   mf <*> ma = case mf of
-    Error msg -> case ma of
-      Error msg' -> Error (msg ++ msg')
-      _ -> Error msg
+    Error tr -> case ma of
+      Error tr' -> Error ("Double trace in application of `<*>`..." :=> [tr, tr'])
+      _ -> Error ("Single trace in application of `<*>`..." :=> [tr])
     Content f -> fmap f ma
 instance Monad Handle where
   return = pure
   mval >>= f = case mval of
-    Error msg -> Error msg
+    Error tr -> Error ("Single trace in application of `>>=`..." :=> [tr])
     Content a -> f a
 
 readOutput :: (Read a) => String -> String -> Handle a
 readOutput msg str = case readMaybe str of
-  Nothing -> Error [msg ++ ": " ++ str]
+  Nothing -> newError ("Could not read \"" ++ str ++ "\" as " ++ msg)
   Just a -> Content a
 
 fmap2 :: (Monad m) => (a -> b -> c) -> (m a -> b -> m c)
@@ -440,29 +448,29 @@ getFinalHash config publicStr choiceStr shuffleStr = liftA2 (getHash config) cho
 checkHashValidity :: [([Char], Integer)] -> [Char] -> Handle [Char]
 checkHashValidity config []
   | sum (map snd config) == 0 = Content []
-  | otherwise = Error ["Invalid hash: too few symbols"]
+  | otherwise = newError "Invalid hash: too few symbols"
 checkHashValidity _ (e:rest)
-  | elem e rest = Error ["Invalid hash: element " ++ show e ++ " is repeating."]
+  | elem e rest = newError ("Invalid hash: element " ++ show e ++ " is repeating")
 checkHashValidity config (e:rest) =
   let findIndex :: (Eq a, Show a) => [[a]] -> a -> Handle Int
-      findIndex [] a = Error ["Invalid hash: element " ++ show a ++ " is absent from configuration"]
+      findIndex [] a = newError ("Invalid hash: element " ++ show a ++ " is absent from configuration")
       findIndex (as:asrest) a
         | elem a as = Content 0
         | otherwise = (+1) <$> findIndex asrest a
    in findIndex (map fst config) e >>=
         \ind -> let src = config !! ind in
           if 0 == snd src
-          then Error ["Invalid hash: too many elements from one source; " ++ show e ++ " doesn't fit"]
+          then newError ("Invalid hash: too many elements from one source; " ++ show e ++ " doesn't fit")
           else (e:) <$> checkHashValidity (take ind config ++ [(fst src, snd src - 1)] ++ drop (ind+1) config) rest
 
 checkConfigValidity :: [([Char], Integer)] -> Handle [([Char], Integer)]
-checkConfigValidity [] = Error ["Cannot have empty configuration"]
+checkConfigValidity [] = newError "Cannot have empty configuration"
 checkConfigValidity [(lst, num)]
-  | num <= 0 = Error ["Invalid configuration: numbers must be positive"]
-  | num > length' lst = Error ["Invalid configuration: too many elements drawn from \"" ++ lst ++ "\""]
+  | num <= 0 = newError "Invalid configuration: numbers must be positive"
+  | num > length' lst = newError ("Invalid configuration: too many elements drawn from \"" ++ lst ++ "\"")
   | otherwise = Content [(lst, num)]
 checkConfigValidity (src : rest) = case checkConfigValidity [src] of
-  Error msg -> Error msg
+  Error tr -> Error tr
   Content src' -> (src' ++) <$> checkConfigValidity rest
 
 getConfigFromSpec :: (Integer,Integer,Integer,Integer) -> [([Char],Integer)]
@@ -487,12 +495,12 @@ retrieveChoiceKey config publicStr shuffleStr hashStr =
 
 retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle Integer
 retrieveShuffleKey config publicStr choiceStr hashStr =
-  let ifEqual :: (Eq a) => Handle [a] -> Handle [a] -> Handle [a]
+  let ifEqual :: (Eq a, Show a) => Handle [a] -> Handle [a] -> Handle [a]
       ifEqual (Error msg1) _ = Error msg1
       ifEqual _ (Error _) = Content []
       ifEqual (Content lst1) (Content lst2)
         | all (`elem` lst2) lst1 = Content lst1
-        | otherwise = Error ["The given choice key does not produce the given hash"]
+        | otherwise = newError ("Could not retrieve shuffle key: the given choice key does not produce hash \"" ++ show lst2 ++ "\"")
       publicKey = getPublicKey publicStr
       choiceKey = fmap2 mod (fmap (+ publicKey) (getPrivateKey choiceStr)) (numberOfChoiceKeys' config)
       hash = checkHashValidity config hashStr
@@ -601,14 +609,14 @@ infoAction config "times" = let amts = map dropElementInfo config in Content $ d
           ++ formatInteger (show inAoUInteger) ++ " = "
           ++ formatDouble (show inAoU) numberOfPlaces
           ++ " ages of the Universe"
-infoAction _ cmd = Error ["Info command not recognized: " ++ cmd]
+infoAction _ cmd = newError ("Info command not recognized: " ++ cmd)
 
 queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> Handle (IO ())
 queryAction config "public" choiceStr shuffleStr hashStr = putStrLn <$> retrievePublicKey config choiceStr shuffleStr hashStr
 queryAction config "choice" publicStr shuffleStr hashStr = print <$> retrieveChoiceKey config publicStr shuffleStr hashStr
 queryAction config "shuffle" publicStr choiceStr hashStr = print <$> retrieveShuffleKey config publicStr choiceStr hashStr
 queryAction config "hash" choiceStr shuffleStr publicStr = putStrLn <$> getFinalHash config publicStr choiceStr shuffleStr
-queryAction _ kw _ _ _ = Error ["Query keyword not recognized: " ++ kw]
+queryAction _ kw _ _ _ = newError ("Query keyword not recognized: " ++ kw)
 
 listPairsAction :: [([Char], Integer)] -> String -> [Char] -> Handle (IO ())
 listPairsAction config publicStr hashStr =
@@ -617,7 +625,7 @@ listPairsAction config publicStr hashStr =
       g :: Integer -> IO ()
       g key = putStrLn $ show (mod (getHashI' config hashStr key - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show key
    in case hash of
-        Error msg -> Error msg
+        Error tr -> Error tr
         Content _ -> Content $ mapM_ g [0 .. numberOfShuffleKeys' config - 1]
 
 hashAction :: [([Char], Integer)] -> String -> String -> String -> Handle (IO ())
@@ -634,7 +642,7 @@ getConfig args
       "pin" -> Content pinCodeConfiguration
       "mediumpin" -> Content mediumPinCodeConfiguration
       "longpin" -> Content longPinCodeConfiguration
-      str -> Error ["Unrecognized configuration keyword: " ++ str]
+      str -> newError ("Unrecognized configuration keyword: " ++ str)
   | member "select" args =
       readOutput "Tuple does not follow format \"(Int,Int,Int,Int)\"" (args ! "select")
       >>= (checkConfigValidity . getConfigFromSpec)
@@ -670,14 +678,22 @@ passKeysToAction args act = do
   third <- getKeyStr args "third"
   toIO $ act first second third
 
+printTrace :: Int -> Trace -> IO ()
+printTrace lvl (msg :=> lst) = do
+  let prefix = if lvl == 0 then "" else replicate (2*(lvl-1)) ' ' ++ "| "
+  putStrLn $ prefix ++ msg
+  mapM_ (printTrace (lvl+1)) lst
+
 toIO :: Handle (IO ()) -> IO ()
-toIO (Error msg) = 
-  let f str = putStrLn $ "\ESC[1;31merror:\ESC[0m " ++ str ++ "." -- ]] 
-   in mapM_ f msg
+toIO (Error tr) = do
+  putStrLn "\ESC[1;31mError:\ESC[0m" -- ]]
+  printTrace 0 tr
 toIO (Content io) = io
+  -- let f str = putStrLn $ "\ESC[1;31merror:\ESC[0m " ++ str ++ "." -- ]] 
+  --  in mapM_ f tr
 
 performAction :: Map String String -> Handle [([Char], Integer)] -> IO ()
-performAction _ (Error msg) = toIO (Error msg)
+performAction _ (Error tr) = toIO (Error tr)
 performAction args (Content config)
   | member "info" args = toIO $ infoAction config (args ! "info")
   | member "query" args = passKeysToAction args (queryAction config (args ! "query"))

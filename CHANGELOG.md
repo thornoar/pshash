@@ -1,5 +1,13 @@
 # Revision history for pshash
 
+## 0.1.6.2
+
+* Added error tracing.
+
+## 0.1.6.1
+
+* Eliminated compiler warnings.
+
 ## 0.1.6.0
 
 * More error catching, now the algorithm checks validity of configuration settings
