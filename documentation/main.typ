@@ -457,9 +457,9 @@ It is obvious that the hashing algorithm, which is basically a mathematical func
 
 == The `pshash` program
 
-`pshash` (from "password-hash") is the name of the implementation of the hash function described in the previous section. There is no front-end or GUI, it is only a command-line utility designed to be simple and lightweight. The source, written in Haskell, as well as the binaries of the program, are available at https://github.com/thornoar/pshash. The code repeats the definitions explained in the previous section almost verbatim --- such is the benefit of functional programming.
+`pshash` (from "password-hash") is the name of the implementation of the hash function described in the previous section. There is no front-end or GUI, it is only a command-line utility designed to be simple and lightweight. The source, written in Haskell, is available at https://github.com/thornoar/pshash. The code repeats the definitions explained in the previous section almost verbatim --- such is the benefit of functional programming.
 
-The program accepts three arguments: the public key and two private keys, returning a hash using its builtin source configuration. On demand, the user may pass a different configuration as the first optional argument, but this is not recommended, since it will have to be done every time. Instead, it is suggested to download the source, change the default configuration in the code, and then compile it to a new executable. You can run `"pshash --help"` to see all available options.
+The program accepts three arguments: the public key and two private keys, returning a hash using its builtin source configuration. On demand, the user may pass a different configuration using one of the `-d`, `-s`, and `-c` command-line options, but this is not recommended, since it will have to be done every time. Instead, it is suggested to download the source, change the default configuration in the code, and then compile it to a new executable. You can run `"pshash --help"` to see all available options.
 
 *! Important notice !*
 

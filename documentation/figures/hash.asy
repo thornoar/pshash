@@ -4,7 +4,6 @@ import export;
 
 usepackage("euscript");
 
-// smpar(help = true, gridnumber = 10);
 smpar(arrowmargin = .3, gaplength = .4);
 
 real r = .5;
@@ -81,7 +80,6 @@ drawarrow(selections[2][2], sources[2][2], beginarrow = true, endarrow = false, 
 drawarrow(selections[3][0], sources[3][2], beginarrow = true, endarrow = false, points = p((34.2,-4.8)));
 
 smooth[] allselected = concat(selections);
-// smooth[] allselected = concat(selections[0], selections[1]);
 
 // --------------------------
 

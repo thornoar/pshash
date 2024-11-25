@@ -14,10 +14,6 @@ First of all, you can use the algorithm online at https://thornoar.github.io/psh
 - You can simply compile the Haskell file `app/Main.hs` with `ghc`, given that it finds the necessary libraries.
 - You can directly download the relevant pre-compiled executables from the `pshash-bin` repo: https://github.com/thornoar/pshash-bin
 
-## Version details
-
-The latest version is 0.1.6.0, available on NixOS, Debian, Arch, and Windows. The Fedora and Android binaries are out-of-date.
-
 ## Contact
 
 You can contact me via email: `r.a.maksimovich@gmail.com`, or on Telegram/Instagram: `@thornoar`.

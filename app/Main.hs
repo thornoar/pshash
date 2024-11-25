@@ -13,7 +13,7 @@ import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
 
 currentVersion :: String
-currentVersion = "0.1.7.0"
+currentVersion = "0.1.8.0"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -32,6 +32,11 @@ cnk n k = div (factorial' n k) (factorial k)
 
 length' :: [a] -> Integer
 length' = toInteger . length
+
+take' :: Integer -> [a] -> [a]
+take' 0 _ = []
+take' _ [] = []
+take' n (a:as) = a : take' (n-1) as
 
 insertAtIndex :: [a] -> a -> Integer -> [a]
 insertAtIndex lst a 0 = a:lst
@@ -170,7 +175,7 @@ instance Monad Handle where
 
 readHandle :: (Read a) => String -> String -> Handle a
 readHandle msg str = case readMaybe str of
-  Nothing -> newError ("Could not read \"" ++ str ++ "\" as " ++ msg ++ ".")
+  Nothing -> newError ("Failed to read \"" ++ str ++ "\" as " ++ msg ++ ".")
   Just a -> Content a
 
 fmap2 :: (Monad m) => (a -> b -> c) -> (m a -> b -> m c)
@@ -185,8 +190,8 @@ fmap2' f ma b = ma >>= (`f` b)
 
 mapHashingI :: (Shifting b) => (a -> b -> Handle Integer) -> (a -> Integer) -> ([a] -> [b] -> Handle Integer)
 mapHashingI _ _ [] [] = Content 0
-mapHashingI _ _ _ [] = newError "First list is too long (`mapHashingI`)"
-mapHashingI _ _ [] _ = newError "Second list is too long (`mapHashingI`)"
+mapHashingI _ _ _ [] = newError "Failed to map un-hashing: list of sources too long."
+mapHashingI _ _ [] _ = newError "Failed to map un-hashing: list of hashes too long"
 mapHashingI fI spr (a:as) (b:bs) =
   let curSpr = spr a
       restSpr = product $ map spr as
@@ -194,7 +199,7 @@ mapHashingI fI spr (a:as) (b:bs) =
       restPreKeyH = mapHashingI fI spr as bs -- - shift b
    in case (curKeyH, restPreKeyH) of
         (Error tr1, Error tr2) -> Error ("Double trace in call of `mapHashing`:" :=> [tr1, tr2])
-        (Error tr, _) -> Error ("Trace in call of `mapHashingI`, in call of `fI`:" :=> [tr])
+        (Error tr, _) -> Error ("Trace in call of `mapHashingI`:" :=> [tr])
         (_, Error tr) -> Error tr
         (Content curKey, Content nextPreKey) -> Content $ curKey + curSpr * mod (nextPreKey - shift b) restSpr
 
@@ -219,7 +224,7 @@ chooseOrderedI :: (Shifting a, Eq a, Show a) => ([a], Integer) -> [a] -> Handle 
 chooseOrderedI (_,0) [] = Content 0
 chooseOrderedI (src,num) hash
   | num /= length' hash = Error $
-      red "Invalid hash: length should match source configuration. (`chooseOrderedI`)" :=>
+      red "Invalid hash: length should match source configuration." :=>
       [
         ("Reversing hash: " ++ show hash ++ " with length " ++ show (length hash)) :=> [],
         ("With source: " ++ show (src,num)) :=> []
@@ -231,12 +236,15 @@ chooseOrderedI (src, num) (a:as) =
       keyDivH = chooseOrderedI (filter (/= a) src, num-1) as
    in case keyModM of
         Nothing -> Error $
-          red ("Invalid hash: element " ++ show a ++ " absent from source " ++ show src ++ ". (`chooseOrderedI`)") :=>
-          ["When using `-q shuffle`, this implies invalid hash for given choice key." :=> []]
+          red ("Invalid hash: element " ++ show a ++ " could not be found in source.") :=>
+          [
+            ("Perhaps element " ++ show a ++ " is repeated in the hash?") :=> [],
+            "Perhaps the hash is incompatible with choice key?" :=> []
+          ]
         Just keyMod -> case keyDivH of
           Error tr -> Error tr
           Content keyDiv -> Content $ keyMod + srcLen * mod (keyDiv - shift a) prevSpread
-chooseOrderedI (_,_) _ = newError "Invalid hash. (`chooseOrderedI`)"
+chooseOrderedI (_,_) _ = newError "Invalid hash. Why? IDFK."
 
 shuffleListI :: (Shifting a, Eq a, Show a) => [a] -> [a] -> Handle Integer
 shuffleListI lst = chooseOrderedI (lst, length' lst)
@@ -253,7 +261,7 @@ mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Handle Inte
 mergeTwoListsI ([], src) hash
   | src == hash = Content 0
   | otherwise = Error $
-      red "Invalid hash: element mismatch in snd. (`mergeTwoListsI`)" :=>
+      red "Invald hash: consists of different elements than source." :=>
       [
         ("Reversing hash: " ++ show hash) :=> [],
         ("Using source: " ++ show src) :=> []
@@ -261,7 +269,7 @@ mergeTwoListsI ([], src) hash
 mergeTwoListsI (src, []) hash
   | src == hash = Content 0
   | otherwise = Error $
-      red "Invalid hash: element mismatch in fst. (`mergeTwoListsI`)" :=>
+      red "Invald hash: consists of different elements than source." :=>
       [
         ("Reversing hash: " ++ show hash) :=> [],
         ("Using source: " ++ show src) :=> []
@@ -273,18 +281,30 @@ mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
   | m == e2 = case mergeTwoListsI (e1:rest1, rest2) ms of
       Error tr -> Error tr
       Content prevKey -> Content $ spr1 + mod (prevKey - shift m) spr2
-  | otherwise = newError $ "Invalid hash: element " ++ show m ++ " does not match either source. (`mapHashingI`)"
+  | otherwise = Error $
+      red ("Invalid hash: element " ++ show m ++ " does not match either source.") :=>
+      [
+        ("Reversing hash: " ++ show (m:ms)) :=> [],
+        ("First source list: " ++ show (e1:rest1)) :=> [],
+        ("Second source list: " ++ show (e2:rest2)) :=> [],
+        ("The head of the hash should be either " ++ show e1 ++ " or " ++ show e2) :=> []
+      ]  
   where
     spr1 = mergeTwoListsSpread (length' rest1, 1 + length' rest2)
     spr2 = mergeTwoListsSpread (1 + length' rest1, length' rest2)
-mergeTwoListsI (_, _) [] = newError "Invalid hash: too few elements. (`mergeTwoListsI`)"
+mergeTwoListsI (_, _) [] = newError "Invalid hash: too few elements."
 
 mergeListsI :: (Shifting a, Eq a, Show a) => [[a]] -> [a] -> Handle Integer
 mergeListsI [] [] = Content 0
-mergeListsI [] _  = newError "Invalid hash: too many characters. (`mergeListsI`)"
+mergeListsI [] _  = newError "Invalid hash: too many characters."
 mergeListsI [src] lst
   | lst == src = Content 0
-  | otherwise = newError "Invalid hash: element mismatch. (`mergeListsI`)"
+  | otherwise = Error $
+      red "Invalid hash: element mismatch." :=>
+      [
+        ("Reversing hash: " ++ show lst) :=> [],
+        ("Current source: " ++ show src) :=> []
+      ]
 mergeListsI [l1, l2] res = mergeTwoListsI (l1,l2) res
 mergeListsI (l:ls) res =
   let curSpr = mergeListsSpread' ls
@@ -294,8 +314,8 @@ mergeListsI (l:ls) res =
       nextKeyH = mergeTwoListsI (l, resWithoutL) res
    in case (keyModH, nextKeyH) of
         (Error tr1, Error tr2) -> Error ("Double trace in call of `mergeListsI`:" :=> [tr1, tr2])
-        (_, Error tr) -> Error ("Trace in call of `mergeListsI`, in base:" :=> [tr])
-        (Error tr, _) -> Error ("Trace in call of `mergeListsI`, in recursion step:" :=> [tr])
+        (_, Error tr) -> Error ("Trace in call of `mergeListsI`:" :=> [tr])
+        (Error tr, _) -> Error ("Trace in call of `mergeListsI`:" :=> [tr])
         (Content keyMod, Content nextKey) -> Content $ keyMod + curSpr * mod (nextKey - shift l) nextSpr
 
 distribute :: (Eq a) => [[a]] -> [[a]] -> a -> [[a]]
@@ -541,7 +561,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 
 infoAction :: [([Char], Integer)] -> String -> Handle (IO ())
 infoAction config "help" = Content $ do
-      putStrLn "usage: pshash [--help | --version | -[d|s|c|i|q] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
+      putStrLn "usage: pshash [--help | --version | -[d|s|c|i|q|l] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
       putStrLn ""
       putStrLn "options:"
       putStrLn "  --help              show this help message and exit"
@@ -565,7 +585,8 @@ infoAction config "help" = Content $ do
       putStrLn "                          public (followed by CHOICE SHUFFLE HASH)"
       putStrLn "                          choice (followed by PUBLIC SHUFFLE HASH)"
       putStrLn "                          shuffle (followed by PUBLIC CHOICE HASH)"
-      putStrLn "  -l PUBLIC           print the list of (choice,shuffle) pairs that would produce the given hash."
+      putStrLn "  -l                  print the list of (choice,shuffle) pairs that would produce the given hash."
+      putStrLn "                      Accepts three arguments: the PUBLIC key, the NUMBER of pairs to compute, and the final HASH."
       putStrLn ""
       putStrLn "main arguments:"
       putStrLn "  PUBLIC stands for public key, a memorable string indicative of the password destination (e.g. \"google\", \"steam\")"
@@ -643,22 +664,21 @@ queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> Ha
 queryAction config "public" choiceStr shuffleStr hashStr = putStrLn <$> retrievePublicKey config choiceStr shuffleStr hashStr
 queryAction config "choice" publicStr shuffleStr hashStr = print <$> retrieveChoiceKey config publicStr shuffleStr hashStr
 queryAction config "shuffle" publicStr choiceStr hashStr = print <$> retrieveShuffleKey config publicStr choiceStr hashStr
-queryAction config "hash" choiceStr shuffleStr publicStr = putStrLn <$> getFinalHash config publicStr choiceStr shuffleStr
 queryAction _ kw _ _ _ = newError ("Query keyword not recognized: " ++ kw ++ ".")
 
-listPairsAction :: [([Char], Integer)] -> String -> [Char] -> IO ()
-listPairsAction config publicStr hashStr =
+listPairsAction :: [([Char], Integer)] -> String -> String -> [Char] -> Handle (IO ())
+listPairsAction config publicStr limitStr hashStr =
   let publicKey = getPublicKey publicStr
-      mapM' :: (a -> Handle (IO ())) -> [a] -> IO ()
-      mapM' _ [] = return ()
-      mapM' f (x:xs) = case f x of
-        Error tr -> toIO $ Error ("Stopped pair listing due to error:" :=> [tr])
-        Content io -> io >> mapM' f xs
+      limit = readHandle "positive integer" limitStr :: Handle Integer
+      sequence' :: [Handle (IO ())] -> IO ()
+      sequence' [] = return ()
+      sequence' (Error tr : _) = toIO $ Error ("Stopped pair listing due to error:" :=> [tr])
+      sequence' (Content io : xs) = io >> sequence' xs
       g :: Integer -> Handle (IO ())
       g shuffleKey = case getHashI' config hashStr shuffleKey of
         Error tr -> Error tr
         Content preChoiceKey -> Content . putStrLn $ show (mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show shuffleKey
-   in mapM' g [0 .. numberOfShuffleKeys' config - 1]
+   in fmap sequence' $ fmap2 take' limit $ map g [0 .. numberOfShuffleKeys' config - 1]
 
 hashAction :: [([Char], Integer)] -> String -> String -> String -> Handle (IO ())
 hashAction config publicStr choiceStr shuffleStr = putStrLn <$> getFinalHash config publicStr choiceStr shuffleStr
@@ -689,7 +709,7 @@ parseArgs trp ("-s" : s : rest) = insert "select" s $ parseArgs trp rest
 parseArgs trp ("-c" : s : rest) = insert "config" s $ parseArgs trp rest
 parseArgs trp ("-i" : s : rest) = insert "info" s $ parseArgs trp rest
 parseArgs trp ("-q" : s : rest) = insert "query" s $ parseArgs trp rest
-parseArgs trp ("-l" : s : rest) = insert "list" s $ parseArgs trp rest
+parseArgs trp ("-l" : rest) = insert "list" "" $ parseArgs trp rest
 parseArgs trp ("--help" : rest) = insert "info" "help" $ parseArgs trp rest
 parseArgs trp ("--version" : rest) = insert "info" "version" $ parseArgs trp rest
 parseArgs (b1, b2, b3) (s : rest)
@@ -727,7 +747,7 @@ performAction _ (Error tr) = toIO (Error tr)
 performAction args (Content config)
   | member "info" args = toIO $ infoAction config (args ! "info")
   | member "query" args = passKeysToAction args (queryAction config (args ! "query"))
-  | member "list" args = getKeyStr args "first" >>= listPairsAction config (args ! "list")
+  | member "list" args = passKeysToAction args (listPairsAction config)
   | otherwise = passKeysToAction args (hashAction config)
 
 bindFunctions :: (a -> b) -> (b -> c) -> (b -> c -> d) -> (a -> d)

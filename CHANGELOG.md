@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.8.0
+
+* Improved error messages, implemented limit on number of pairs printed using the `-l` option.
+
 ## 0.1.7.0
 
 * Redesigned error catching, fixed minor bugs.
