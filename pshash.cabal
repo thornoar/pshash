@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               pshash
-version:            0.1.8.0
+version:            0.1.8.1
 synopsis:           Password generator using hashing functions
 license:            MIT
 license-file:       LICENSE

@@ -1,6 +1,3 @@
-{-# HLINT ignore "Eta reduce" #-}
-{-# HLINT ignore "Use infix" #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 module Main where
 
@@ -8,12 +5,11 @@ import Data.Char (ord, chr)
 import Data.Map (Map, empty, insert, member, (!))
 import System.Environment (getArgs)
 import Data.List (elemIndex)
-import Data.Maybe (fromJust)
 import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
 
 currentVersion :: String
-currentVersion = "0.1.8.0"
+currentVersion = "0.1.8.1"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -38,10 +34,10 @@ take' 0 _ = []
 take' _ [] = []
 take' n (a:as) = a : take' (n-1) as
 
-insertAtIndex :: [a] -> a -> Integer -> [a]
-insertAtIndex lst a 0 = a:lst
-insertAtIndex (l:lst) a n = l : insertAtIndex lst a (n-1)
-insertAtIndex _ _ _ = []
+insertAt :: a -> Integer -> [a] -> [a]
+insertAt a 0 lst = a:lst
+insertAt a n (l:lst) = l : insertAt a (n-1) lst
+insertAt _ _ _ = []
 
 dropElementInfo :: ([a], Integer) -> (Integer, Integer)
 dropElementInfo (src, m) = (length' src, m)
@@ -55,6 +51,9 @@ instance (Shifting a) => Shifting [a] where
 instance Shifting Char where
   shift = toInteger . ord
 
+combineHashing :: (a -> Integer -> b) -> (b -> Integer -> c) -> (a -> Integer -> Integer -> c)
+combineHashing f g a = g . f a
+
 mapHashing :: (Shifting b) => (a -> Integer -> b) -> (a -> Integer) -> ([a] -> Integer -> [b])
 mapHashing _ _ [] _ = []
 mapHashing f spr (a : as) key = b : mapHashing f spr as nextKey
@@ -62,9 +61,6 @@ mapHashing f spr (a : as) key = b : mapHashing f spr as nextKey
     (keyDiv, keyMod) = divMod key $ spr a
     b = f a keyMod
     nextKey = keyDiv + shift b
-
-combineHashing :: (a -> Integer -> b) -> (b -> Integer -> c) -> (a -> Integer -> Integer -> c)
-combineHashing f g a key1 key2 = g (f a key1) key2
 
 composeHashing :: (Shifting b) => (a -> Integer -> b) -> (a -> Integer) -> (b -> Integer -> c) -> (a -> Integer -> c)
 composeHashing f spr g a key = g b nextKey
@@ -191,7 +187,7 @@ fmap2' f ma b = ma >>= (`f` b)
 mapHashingI :: (Shifting b) => (a -> b -> Handle Integer) -> (a -> Integer) -> ([a] -> [b] -> Handle Integer)
 mapHashingI _ _ [] [] = Content 0
 mapHashingI _ _ _ [] = newError "Failed to map un-hashing: list of sources too long."
-mapHashingI _ _ [] _ = newError "Failed to map un-hashing: list of hashes too long"
+mapHashingI _ _ [] _ = newError "Failed to map un-hashing: list of hashes too long."
 mapHashingI fI spr (a:as) (b:bs) =
   let curSpr = spr a
       restSpr = product $ map spr as
@@ -255,7 +251,7 @@ shuffleListI' (r:rest) key =
   let nextLen = length' rest
       (keyDiv, keyMod) = divMod key (nextLen + 1)
       nextKey = keyDiv + shift r
-   in insertAtIndex (shuffleListI' rest nextKey) r keyMod
+   in insertAt r keyMod (shuffleListI' rest nextKey)
 
 mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Handle Integer
 mergeTwoListsI ([], src) hash
@@ -322,7 +318,7 @@ distribute :: (Eq a) => [[a]] -> [[a]] -> a -> [[a]]
 distribute [] _ _ = []
 distribute _ [] _ = []
 distribute (src:srcRest) (res:resRest) a
-  | elem a src = (a:res) : resRest
+  | a `elem` src = (a:res) : resRest
   | otherwise = res : distribute srcRest resRest a
 
 invertMergeLists :: (Eq a) => [[a]] -> [a] -> [[a]]
@@ -740,7 +736,7 @@ toIO :: Handle (IO ()) -> IO ()
 toIO (Error tr) = do
   putStrLn "\ESC[1;31mError:\ESC[0m" -- ]]
   printTrace 0 tr
-toIO (Content io) = io
+toIO (Content action) = action
 
 performAction :: Map String String -> Handle [([Char], Integer)] -> IO ()
 performAction _ (Error tr) = toIO (Error tr)
@@ -750,8 +746,5 @@ performAction args (Content config)
   | member "list" args = passKeysToAction args (listPairsAction config)
   | otherwise = passKeysToAction args (hashAction config)
 
-bindFunctions :: (a -> b) -> (b -> c) -> (b -> c -> d) -> (a -> d)
-bindFunctions f g h a = let b = f a in h b (g b)
-
 main :: IO ()
-main = getArgs >>= bindFunctions (parseArgs (False, False, False)) getConfig performAction
+main = getArgs >>= (performAction <*> getConfig) . parseArgs (False, False, False) 
