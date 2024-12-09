@@ -2,14 +2,16 @@
 module Main where
 
 import Data.Char (ord, chr)
-import Data.Map (Map, empty, insert, member, (!))
-import System.Environment (getArgs)
+import Data.Map (Map, empty, insertWith, member, notMember, (!))
 import Data.List (elemIndex)
+import System.Environment (getArgs)
+import System.Directory (getHomeDirectory)
 import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
+import Control.Exception
 
 currentVersion :: String
-currentVersion = "0.1.8.1"
+currentVersion = "0.1.9.0"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -179,6 +181,9 @@ fmap2 f ma b = fmap (`f` b) ma
 
 fmap2' :: (Monad m) => (a -> b -> m c) -> (m a -> b -> m c)
 fmap2' f ma b = ma >>= (`f` b)
+
+-- fmap2'' :: (Monad m) => (a -> b -> m c) -> (a -> m b -> m c)
+-- fmap2'' f a = join . fmap (f a)
 
 -- ┌───────────────────┐
 -- │ INVERSE FUNCTIONS │
@@ -379,6 +384,15 @@ mediumPinCodeConfiguration = [(sourceNumbers, 6)]
 longPinCodeConfiguration :: [([Char], Integer)]
 longPinCodeConfiguration = [(sourceNumbers, 8)]
 
+defaultConfigFiles :: [String]
+defaultConfigFiles =
+  [
+    "./pshash.conf",
+    "~/.config/pshash/pshash.conf",
+    "~/.pshash.conf",
+    "/etc/pshash/pshash.conf"
+  ]
+
 -- ┌──────────────────┐
 -- │ COUNTING NUMBERS │
 -- └──────────────────┘
@@ -555,13 +569,36 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- │ USER INTERFACE │
 -- └────────────────┘
 
-infoAction :: [([Char], Integer)] -> String -> Handle (IO ())
-infoAction config "help" = Content $ do
-      putStrLn "usage: pshash [--help | --version | -[d|s|c|i|q|l] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
+-- type IOHandle a = IO (Handle a) deriving (Applicative, Monad)
+
+handleWith :: (a -> IO ()) -> Handle a -> IO (Handle ())
+handleWith f ma = case ma of
+  Error tr -> return (Error tr)
+  Content a -> f a >> return (Content ())
+
+(>>>) :: IO (Handle ()) -> IO (Handle ()) -> IO (Handle ())
+(>>>) io1 io2 = do
+  res <- io1
+  case res of
+    Error tr -> return (Error tr)
+    Content () -> io2
+
+(<.>) :: (b -> IO (Handle c)) -> (a -> IO (Handle b)) -> (a -> IO (Handle c))
+(<.>) f g a = do
+  bResult <- g a
+  case bResult of
+    Error tr -> return (Error tr)
+    Content b -> f b
+
+infoAction :: [([Char], Integer)] -> String -> IO (Handle ())
+infoAction config "help" = do
+      putStrLn "usage: pshash [--help | --version | -[d|s|c|i|q|l|i|f] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
       putStrLn ""
       putStrLn "options:"
       putStrLn "  --help              show this help message and exit"
+      putStrLn ""
       putStrLn "  --version           print the current version of pshash"
+      putStrLn ""
       putStrLn "  -d KEYWORD          specify the source configuration. KEYWORD can be one of the following:"
       putStrLn "                          long (8 upper case, 8 lower case, 5 special characters, 4 digits) -- the default"
       putStrLn "                          medium (5 symbols of each type)"
@@ -571,18 +608,32 @@ infoAction config "help" = Content $ do
       putStrLn "                          pin (4-digit pin code)"
       putStrLn "                          mediumpin (6-digit pin code)"
       putStrLn "                          longpin (8-digit pin code)"
-      putStrLn "  -s \"(L, U, S, D)\"   specify how many Lower case, Upper case, Special characters, and Digits should be used"
+      putStrLn ""
+      putStrLn "  -n \"(L, U, S, D)\"   specify how many Lower case, Upper case, Special characters, and Digits should be used"
+      putStrLn ""
       putStrLn "  -c CONFIGURATION    specify the source configuration manually"
-      putStrLn "  -i KEYWORD          show help information. KEYWORD can be one of the following:"
+      putStrLn ""
+      putStrLn "  -s KEYWORD          show security information. KEYWORD can be one of the following:"
       putStrLn "                          numbers (show the number of hashes and keys)"
       putStrLn "                          times (show the times required to crack your passwords)"
-      putStrLn "                          help (show this help message)"
+      putStrLn ""
       putStrLn "  -q KEYWORD          retrieve one of the keys from a final hash and two remaining keys. KEYWORD can be:"
       putStrLn "                          public (followed by CHOICE SHUFFLE HASH)"
       putStrLn "                          choice (followed by PUBLIC SHUFFLE HASH)"
       putStrLn "                          shuffle (followed by PUBLIC CHOICE HASH)"
+      putStrLn ""
       putStrLn "  -l                  print the list of (choice,shuffle) pairs that would produce the given hash."
-      putStrLn "                      Accepts three arguments: the PUBLIC key, the NUMBER of pairs to compute, and the final HASH."
+      putStrLn "                      accepts three arguments: the PUBLIC key, the NUMBER of pairs to compute, and the final HASH."
+      putStrLn ""
+      putStrLn "  -i                  ignore all configuration files"
+      putStrLn ""
+      putStrLn "  -f PATH             read the configuration file from PATH. If neither this nor the `-i` option is used,"
+      putStrLn "                      then the program will try to read configuration from the following files:"
+      mapM_ (putStrLn . (replicate 26 ' ' ++)) defaultConfigFiles
+      putStrLn "                      each line of the configuration file should follow the format"
+      putStrLn "                          PUBLIC: ARGS"
+      putStrLn "                      when using configuration files, the PUBLIC key needs to be specified as an argument."
+      putStrLn "                      the program will match it with one of the entries in the file and use the corresponding ARGS."
       putStrLn ""
       putStrLn "main arguments:"
       putStrLn "  PUBLIC stands for public key, a memorable string indicative of the password destination (e.g. \"google\", \"steam\")"
@@ -595,8 +646,12 @@ infoAction config "help" = Content $ do
       putStrLn ""
       putStrLn "using source configuration:"
       putStrLn $ "  " ++ show config
-infoAction _ "version" = Content $ putStrLn currentVersion
-infoAction config "numbers" =
+      return (Content ())
+infoAction _ "version" = putStrLn currentVersion >> return (Content ())
+infoAction _ cmd = return $ newError ("Info command not recognized: " ++ cmd ++ ".")
+
+securityAction :: [([Char], Integer)] -> String -> IO (Handle ())
+securityAction config "numbers" =
   let amts = map dropElementInfo config
       numHashes = numberOfHashes amts
       numHashesDouble = fromIntegral numHashes :: Double
@@ -606,28 +661,29 @@ infoAction config "numbers" =
       numShuffleDouble = fromIntegral numShuffle :: Double
       numRepetitions = numberOfRepetitions $ map snd amts
       numRepetitionsDouble = fromIntegral numRepetitions :: Double
-   in Content $ do
+   in do
   putStrLn $ "using the following configuration distribution: " ++ show amts
   putStrLn ""
   putStrLn $
     "total theoretical number of hashes:         "
-      ++ formatInteger (show numHashes) ++ " = "
-      ++ formatDouble (show numHashesDouble) numberOfPlaces
+      ++ formatInteger (show numHashes) ++ " ("
+      ++ formatDouble (show numHashesDouble) numberOfPlaces ++ ")"
   putStrLn $
     "number of choice keys:                      "
-      ++ formatInteger (show numChoice) ++ " = "
-      ++ formatDouble (show numChoiceDouble) numberOfPlaces
+      ++ formatInteger (show numChoice) ++ " ("
+      ++ formatDouble (show numChoiceDouble) numberOfPlaces ++ ")"
   putStrLn $
     "number of shuffle keys:                     "
-      ++ formatInteger (show numShuffle) ++ " = "
-      ++ formatDouble (show numShuffleDouble) numberOfPlaces
+      ++ formatInteger (show numShuffle) ++ " ("
+      ++ formatDouble (show numShuffleDouble) numberOfPlaces ++ ")"
   putStrLn $
     "number of key pairs with the same hash:     "
-      ++ formatInteger (show numRepetitions) ++ " = "
-      ++ formatDouble (show numRepetitionsDouble) numberOfPlaces
+      ++ formatInteger (show numRepetitions) ++ " ("
+      ++ formatDouble (show numRepetitionsDouble) numberOfPlaces ++ ")"
   putStrLn $ "total hash length:                          " ++ show ((sum . map snd) amts) ++ " symbols"
   putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
-infoAction config "times" = let amts = map dropElementInfo config in Content $ do
+  return (Content ())
+securityAction config "times" = let amts = map dropElementInfo config in do
   putStrLn $ "using the following distribution:               " ++ show amts
   putStrLn $ "assumed number of password checks per second:   " ++ "10 billion = 10^10"
   putStrLn $ "time to check one password:                     " ++ "10^(-10) s = 0.1 nanosecond"
@@ -637,51 +693,75 @@ infoAction config "times" = let amts = map dropElementInfo config in Content $ d
         inAoUInteger = floor inAoU :: Integer
         inYInteger = floor inY :: Integer
      in "time to brute-force your password:              "
-          ++ formatInteger (show inYInteger) ++ " = "
-          ++ formatDouble (show inY) numberOfPlaces ++ " years\n"
+          ++ formatInteger (show inYInteger) ++ " ("
+          ++ formatDouble (show inY) numberOfPlaces ++ ") years\n"
           ++ "                                             or "
-          ++ formatInteger (show inAoUInteger) ++ " = "
+          ++ formatInteger (show inAoUInteger) ++ " ("
           ++ formatDouble (show inAoU) numberOfPlaces
-          ++ " ages of the Universe"
+          ++ ") ages of the Universe"
+  putStrLn ""
   putStrLn $
     let (inY, inAoU) = timeToCrack $ numberOfRepetitions $ map snd amts
         inAoUInteger = floor inAoU :: Integer
         inYInteger = floor inY :: Integer
      in "time to retrieve the keys based on a hash:      "
-          ++ formatInteger (show inYInteger) ++ " = "
-          ++ formatDouble (show inY) numberOfPlaces ++ " years\n"
+          ++ formatInteger (show inYInteger) ++ " ("
+          ++ formatDouble (show inY) numberOfPlaces ++ ") years\n"
           ++ "                                             or "
-          ++ formatInteger (show inAoUInteger) ++ " = "
+          ++ formatInteger (show inAoUInteger) ++ " ("
           ++ formatDouble (show inAoU) numberOfPlaces
-          ++ " ages of the Universe"
-infoAction _ cmd = newError ("Info command not recognized: " ++ cmd ++ ".")
+          ++ ") ages of the Universe"
+  return (Content ())
+securityAction _ cmd = return $ newError ("Info command not recognized: " ++ cmd ++ ".")
 
-queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> Handle (IO ())
-queryAction config "public" choiceStr shuffleStr hashStr = putStrLn <$> retrievePublicKey config choiceStr shuffleStr hashStr
-queryAction config "choice" publicStr shuffleStr hashStr = print <$> retrieveChoiceKey config publicStr shuffleStr hashStr
-queryAction config "shuffle" publicStr choiceStr hashStr = print <$> retrieveShuffleKey config publicStr choiceStr hashStr
-queryAction _ kw _ _ _ = newError ("Query keyword not recognized: " ++ kw ++ ".")
+queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Handle ())
+queryAction config "public" choiceStr shuffleStr hashStr = handleWith print $ retrievePublicKey config choiceStr shuffleStr hashStr
+queryAction config "choice" publicStr shuffleStr hashStr = handleWith print $ retrieveChoiceKey config publicStr shuffleStr hashStr
+queryAction config "shuffle" publicStr choiceStr hashStr = handleWith print $ retrieveShuffleKey config publicStr choiceStr hashStr
+queryAction _ kw _ _ _ = return $ newError ("Query keyword not recognized: " ++ kw ++ ".")
 
-listPairsAction :: [([Char], Integer)] -> String -> String -> [Char] -> Handle (IO ())
+listPairsAction :: [([Char], Integer)] -> String -> String -> [Char] -> IO (Handle ())
 listPairsAction config publicStr limitStr hashStr =
   let publicKey = getPublicKey publicStr
-      limit = readHandle "positive integer" limitStr :: Handle Integer
-      sequence' :: [Handle (IO ())] -> IO ()
-      sequence' [] = return ()
-      sequence' (Error tr : _) = toIO $ Error ("Stopped pair listing due to error:" :=> [tr])
-      sequence' (Content io : xs) = io >> sequence' xs
-      g :: Integer -> Handle (IO ())
-      g shuffleKey = case getHashI' config hashStr shuffleKey of
-        Error tr -> Error tr
-        Content preChoiceKey -> Content . putStrLn $ show (mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show shuffleKey
-   in fmap sequence' $ fmap2 take' limit $ map g [0 .. numberOfShuffleKeys' config - 1]
+      mlimit = readHandle "positive integer" limitStr :: Handle Integer
+      format :: Integer -> Integer -> String
+      format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show shuffleKey
+      getPair :: Integer -> Handle String
+      getPair shuffleKey = fmap (format shuffleKey) (getHashI' config hashStr shuffleKey)
+      sequence' :: [IO (Handle ())] -> IO (Handle ())
+      sequence' [] = return (Content ())
+      sequence' (io : rest) = io >>> sequence' rest
+   in case mlimit of
+        Error tr -> return (Error tr)
+        Content limit -> sequence' $ take' limit $ map (handleWith putStrLn  . getPair) [0 .. numberOfShuffleKeys' config - 1]
 
-hashAction :: [([Char], Integer)] -> String -> String -> String -> Handle (IO ())
-hashAction config publicStr choiceStr shuffleStr = putStrLn <$> getFinalHash config publicStr choiceStr shuffleStr
+hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Handle ())
+hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr
 
-getConfig :: Map String String -> Handle [([Char], Integer)]
+safeReadWithHandler :: (Monad m) => (IOException -> IO (m String)) -> FilePath -> IO (m String)
+safeReadWithHandler handler path = (return <$> readFile path) `catch` handler
+
+readFileMaybe :: FilePath -> IO (Maybe String)
+readFileMaybe = safeReadWithHandler (\_ -> return Nothing)
+
+readFileHandle :: FilePath -> IO (Handle String)
+readFileHandle path = safeReadWithHandler (\_ -> return . newError $ "Error reading file: " ++ path) path
+
+getConfigFromContents :: String -> String -> IO (Handle [([Char], Integer)])
+getConfigFromContents publicStr contents = do
+  let specLines = filter (elem ':') (lines contents)
+      specs = map (break (== ':')) specLines
+      process :: [(String, String)] -> IO (Handle [([Char], Integer)])
+      process [] = return (Content defaultConfiguration)
+      process ((publicStr', argStr) : rest)
+        | publicStr == publicStr' =
+            getConfig (insertWith const "ignore-config" "" $ parseArgs (True, False, False) (words argStr))
+        | otherwise = process rest
+  process specs
+
+getConfig :: Map String String -> IO (Handle [([Char], Integer)])
 getConfig args
-  | member "keyword" args = case args ! "keyword" of
+  | member "keyword" args = return $ case args ! "keyword" of
       "long" -> Content defaultConfiguration
       "medium" -> Content mediumConfiguration
       "short" -> Content shortConfiguration
@@ -692,39 +772,67 @@ getConfig args
       "longpin" -> Content longPinCodeConfiguration
       str -> newError ("Unrecognized configuration keyword: " ++ str ++ ".")
   | member "select" args =
-      readHandle "\"(Int,Int,Int,Int)\"" (args ! "select")
+      return $ readHandle "\"(Int,Int,Int,Int)\"" (args ! "select")
       >>= (checkConfigValidity . getConfigFromSpec)
   | member "config" args =
-      readHandle "a source configuration" (args ! "config") >>= checkConfigValidity
-  | otherwise = Content defaultConfiguration
+      return $ readHandle "a source configuration" (args ! "config") >>= checkConfigValidity
+  | member "ignore-config" args || member "info" args || member "query" args
+    = return (Content defaultConfiguration)
+  | notMember "first" args = return . Error $ red "Cannot load configuration: public key was not pre-supplied. Either:" :=>
+      [
+        "Disable configuration files by passing the `-i` argument, or" :=> [],
+        "Pass the public key inline as one of the arguments." :=> []
+      ]
+  | member "config-file" args = do
+      fileContentsH <- readFileHandle (args ! "config-file")
+      case fileContentsH of
+        Error tr -> return (Error tr)
+        Content contents -> do
+          getConfigFromContents (args ! "first") contents
+  | otherwise = do
+      let replaceChar :: Char -> String -> String -> String
+          replaceChar _ _ "" = ""
+          replaceChar old new (ch : rest)
+            | ch == old = new ++ replaceChar old new rest
+            | otherwise = ch : replaceChar old new rest
+      homeDir <- getHomeDirectory
+      fileContentsM <- mapM (readFileMaybe . replaceChar '~' homeDir) defaultConfigFiles
+      let findContents :: [Maybe String] -> IO (Handle [([Char], Integer)])
+          findContents [] = return (Content defaultConfiguration)
+          findContents (Nothing : rest) = findContents rest
+          findContents (Just contents : _) = getConfigFromContents (args ! "first") contents
+      findContents fileContentsM
+
+insert' :: (Ord k) => k -> a -> Map k a -> Map k a
+insert' = insertWith (const id)
 
 parseArgs :: (Bool, Bool, Bool) -> [String] -> Map String String
 parseArgs _ [] = empty
-parseArgs trp ("-d" : s : rest) = insert "keyword" s $ parseArgs trp rest
-parseArgs trp ("-s" : s : rest) = insert "select" s $ parseArgs trp rest
-parseArgs trp ("-c" : s : rest) = insert "config" s $ parseArgs trp rest
-parseArgs trp ("-i" : s : rest) = insert "info" s $ parseArgs trp rest
-parseArgs trp ("-q" : s : rest) = insert "query" s $ parseArgs trp rest
-parseArgs trp ("-l" : rest) = insert "list" "" $ parseArgs trp rest
-parseArgs trp ("--help" : rest) = insert "info" "help" $ parseArgs trp rest
-parseArgs trp ("--version" : rest) = insert "info" "version" $ parseArgs trp rest
+parseArgs trp ("-d" : s : rest) = insert' "keyword" s $ parseArgs trp rest
+parseArgs trp ("-n" : s : rest) = insert' "select" s $ parseArgs trp rest
+parseArgs trp ("-c" : s : rest) = insert' "config" s $ parseArgs trp rest
+parseArgs trp ("-s" : s : rest) = insert' "security" s $ parseArgs trp rest
+parseArgs trp ("-q" : s : rest) = insert' "query" s $ parseArgs trp rest
+parseArgs trp ("-f" : s : rest) = insert' "config-file" s $ parseArgs trp rest
+parseArgs trp ("-i" : rest) = insert' "ignore-config" "" $ parseArgs trp rest
+parseArgs trp ("-l" : rest) = insert' "list" "" $ parseArgs trp rest
+parseArgs trp ("--help" : rest) = insert' "info" "help" $ parseArgs trp rest
+parseArgs trp ("--version" : rest) = insert' "info" "version" $ parseArgs trp rest
 parseArgs (b1, b2, b3) (s : rest)
   | b3 = parseArgs (b1, b2, b3) rest
-  | b2 = insert "third" s $ parseArgs (True, True, True) rest
-  | b1 = insert "second" s $ parseArgs (True, True, False) rest
-  | otherwise = insert "first" s $ parseArgs (True, False, False) rest
+  | b2 = insert' "third" s $ parseArgs (True, True, True) rest
+  | b1 = insert' "second" s $ parseArgs (True, True, False) rest
+  | otherwise = insert' "first" s $ parseArgs (True, False, False) rest
 
 getKeyStr :: Map String String -> String -> IO String
-getKeyStr args str = if member str args
-                then return $ args ! str
-                else getLine
+getKeyStr args str = if member str args then return $ args ! str else getLine
 
-passKeysToAction :: Map String String -> (String -> String -> String -> Handle (IO ())) -> IO ()
+passKeysToAction :: Map String String -> (String -> String -> String -> IO (Handle ())) -> IO (Handle ())
 passKeysToAction args act = do
   first <- getKeyStr args "first"
   second <- getKeyStr args "second"
   third <- getKeyStr args "third"
-  toIO $ act first second third
+  act first second third
 
 printTrace :: Int -> Trace -> IO ()
 printTrace lvl (msg :=> lst) = do
@@ -732,19 +840,26 @@ printTrace lvl (msg :=> lst) = do
   putStrLn $ prefix ++ msg
   mapM_ (printTrace (lvl+1)) lst
 
-toIO :: Handle (IO ()) -> IO ()
-toIO (Error tr) = do
-  putStrLn "\ESC[1;31mError:\ESC[0m" -- ]]
-  printTrace 0 tr
-toIO (Content action) = action
-
-performAction :: Map String String -> Handle [([Char], Integer)] -> IO ()
-performAction _ (Error tr) = toIO (Error tr)
+performAction :: Map String String -> Handle [([Char], Integer)] -> IO (Handle ())
+performAction _ (Error tr) = return (Error tr)
 performAction args (Content config)
-  | member "info" args = toIO $ infoAction config (args ! "info")
+  | member "info" args = infoAction config (args ! "info")
+  | member "security" args = securityAction config (args ! "security")
   | member "query" args = passKeysToAction args (queryAction config (args ! "query"))
   | member "list" args = passKeysToAction args (listPairsAction config)
   | otherwise = passKeysToAction args (hashAction config)
 
+toIO :: IO (Handle ()) -> IO ()
+toIO action = do
+  res <- action
+  case res of
+    Error tr -> do
+      putStrLn "\ESC[1;31mError:\ESC[0m" -- ]]
+      printTrace 0 tr
+    Content () -> return ()
+
+raise :: (Monad m) => (a -> b -> m c) -> (a -> m b -> m c)
+raise f a mb = mb >>= f a
+
 main :: IO ()
-main = getArgs >>= (performAction <*> getConfig) . parseArgs (False, False, False) 
+main = getArgs >>= toIO . (raise performAction <*> getConfig) . parseArgs (False, False, False) 
