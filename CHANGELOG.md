@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.9.1
+
+* Fixed bugs, cleaned up code.
+
 ## 0.1.9.0
 
 * Added configuration files. See `--help`.

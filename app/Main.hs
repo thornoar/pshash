@@ -2,7 +2,8 @@
 module Main where
 
 import Data.Char (ord, chr)
-import Data.Map (Map, empty, insertWith, member, notMember, (!))
+import Data.Map (Map, empty, insertWith, member, (!))
+import qualified Data.Map as DM
 import Data.List (elemIndex)
 import System.Environment (getArgs)
 import System.Directory (getHomeDirectory)
@@ -11,7 +12,7 @@ import Control.Applicative (liftA2)
 import Control.Exception
 
 currentVersion :: String
-currentVersion = "0.1.9.0"
+currentVersion = "0.1.9.1"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -181,9 +182,6 @@ fmap2 f ma b = fmap (`f` b) ma
 
 fmap2' :: (Monad m) => (a -> b -> m c) -> (m a -> b -> m c)
 fmap2' f ma b = ma >>= (`f` b)
-
--- fmap2'' :: (Monad m) => (a -> b -> m c) -> (a -> m b -> m c)
--- fmap2'' f a = join . fmap (f a)
 
 -- ┌───────────────────┐
 -- │ INVERSE FUNCTIONS │
@@ -532,8 +530,12 @@ getFinalHash config publicStr choiceStr shuffleStr = liftA2 (getHash config) cho
 checkConfigValidity :: [([Char], Integer)] -> Handle [([Char], Integer)]
 checkConfigValidity [] = newError "Cannot have empty configuration."
 checkConfigValidity [(lst, num)]
-  | num < 0 = newError "Invalid configuration: numbers must be non-negative."
-  | num > length' lst = newError ("Invalid configuration: too many elements drawn from \"" ++ lst ++ "\".")
+  | num < 0 = newError ("Invalid configuration: number " ++ show num ++ " must be non-negative.")
+  | num > length' lst = Error $ red ("Invalid configuration: too many elements drawn from \"" ++ lst ++ "\".") :=>
+      [
+        ("Available amount: " ++ show (length lst)) :=> [],
+        ("Demanded: " ++ show num) :=> []
+      ]
   | otherwise = Content [(lst, num)]
 checkConfigValidity (src : rest) = case checkConfigValidity [src] of
   Error tr -> Error tr
@@ -568,8 +570,6 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- ┌────────────────┐
 -- │ USER INTERFACE │
 -- └────────────────┘
-
--- type IOHandle a = IO (Handle a) deriving (Applicative, Monad)
 
 handleWith :: (a -> IO ()) -> Handle a -> IO (Handle ())
 handleWith f ma = case ma of
@@ -625,7 +625,7 @@ infoAction config "help" = do
       putStrLn "  -l                  print the list of (choice,shuffle) pairs that would produce the given hash."
       putStrLn "                      accepts three arguments: the PUBLIC key, the NUMBER of pairs to compute, and the final HASH."
       putStrLn ""
-      putStrLn "  -i                  ignore all configuration files"
+      putStrLn "  -i                  ignore all configuration files."
       putStrLn ""
       putStrLn "  -f PATH             read the configuration file from PATH. If neither this nor the `-i` option is used,"
       putStrLn "                      then the program will try to read configuration from the following files:"
@@ -732,7 +732,7 @@ listPairsAction config publicStr limitStr hashStr =
       sequence' [] = return (Content ())
       sequence' (io : rest) = io >>> sequence' rest
    in case mlimit of
-        Error tr -> return (Error tr)
+        Error tr -> return (Error $ "Trace in `listPairsAction`:" :=> [tr])
         Content limit -> sequence' $ take' limit $ map (handleWith putStrLn  . getPair) [0 .. numberOfShuffleKeys' config - 1]
 
 hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Handle ())
@@ -742,22 +742,30 @@ safeReadWithHandler :: (Monad m) => (IOException -> IO (m String)) -> FilePath -
 safeReadWithHandler handler path = (return <$> readFile path) `catch` handler
 
 readFileMaybe :: FilePath -> IO (Maybe String)
-readFileMaybe = safeReadWithHandler (\_ -> return Nothing)
+readFileMaybe = safeReadWithHandler (const $ return Nothing)
 
 readFileHandle :: FilePath -> IO (Handle String)
-readFileHandle path = safeReadWithHandler (\_ -> return . newError $ "Error reading file: " ++ path) path
+readFileHandle = safeReadWithHandler handler
+  where handler e = return . Error $ red "Error reading configuration file:" :=> [ show e :=> [] ]
 
-getConfigFromContents :: String -> String -> IO (Handle [([Char], Integer)])
-getConfigFromContents publicStr contents = do
-  let specLines = filter (elem ':') (lines contents)
-      specs = map (break (== ':')) specLines
-      process :: [(String, String)] -> IO (Handle [([Char], Integer)])
-      process [] = return (Content defaultConfiguration)
-      process ((publicStr', argStr) : rest)
-        | publicStr == publicStr' =
-            getConfig (insertWith const "ignore-config" "" $ parseArgs (True, False, False) (words argStr))
-        | otherwise = process rest
-  process specs
+getConfigFromContents :: Maybe String -> String -> IO (Handle [([Char], Integer)])
+getConfigFromContents publicStrM contents = process specs
+  where
+    specLines = filter (elem ':') (lines contents)
+    specs = map (break (== ':')) specLines
+    process :: [(String, String)] -> IO (Handle [([Char], Integer)])
+    process [] = return (Content defaultConfiguration)
+    process ((publicStr', argStr) : rest) = case publicStrM of
+      Nothing -> return . Error $ red "Cannot use configuration file: public key was not pre-supplied. Either:" :=>
+        [
+          "Disable configuration files by passing the `-i` argument, or" :=> [],
+          "Pass the public key inline as one of the arguments, or" :=> [],
+          "Remove the configuration files." :=> []
+        ]
+      Just publicStr ->
+        if publicStr == publicStr'
+        then getConfig (insertWith const "ignore-config" "" $ parseArgs (True, True, True) (words argStr))
+        else process rest
 
 getConfig :: Map String String -> IO (Handle [([Char], Integer)])
 getConfig args
@@ -775,20 +783,14 @@ getConfig args
       return $ readHandle "\"(Int,Int,Int,Int)\"" (args ! "select")
       >>= (checkConfigValidity . getConfigFromSpec)
   | member "config" args =
-      return $ readHandle "a source configuration" (args ! "config") >>= checkConfigValidity
-  | member "ignore-config" args || member "info" args || member "query" args
-    = return (Content defaultConfiguration)
-  | notMember "first" args = return . Error $ red "Cannot load configuration: public key was not pre-supplied. Either:" :=>
-      [
-        "Disable configuration files by passing the `-i` argument, or" :=> [],
-        "Pass the public key inline as one of the arguments." :=> []
-      ]
+      return $ readHandle "a source configuration" (args ! "config")
+      >>= checkConfigValidity
+  | any (`member` args) ["ignore-config", "info", "query", "list"] = return (Content defaultConfiguration)
   | member "config-file" args = do
       fileContentsH <- readFileHandle (args ! "config-file")
       case fileContentsH of
-        Error tr -> return (Error tr)
-        Content contents -> do
-          getConfigFromContents (args ! "first") contents
+        Error tr -> return (Error $ "Trace in `getConfig`:" :=> [tr])
+        Content contents -> getConfigFromContents (DM.lookup "first" args) contents
   | otherwise = do
       let replaceChar :: Char -> String -> String -> String
           replaceChar _ _ "" = ""
@@ -800,7 +802,7 @@ getConfig args
       let findContents :: [Maybe String] -> IO (Handle [([Char], Integer)])
           findContents [] = return (Content defaultConfiguration)
           findContents (Nothing : rest) = findContents rest
-          findContents (Just contents : _) = getConfigFromContents (args ! "first") contents
+          findContents (Just contents : _) = getConfigFromContents (DM.lookup "first" args) contents
       findContents fileContentsM
 
 insert' :: (Ord k) => k -> a -> Map k a -> Map k a
@@ -841,7 +843,7 @@ printTrace lvl (msg :=> lst) = do
   mapM_ (printTrace (lvl+1)) lst
 
 performAction :: Map String String -> Handle [([Char], Integer)] -> IO (Handle ())
-performAction _ (Error tr) = return (Error tr)
+performAction _ (Error tr) = return (Error $ "Trace in `performAction`:" :=> [tr])
 performAction args (Content config)
   | member "info" args = infoAction config (args ! "info")
   | member "security" args = securityAction config (args ! "security")
