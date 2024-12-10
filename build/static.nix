@@ -19,10 +19,9 @@ in
         enableSharedExecutables = false;
         enableSharedLibraries = false;
         configureFlags = [
-            "--ghc-option=-optl=-static"  # <- Added
-            "--extra-lib-dirs=${pkgs.gmp6.override { withStatic = true; }}/lib"  # <- Added for libgmp
-            "--extra-lib-dirs=${pkgs.zlib.static}/lib" # <- Added for zlib
-            "--extra-lib-dirs=${pkgs.libffi.overrideAttrs (old: { dontDisableStatic = true; })}/lib" # <- Added for libffi
-            # "--extra-lib-dirs=${pkgs.ncurses.override { enableStatic = true; }}/lib" # <- Added for libcurses
+            "--ghc-option=-optl=-static"
+            "--extra-lib-dirs=${pkgs.gmp6.override { withStatic = true; }}/lib"
+            "--extra-lib-dirs=${pkgs.zlib.static}/lib"
+            "--extra-lib-dirs=${pkgs.libffi.overrideAttrs (old: { dontDisableStatic = true; })}/lib"
         ];
     })
