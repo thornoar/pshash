@@ -12,7 +12,7 @@ Strictly speaking, a hash algorithm represents a mathematical function that is i
 
 ## Where can you get the passwords?
 
-First of all, you can use the algorithm online at https://thornoar.github.io/pshash/web-app/. Moreover, `pshash` adopts a wide range of local deployment options:
+First of all, you can use the algorithm online at https://thornoar.github.io/pshash/web/app/. Moreover, `pshash` adopts a wide range of local deployment options:
 - You can build `pshash` with Nix flakes by invoking `nix build github:thornoar/pshash`, there are two outputs: `#dynamic` for dynamic linking, and `#static` for static linking (will take a lot longer to build).
 - You can install `pshash` with `cabal-install` by cloning this repo and running `cabal update && cabal install`.
 - You can simply compile the Haskell file `app/Main.hs` with `ghc`, given that it finds the necessary libraries.
