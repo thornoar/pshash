@@ -84,8 +84,6 @@ const pinCodeConfiguration = Object.freeze([[sourceNumbers, 4]])
 const mediumPinCodeConfiguration = Object.freeze([[sourceNumbers, 6]])
 const longPinCodeConfiguration = Object.freeze([[sourceNumbers, 8]])
 
-const testConf = Object.freeze([[sourceLower, 1]])
-
 // Hash-generating functions
 
 function chooseOrdered (source, key) {
@@ -96,8 +94,6 @@ function chooseOrdered (source, key) {
         var keyMod = key % s
         var curElt = source[0][keyMod]
         var nextSource = [source[0].toSpliced(Number(keyMod), 1), source[1]-1]
-        // source[0].splice(Number(keyMod), 1)
-        // source[1] -= 1
         var nextKey = keyDiv + shift(curElt)
         return [curElt].concat(chooseOrdered(nextSource, nextKey))
     }
