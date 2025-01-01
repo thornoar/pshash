@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.10.1
+
+* Changed error tree mechanism, strictified unrecognized option errors, changed some naming.
+
 ## 0.1.9.1
 
 * Fixed bugs, cleaned up code.

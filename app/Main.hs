@@ -12,7 +12,7 @@ import Control.Applicative (liftA2)
 import Control.Exception
 
 currentVersion :: String
-currentVersion = "0.1.9.1"
+currentVersion = "0.1.10.1"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -41,6 +41,12 @@ insertAt :: a -> Integer -> [a] -> [a]
 insertAt a 0 lst = a:lst
 insertAt a n (l:lst) = l : insertAt a (n-1) lst
 insertAt _ _ _ = []
+
+break' :: (Eq a) => a -> [a] -> ([a], [a])
+break' _ [] = ([],[])
+break' a (a':rest)
+  | a == a' = ([], rest)
+  | otherwise = let (res1, res2) = break' a rest in (a' : res1, res2)
 
 dropElementInfo :: ([a], Integer) -> (Integer, Integer)
 dropElementInfo (src, m) = (length' src, m)
@@ -149,39 +155,66 @@ data Trace = String :=> [Trace] deriving (Read, Show)
 
 data Handle a = Content a | Error Trace deriving (Read, Show)
 
-red :: String -> String
-red = (++ "\ESC[0m") . ("\ESC[31m" ++) -- ]]
+red :: String
+red = "\ESC[31m" -- ]
+
+orange :: String
+orange = "\ESC[33m" -- ]
+
+normal :: String
+normal = "\ESC[0m" -- ]
 
 newError :: String -> Handle a
-newError = Error . (:=> []) . red
+newError = Error . (:=> []) . (++ normal) . (red ++)
+
+liftH2 :: String -> String -> (a -> b -> c) -> (Handle a -> Handle b -> Handle c)
+liftH2 _ _ f (Content a) (Content b) = Content (f a b)
+liftH2 msg1 msg2 _ (Error tr1) (Error tr2) = Error $ "Double trace:" :=>
+  [
+    msg1 :=> [tr1],
+    msg2 :=> [tr2]
+  ]
+liftH2 msg1 _ _ (Error tr) _ = Error (msg1 :=> [tr])
+liftH2 _ msg2 _ _ (Error tr) = Error (msg2 :=> [tr])
+
+raiseH' :: (Monad m) => (a -> m (Handle b)) -> (Handle a -> m (Handle b))
+raiseH' f (Content a) = f a
+raiseH' _ (Error tr) = return (Error tr)
 
 instance Functor Handle where
   fmap f ma = case ma of
-    Error tr -> Error ("Trace in application of `fmap`:" :=> [tr])
+    Error tr -> Error tr
     Content a -> Content (f a)
 instance Applicative Handle where
   pure = Content
   mf <*> ma = case mf of
     Error tr -> case ma of
-      Error tr' -> Error ("Double trace in application of `<*>`:" :=> [tr, tr'])
-      _ -> Error ("Trace in application of `<*>`:" :=> [tr])
+      Error tr' -> Error ("Double trace:" :=> [tr, tr'])
+      _ -> Error tr
     Content f -> fmap f ma
 instance Monad Handle where
   return = pure
   mval >>= f = case mval of
-    Error tr -> Error ("Trace in application of `>>=`:" :=> [tr])
+    Error tr -> Error tr
     Content a -> f a
-
-readHandle :: (Read a) => String -> String -> Handle a
-readHandle msg str = case readMaybe str of
-  Nothing -> newError ("Failed to read \"" ++ str ++ "\" as " ++ msg ++ ".")
-  Just a -> Content a
 
 fmap2 :: (Monad m) => (a -> b -> c) -> (m a -> b -> m c)
 fmap2 f ma b = fmap (`f` b) ma
 
 fmap2' :: (Monad m) => (a -> b -> m c) -> (m a -> b -> m c)
 fmap2' f ma b = ma >>= (`f` b)
+
+raise2 :: (Monad m) => (a -> b -> m c) -> (a -> m b -> m c)
+raise2 f a mb = mb >>= f a
+
+readHandle :: (Read a) => String -> String -> Handle a
+readHandle msg str = case readMaybe str of
+  Nothing -> Error $ (red ++ "Failed to read " ++ orange ++ "\"" ++ str ++ "\"" ++ red ++ " as " ++ orange ++ msg ++ red ++ "." ++ normal) :=> []
+  Just a -> Content a
+
+addTrace :: String -> Handle a -> Handle a
+addTrace _ (Content a) = Content a
+addTrace msg (Error tr) = Error (msg :=> [tr])
 
 -- ┌───────────────────┐
 -- │ INVERSE FUNCTIONS │
@@ -223,10 +256,10 @@ chooseOrderedI :: (Shifting a, Eq a, Show a) => ([a], Integer) -> [a] -> Handle 
 chooseOrderedI (_,0) [] = Content 0
 chooseOrderedI (src,num) hash
   | num /= length' hash = Error $
-      red "Invalid hash: length should match source configuration." :=>
+      (red ++ "Invalid hash: length should match source configuration." ++ normal) :=>
       [
-        ("Reversing hash: " ++ show hash ++ " with length " ++ show (length hash)) :=> [],
-        ("With source: " ++ show (src,num)) :=> []
+        ("Reversing hash: " ++ orange ++ show hash ++ normal ++ " with length " ++ show (length hash)) :=> [],
+        ("With source: " ++ orange ++ show (src,num) ++ normal) :=> []
       ]  
 chooseOrderedI (src, num) (a:as) =
   let srcLen = length' src
@@ -235,15 +268,15 @@ chooseOrderedI (src, num) (a:as) =
       keyDivH = chooseOrderedI (filter (/= a) src, num-1) as
    in case keyModM of
         Nothing -> Error $
-          red ("Invalid hash: element " ++ show a ++ " could not be found in source.") :=>
+          (red ++ ("Invalid hash: element " ++ orange ++ show a ++ red ++ " could not be found in source.") ++ normal) :=>
           [
-            ("Perhaps element " ++ show a ++ " is repeated in the hash?") :=> [],
-            "Perhaps the hash is incompatible with choice key?" :=> []
+            ("Maybe the element " ++ orange ++ show a ++ normal ++ " is " ++ orange ++ "repeated" ++ normal ++ " in the hash,") :=> [],
+            ("Or the hash " ++ orange ++ "is incompatible" ++ normal ++ " with the choice key?") :=> []
           ]
         Just keyMod -> case keyDivH of
           Error tr -> Error tr
           Content keyDiv -> Content $ keyMod + srcLen * mod (keyDiv - shift a) prevSpread
-chooseOrderedI (_,_) _ = newError "Invalid hash. Why? IDFK."
+chooseOrderedI (_,_) _ = newError "A bug in the Matrix."
 
 shuffleListI :: (Shifting a, Eq a, Show a) => [a] -> [a] -> Handle Integer
 shuffleListI lst = chooseOrderedI (lst, length' lst)
@@ -260,19 +293,19 @@ mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Handle Inte
 mergeTwoListsI ([], src) hash
   | src == hash = Content 0
   | otherwise = Error $
-      red "Invald hash: consists of different elements than source." :=>
+      (red ++ "Invald hash: consists of different elements than source." ++ normal) :=>
       [
-        ("Reversing hash: " ++ show hash) :=> [],
-        ("Using source: " ++ show src) :=> []
-      ]  
+        ("Reversing hash: " ++ orange ++ show hash ++ normal) :=> [],
+        ("Using source: " ++ orange ++ show src ++ normal) :=> []
+      ]
 mergeTwoListsI (src, []) hash
   | src == hash = Content 0
   | otherwise = Error $
-      red "Invald hash: consists of different elements than source." :=>
+      (red ++ "Invald hash: consists of different elements than source." ++ normal) :=>
       [
-        ("Reversing hash: " ++ show hash) :=> [],
-        ("Using source: " ++ show src) :=> []
-      ]  
+        ("Reversing hash: " ++ orange ++ show hash ++ normal) :=> [],
+        ("Using source: " ++ orange ++ show src ++ normal) :=> []
+      ]
 mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
   | m == e1 = case mergeTwoListsI (rest1, e2:rest2) ms of
       Error tr -> Error tr
@@ -281,12 +314,12 @@ mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
       Error tr -> Error tr
       Content prevKey -> Content $ spr1 + mod (prevKey - shift m) spr2
   | otherwise = Error $
-      red ("Invalid hash: element " ++ show m ++ " does not match either source.") :=>
+      (red ++ "Invalid hash: element " ++ orange ++ show m ++ red ++ " does not match either source." ++ normal) :=>
       [
-        ("Reversing hash: " ++ show (m:ms)) :=> [],
-        ("First source list: " ++ show (e1:rest1)) :=> [],
-        ("Second source list: " ++ show (e2:rest2)) :=> [],
-        ("The head of the hash should be either " ++ show e1 ++ " or " ++ show e2) :=> []
+        ("Reversing hash: " ++ orange ++ show (m:ms) ++ normal) :=> [],
+        ("First source list: " ++ orange ++ show (e1:rest1) ++ normal) :=> [],
+        ("Second source list: " ++ orange ++ show (e2:rest2) ++ normal) :=> [],
+        ("The head of the hash should be either " ++ orange ++ show e1 ++ normal ++ " or " ++ orange ++ show e2 ++ normal) :=> []
       ]  
   where
     spr1 = mergeTwoListsSpread (length' rest1, 1 + length' rest2)
@@ -299,10 +332,10 @@ mergeListsI [] _  = newError "Invalid hash: too many characters."
 mergeListsI [src] lst
   | lst == src = Content 0
   | otherwise = Error $
-      red "Invalid hash: element mismatch." :=>
+    (red ++ "Invalid hash: element mismatch." ++ normal) :=>
       [
-        ("Reversing hash: " ++ show lst) :=> [],
-        ("Current source: " ++ show src) :=> []
+        ("Reversing hash: " ++ orange ++ show lst ++ normal) :=> [],
+        ("Current source: " ++ orange ++ show src ++ normal) :=> []
       ]
 mergeListsI [l1, l2] res = mergeTwoListsI (l1,l2) res
 mergeListsI (l:ls) res =
@@ -429,13 +462,12 @@ maxLengthOfPublicKey :: [(Integer, Integer)] -> Integer
 maxLengthOfPublicKey amts = getBiggestPower 0 $ (length' . show) (numberOfPublicKeys amts)
   where
     get128PowerLength :: Integer -> Integer
-    get128PowerLength p = 2 * p + 3 * pDiv + npMod
-      where
-        (pDiv, pMod) = divMod p 28
-        npMod
-          | pMod < 10 = 1
-          | pMod < 19 = 2
-          | otherwise = 3
+    get128PowerLength p = 2 * p + 3 * pDiv + npMod where
+      (pDiv, pMod) = divMod p 28
+      npMod
+        | pMod < 10 = 1
+        | pMod < 19 = 2
+        | otherwise = 3
     getBiggestPower :: Integer -> Integer -> Integer
     getBiggestPower guess bound
       | get128PowerLength (guess + 1) < bound = getBiggestPower (guess + 1) bound
@@ -492,32 +524,29 @@ getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128
 getPublicStr :: Integer -> String
 getPublicStr = reverse . getPublicStr'
 
-breakAtPower :: String -> (String, String)
-breakAtPower s = (s1, s2')
-  where
-    (s1, s2) = break (== '-') s
-    s2' = if null s2 then s2 else drop 1 s2
-
 getPrivateKey :: String -> Handle Integer
-getPrivateKey s = liftA2 (^) base pow
-  where
-    (baseStr, powStr) = breakAtPower s
-    base :: Handle Integer
-    base = readHandle "base in private key" baseStr
-    pow :: Handle Integer
-    pow = if null powStr then Content 1 else case readHandle "exponent in private key" powStr of
-      Error tr -> Error tr
-      Content n ->
-        if n < 0
-        then newError ("Cannot have negative exponent in private key: " ++ powStr ++ ".")
-        else Content n
+getPrivateKey s = liftA2 (^) base pow where
+  (baseStr, powStr) = break' '-' s
+  base :: Handle Integer
+  base = readHandle "base in private key" baseStr
+  pow :: Handle Integer
+  pow = if null powStr then Content 1 else case readHandle "exponent in private key" powStr of
+    Error tr -> Error tr
+    Content n ->
+      if n < 0
+      then newError ("Cannot have negative exponent in private key: " ++ orange ++ powStr ++ normal ++ ".")
+      else Content n
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
 -- └─────────────────────┘
 
 getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Handle [Char]
-getFinalHash config publicStr choiceStr shuffleStr = liftA2 (getHash config) choiceKey shuffleKey
+getFinalHash config publicStr choiceStr shuffleStr =
+  liftH2
+    ("Trace in `getFinalHash`, getting the " ++ orange ++ "choice" ++ normal ++ " key:")
+    ("Trace in `getFinalHash`, getting the " ++ orange ++ "shuffle" ++ normal ++ " key:")
+    (getHash config) choiceKey shuffleKey
   where
     publicKey = getPublicKey publicStr
     choiceKey = liftA2 mod ((+publicKey) <$> getPrivateKey choiceStr) $ return (chooseAndMergeSpread' config)
@@ -530,8 +559,8 @@ getFinalHash config publicStr choiceStr shuffleStr = liftA2 (getHash config) cho
 checkConfigValidity :: [([Char], Integer)] -> Handle [([Char], Integer)]
 checkConfigValidity [] = newError "Cannot have empty configuration."
 checkConfigValidity [(lst, num)]
-  | num < 0 = newError ("Invalid configuration: number " ++ show num ++ " must be non-negative.")
-  | num > length' lst = Error $ red ("Invalid configuration: too many elements drawn from \"" ++ lst ++ "\".") :=>
+  | num < 0 = Error $ (red ++ "Invalid configuration: number " ++ orange ++ show num ++ red ++ " must be non-negative." ++ normal) :=> []
+  | num > length' lst = Error $ (red ++ "Invalid configuration: too many elements drawn from " ++ orange ++ "\"" ++ lst ++ "\"" ++ red ++ "." ++ normal) :=>
       [
         ("Available amount: " ++ show (length lst)) :=> [],
         ("Demanded: " ++ show num) :=> []
@@ -541,7 +570,7 @@ checkConfigValidity (src : rest) = case checkConfigValidity [src] of
   Error tr -> Error tr
   Content src' -> (src' ++) <$> checkConfigValidity rest
 
-getConfigFromSpec :: (Integer,Integer,Integer,Integer) -> [([Char],Integer)]
+getConfigFromSpec :: (Integer, Integer, Integer, Integer) -> [([Char], Integer)]
 getConfigFromSpec (a,b,c,d) = [(sourceLower, a), (sourceUpper, b), (sourceSpecial, c), (sourceNumbers, d)]
 
 retrievePublicKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle String
@@ -549,7 +578,8 @@ retrievePublicKey config choiceStr shuffleStr hashStr =
   let shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = getPrivateKey choiceStr
       choiceKey = shuffleKey >>= getHashI' config hashStr
-   in getPublicStr <$> fmap2 mod (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
+   in addTrace "Trace in call of `retrievePublicKey`:" $
+      getPublicStr <$> fmap2 mod (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
 
 retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =
@@ -557,7 +587,8 @@ retrieveChoiceKey config publicStr shuffleStr hashStr =
       shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = shuffleKey >>= getHashI' config hashStr
       choiceMergeSpr = chooseAndMergeSpread' config
-   in fmap2 mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
+   in addTrace "Trace in call of `retrieveChoiceKey`:" $
+      fmap2 mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
 
 retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle Integer
 retrieveShuffleKey config publicStr choiceStr hashStr =
@@ -565,7 +596,8 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
       preChoiceKey = getPrivateKey choiceStr
       choiceKey = fmap2 mod (fmap (+ publicKey) preChoiceKey) (numberOfChoiceKeys' config)
       preHash = fmap (chooseAndMerge config) choiceKey
-   in fmap2' shuffleListI preHash hashStr
+   in addTrace "Trace in call of `retrieveShuffleKey`:" $
+      fmap2' shuffleListI preHash hashStr
 
 -- ┌────────────────┐
 -- │ USER INTERFACE │
@@ -576,23 +608,9 @@ handleWith f ma = case ma of
   Error tr -> return (Error tr)
   Content a -> f a >> return (Content ())
 
-(>>>) :: IO (Handle ()) -> IO (Handle ()) -> IO (Handle ())
-(>>>) io1 io2 = do
-  res <- io1
-  case res of
-    Error tr -> return (Error tr)
-    Content () -> io2
-
-(<.>) :: (b -> IO (Handle c)) -> (a -> IO (Handle b)) -> (a -> IO (Handle c))
-(<.>) f g a = do
-  bResult <- g a
-  case bResult of
-    Error tr -> return (Error tr)
-    Content b -> f b
-
 infoAction :: [([Char], Integer)] -> String -> IO (Handle ())
 infoAction config "help" = do
-      putStrLn "usage: pshash [--help | --version | -[d|s|c|i|q|l|i|f] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
+      putStrLn "usage: pshash [--help | --version | --list | --pure | -[d|n|c|i|q|f] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
       putStrLn ""
       putStrLn "options:"
       putStrLn "  --help              show this help message and exit"
@@ -613,7 +631,9 @@ infoAction config "help" = do
       putStrLn ""
       putStrLn "  -c CONFIGURATION    specify the source configuration manually"
       putStrLn ""
-      putStrLn "  -s KEYWORD          show security information. KEYWORD can be one of the following:"
+      putStrLn "  -i KEYWORD          show security information. KEYWORD can be one of the following:"
+      putStrLn "                          help (same as `--help`)"
+      putStrLn "                          version (same as `--version`)"
       putStrLn "                          numbers (show the number of hashes and keys)"
       putStrLn "                          times (show the times required to crack your passwords)"
       putStrLn ""
@@ -622,10 +642,10 @@ infoAction config "help" = do
       putStrLn "                          choice (followed by PUBLIC SHUFFLE HASH)"
       putStrLn "                          shuffle (followed by PUBLIC CHOICE HASH)"
       putStrLn ""
-      putStrLn "  -l                  print the list of (choice,shuffle) pairs that would produce the given hash."
+      putStrLn "  --list              print the list of (choice,shuffle) pairs that would produce the given hash."
       putStrLn "                      accepts three arguments: the PUBLIC key, the NUMBER of pairs to compute, and the final HASH."
       putStrLn ""
-      putStrLn "  -i                  ignore all configuration files."
+      putStrLn "  --pure              ignore all configuration files."
       putStrLn ""
       putStrLn "  -f PATH             read the configuration file from PATH. If neither this nor the `-i` option is used,"
       putStrLn "                      then the program will try to read configuration from the following files:"
@@ -648,10 +668,7 @@ infoAction config "help" = do
       putStrLn $ "  " ++ show config
       return (Content ())
 infoAction _ "version" = putStrLn currentVersion >> return (Content ())
-infoAction _ cmd = return $ newError ("Info command not recognized: " ++ cmd ++ ".")
-
-securityAction :: [([Char], Integer)] -> String -> IO (Handle ())
-securityAction config "numbers" =
+infoAction config "numbers" =
   let amts = map dropElementInfo config
       numHashes = numberOfHashes amts
       numHashesDouble = fromIntegral numHashes :: Double
@@ -683,7 +700,7 @@ securityAction config "numbers" =
   putStrLn $ "total hash length:                          " ++ show ((sum . map snd) amts) ++ " symbols"
   putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
   return (Content ())
-securityAction config "times" = let amts = map dropElementInfo config in do
+infoAction config "times" = let amts = map dropElementInfo config in do
   putStrLn $ "using the following distribution:               " ++ show amts
   putStrLn $ "assumed number of password checks per second:   " ++ "10 billion = 10^10"
   putStrLn $ "time to check one password:                     " ++ "10^(-10) s = 0.1 nanosecond"
@@ -712,7 +729,7 @@ securityAction config "times" = let amts = map dropElementInfo config in do
           ++ formatDouble (show inAoU) numberOfPlaces
           ++ ") ages of the Universe"
   return (Content ())
-securityAction _ cmd = return $ newError ("Info command not recognized: " ++ cmd ++ ".")
+infoAction _ cmd = return $ newError ("Info command not recognized: " ++ cmd ++ ".")
 
 queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Handle ())
 queryAction config "public" choiceStr shuffleStr hashStr = handleWith print $ retrievePublicKey config choiceStr shuffleStr hashStr
@@ -730,7 +747,7 @@ listPairsAction config publicStr limitStr hashStr =
       getPair shuffleKey = fmap (format shuffleKey) (getHashI' config hashStr shuffleKey)
       sequence' :: [IO (Handle ())] -> IO (Handle ())
       sequence' [] = return (Content ())
-      sequence' (io : rest) = io >>> sequence' rest
+      sequence' (io : rest) = liftA2 (liftA2 (const id)) io (sequence' rest)
    in case mlimit of
         Error tr -> return (Error $ "Trace in `listPairsAction`:" :=> [tr])
         Content limit -> sequence' $ take' limit $ map (handleWith putStrLn  . getPair) [0 .. numberOfShuffleKeys' config - 1]
@@ -746,17 +763,17 @@ readFileMaybe = safeReadWithHandler (const $ return Nothing)
 
 readFileHandle :: FilePath -> IO (Handle String)
 readFileHandle = safeReadWithHandler handler
-  where handler e = return . Error $ red "Error reading configuration file:" :=> [ show e :=> [] ]
+  where handler e = return . Error $ (red ++ "Error reading configuration file:" ++ normal) :=> [ show e :=> [] ]
 
 getConfigFromContents :: Maybe String -> String -> IO (Handle [([Char], Integer)])
 getConfigFromContents publicStrM contents = process specs
   where
     specLines = filter (elem ':') (lines contents)
-    specs = map (break (== ':')) specLines
+    specs = map (break' ':') specLines
     process :: [(String, String)] -> IO (Handle [([Char], Integer)])
     process [] = return (Content defaultConfiguration)
     process ((publicStr', argStr) : rest) = case publicStrM of
-      Nothing -> return . Error $ red "Cannot use configuration file: public key was not pre-supplied. Either:" :=>
+      Nothing -> return . Error $ (red ++ "Cannot use configuration file: public key was not pre-supplied. Either:" ++ normal) :=>
         [
           "Disable configuration files by passing the `-i` argument, or" :=> [],
           "Pass the public key inline as one of the arguments, or" :=> [],
@@ -764,7 +781,13 @@ getConfigFromContents publicStrM contents = process specs
         ]
       Just publicStr ->
         if publicStr == publicStr'
-        then getConfig (insertWith const "ignore-config" "" $ parseArgs (True, True, True) (words argStr))
+        then case parseArgs (True, True, True) (words argStr) of
+          Error tr -> return . Error $ "Trace while reading options from configuration file:" :=>
+            [
+              tr,
+              argStr :=> []
+            ]
+          Content args -> getConfig (insertWith const "pure" "" args)
         else process rest
 
 getConfig :: Map String String -> IO (Handle [([Char], Integer)])
@@ -778,14 +801,14 @@ getConfig args
       "pin" -> Content pinCodeConfiguration
       "mediumpin" -> Content mediumPinCodeConfiguration
       "longpin" -> Content longPinCodeConfiguration
-      str -> newError ("Unrecognized configuration keyword: " ++ str ++ ".")
+      str -> Error $ (red ++ "Unrecognized configuration keyword: " ++ orange ++ str ++ red ++ "." ++ normal) :=> []
   | member "select" args =
       return $ readHandle "\"(Int,Int,Int,Int)\"" (args ! "select")
       >>= (checkConfigValidity . getConfigFromSpec)
   | member "config" args =
       return $ readHandle "a source configuration" (args ! "config")
       >>= checkConfigValidity
-  | any (`member` args) ["ignore-config", "info", "query", "list"] = return (Content defaultConfiguration)
+  | any (`member` args) ["pure", "info", "query", "list"] = return (Content defaultConfiguration)
   | member "config-file" args = do
       fileContentsH <- readFileHandle (args ! "config-file")
       case fileContentsH of
@@ -808,23 +831,27 @@ getConfig args
 insert' :: (Ord k) => k -> a -> Map k a -> Map k a
 insert' = insertWith (const id)
 
-parseArgs :: (Bool, Bool, Bool) -> [String] -> Map String String
-parseArgs _ [] = empty
-parseArgs trp ("-d" : s : rest) = insert' "keyword" s $ parseArgs trp rest
-parseArgs trp ("-n" : s : rest) = insert' "select" s $ parseArgs trp rest
-parseArgs trp ("-c" : s : rest) = insert' "config" s $ parseArgs trp rest
-parseArgs trp ("-s" : s : rest) = insert' "security" s $ parseArgs trp rest
-parseArgs trp ("-q" : s : rest) = insert' "query" s $ parseArgs trp rest
-parseArgs trp ("-f" : s : rest) = insert' "config-file" s $ parseArgs trp rest
-parseArgs trp ("-i" : rest) = insert' "ignore-config" "" $ parseArgs trp rest
-parseArgs trp ("-l" : rest) = insert' "list" "" $ parseArgs trp rest
-parseArgs trp ("--help" : rest) = insert' "info" "help" $ parseArgs trp rest
-parseArgs trp ("--version" : rest) = insert' "info" "version" $ parseArgs trp rest
+parseArgs :: (Bool, Bool, Bool) -> [String] -> Handle (Map String String)
+parseArgs _ [] = Content empty
+parseArgs trp (['-', opt] : s : rest) = case opt of
+  'd' -> insert' "keyword" s <$> parseArgs trp rest
+  'n' -> insert' "select" s <$> parseArgs trp rest
+  'c' -> insert' "config" s <$> parseArgs trp rest
+  'i' -> insert' "info" s <$> parseArgs trp rest
+  'q' -> insert' "query" s <$> parseArgs trp rest
+  'f' -> insert' "config-file" s <$> parseArgs trp rest
+  ch -> newError $ "Unsupported option: -" ++ [ch] ++ "."
+parseArgs trp (('-':'-':opt) : rest) = case opt of
+  "pure" -> insert' "pure" "" <$> parseArgs trp rest
+  "list" -> insert' "list" "" <$> parseArgs trp rest
+  "help" -> insert' "info" "help" <$> parseArgs trp rest
+  "version" -> insert' "info" "version" <$> parseArgs trp rest
+  str -> newError $ "Unsupported option: --" ++ str ++ "."
 parseArgs (b1, b2, b3) (s : rest)
-  | b3 = parseArgs (b1, b2, b3) rest
-  | b2 = insert' "third" s $ parseArgs (True, True, True) rest
-  | b1 = insert' "second" s $ parseArgs (True, True, False) rest
-  | otherwise = insert' "first" s $ parseArgs (True, False, False) rest
+  | b3 = Error $ (red ++ "Excessive argument: " ++ orange ++ show s ++ red ++ ". All three keys were already provided." ++ normal) :=> []
+  | b2 = insert' "third" s <$> parseArgs (True, True, True) rest
+  | b1 = insert' "second" s <$> parseArgs (True, True, False) rest
+  | otherwise = insert' "first" s <$> parseArgs (True, False, False) rest
 
 getKeyStr :: Map String String -> String -> IO String
 getKeyStr args str = if member str args then return $ args ! str else getLine
@@ -838,7 +865,7 @@ passKeysToAction args act = do
 
 printTrace :: Int -> Trace -> IO ()
 printTrace lvl (msg :=> lst) = do
-  let prefix = if lvl == 0 then "" else replicate (2*(lvl-1)) ' ' ++ "|_"
+  let prefix = "\ESC[1;33m| \ESC[0m" ++ if lvl == 0 then "" else replicate (2*(lvl-1)) ' ' ++ "|_" -- ]]
   putStrLn $ prefix ++ msg
   mapM_ (printTrace (lvl+1)) lst
 
@@ -846,7 +873,6 @@ performAction :: Map String String -> Handle [([Char], Integer)] -> IO (Handle (
 performAction _ (Error tr) = return (Error $ "Trace in `performAction`:" :=> [tr])
 performAction args (Content config)
   | member "info" args = infoAction config (args ! "info")
-  | member "security" args = securityAction config (args ! "security")
   | member "query" args = passKeysToAction args (queryAction config (args ! "query"))
   | member "list" args = passKeysToAction args (listPairsAction config)
   | otherwise = passKeysToAction args (hashAction config)
@@ -860,8 +886,5 @@ toIO action = do
       printTrace 0 tr
     Content () -> return ()
 
-raise :: (Monad m) => (a -> b -> m c) -> (a -> m b -> m c)
-raise f a mb = mb >>= f a
-
 main :: IO ()
-main = getArgs >>= toIO . (raise performAction <*> getConfig) . parseArgs (False, False, False) 
+main = getArgs >>= toIO . raiseH' (raise2 performAction <*> getConfig) . parseArgs (False, False, False) 
