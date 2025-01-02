@@ -17,7 +17,7 @@ common warnings
 executable pshash
     import:           warnings
     main-is:          Main.hs
-    other-modules:    Test
+    other-modules:
     build-depends:
         base,
         containers,

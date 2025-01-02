@@ -155,17 +155,20 @@ data Trace = String :=> [Trace] deriving (Read, Show)
 
 data Handle a = Content a | Error Trace deriving (Read, Show)
 
-red :: String
-red = "\ESC[31m" -- ]
+errColor :: String
+errColor = "\ESC[31m" -- ]
 
-orange :: String
-orange = "\ESC[33m" -- ]
+hlColor :: String
+hlColor = "\ESC[33m" -- ]
 
 normal :: String
 normal = "\ESC[0m" -- ]
 
 newError :: String -> Handle a
-newError = Error . (:=> []) . (++ normal) . (red ++)
+newError = Error . (:=> []) . (++ normal) . (errColor ++)
+
+hlError :: String -> String -> String -> Handle a
+hlError pref hl post = Error $ (errColor ++ pref ++ hlColor ++ hl ++ errColor ++ post ++ normal) :=> []
 
 liftH2 :: String -> String -> (a -> b -> c) -> (Handle a -> Handle b -> Handle c)
 liftH2 _ _ f (Content a) (Content b) = Content (f a b)
@@ -209,7 +212,7 @@ raise2 f a mb = mb >>= f a
 
 readHandle :: (Read a) => String -> String -> Handle a
 readHandle msg str = case readMaybe str of
-  Nothing -> Error $ (red ++ "Failed to read " ++ orange ++ "\"" ++ str ++ "\"" ++ red ++ " as " ++ orange ++ msg ++ red ++ "." ++ normal) :=> []
+  Nothing -> Error $ (errColor ++ "Failed to read \"" ++ hlColor ++ str ++ errColor ++ "\" as " ++ hlColor ++ msg ++ errColor ++ "." ++ normal) :=> []
   Just a -> Content a
 
 addTrace :: String -> Handle a -> Handle a
@@ -256,10 +259,10 @@ chooseOrderedI :: (Shifting a, Eq a, Show a) => ([a], Integer) -> [a] -> Handle 
 chooseOrderedI (_,0) [] = Content 0
 chooseOrderedI (src,num) hash
   | num /= length' hash = Error $
-      (red ++ "Invalid hash: length should match source configuration." ++ normal) :=>
+      (errColor ++ "Invalid hash: length should match source configuration." ++ normal) :=>
       [
-        ("Reversing hash: " ++ orange ++ show hash ++ normal ++ " with length " ++ show (length hash)) :=> [],
-        ("With source: " ++ orange ++ show (src,num) ++ normal) :=> []
+        ("Reversing hash: " ++ hlColor ++ show hash ++ normal ++ " with length " ++ show (length hash)) :=> [],
+        ("With source: " ++ hlColor ++ show (src,num) ++ normal) :=> []
       ]  
 chooseOrderedI (src, num) (a:as) =
   let srcLen = length' src
@@ -268,10 +271,10 @@ chooseOrderedI (src, num) (a:as) =
       keyDivH = chooseOrderedI (filter (/= a) src, num-1) as
    in case keyModM of
         Nothing -> Error $
-          (red ++ ("Invalid hash: element " ++ orange ++ show a ++ red ++ " could not be found in source.") ++ normal) :=>
+          (errColor ++ ("Invalid hash: element " ++ hlColor ++ show a ++ errColor ++ " could not be found in source.") ++ normal) :=>
           [
-            ("Maybe the element " ++ orange ++ show a ++ normal ++ " is " ++ orange ++ "repeated" ++ normal ++ " in the hash,") :=> [],
-            ("Or the hash " ++ orange ++ "is incompatible" ++ normal ++ " with the choice key?") :=> []
+            ("Maybe the element " ++ hlColor ++ show a ++ normal ++ " is " ++ hlColor ++ "repeated" ++ normal ++ " in the hash,") :=> [],
+            ("Or the hash " ++ hlColor ++ "is incompatible" ++ normal ++ " with the choice key?") :=> []
           ]
         Just keyMod -> case keyDivH of
           Error tr -> Error tr
@@ -293,18 +296,18 @@ mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Handle Inte
 mergeTwoListsI ([], src) hash
   | src == hash = Content 0
   | otherwise = Error $
-      (red ++ "Invald hash: consists of different elements than source." ++ normal) :=>
+      (errColor ++ "Invald hash: consists of different elements than source." ++ normal) :=>
       [
-        ("Reversing hash: " ++ orange ++ show hash ++ normal) :=> [],
-        ("Using source: " ++ orange ++ show src ++ normal) :=> []
+        ("Reversing hash: " ++ hlColor ++ show hash ++ normal) :=> [],
+        ("Using source: " ++ hlColor ++ show src ++ normal) :=> []
       ]
 mergeTwoListsI (src, []) hash
   | src == hash = Content 0
   | otherwise = Error $
-      (red ++ "Invald hash: consists of different elements than source." ++ normal) :=>
+      (errColor ++ "Invald hash: consists of different elements than source." ++ normal) :=>
       [
-        ("Reversing hash: " ++ orange ++ show hash ++ normal) :=> [],
-        ("Using source: " ++ orange ++ show src ++ normal) :=> []
+        ("Reversing hash: " ++ hlColor ++ show hash ++ normal) :=> [],
+        ("Using source: " ++ hlColor ++ show src ++ normal) :=> []
       ]
 mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
   | m == e1 = case mergeTwoListsI (rest1, e2:rest2) ms of
@@ -314,12 +317,12 @@ mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
       Error tr -> Error tr
       Content prevKey -> Content $ spr1 + mod (prevKey - shift m) spr2
   | otherwise = Error $
-      (red ++ "Invalid hash: element " ++ orange ++ show m ++ red ++ " does not match either source." ++ normal) :=>
+      (errColor ++ "Invalid hash: element " ++ hlColor ++ show m ++ errColor ++ " does not match either source." ++ normal) :=>
       [
-        ("Reversing hash: " ++ orange ++ show (m:ms) ++ normal) :=> [],
-        ("First source list: " ++ orange ++ show (e1:rest1) ++ normal) :=> [],
-        ("Second source list: " ++ orange ++ show (e2:rest2) ++ normal) :=> [],
-        ("The head of the hash should be either " ++ orange ++ show e1 ++ normal ++ " or " ++ orange ++ show e2 ++ normal) :=> []
+        ("Reversing hash: " ++ hlColor ++ show (m:ms) ++ normal) :=> [],
+        ("First source list: " ++ hlColor ++ show (e1:rest1) ++ normal) :=> [],
+        ("Second source list: " ++ hlColor ++ show (e2:rest2) ++ normal) :=> [],
+        ("The head of the hash should be either " ++ hlColor ++ show e1 ++ normal ++ " or " ++ hlColor ++ show e2 ++ normal) :=> []
       ]  
   where
     spr1 = mergeTwoListsSpread (length' rest1, 1 + length' rest2)
@@ -332,10 +335,10 @@ mergeListsI [] _  = newError "Invalid hash: too many characters."
 mergeListsI [src] lst
   | lst == src = Content 0
   | otherwise = Error $
-    (red ++ "Invalid hash: element mismatch." ++ normal) :=>
+    (errColor ++ "Invalid hash: element mismatch." ++ normal) :=>
       [
-        ("Reversing hash: " ++ orange ++ show lst ++ normal) :=> [],
-        ("Current source: " ++ orange ++ show src ++ normal) :=> []
+        ("Reversing hash: " ++ hlColor ++ show lst ++ normal) :=> [],
+        ("Current source: " ++ hlColor ++ show src ++ normal) :=> []
       ]
 mergeListsI [l1, l2] res = mergeTwoListsI (l1,l2) res
 mergeListsI (l:ls) res =
@@ -374,6 +377,41 @@ getHashI = combineHashingI chooseAndMerge shuffleListI
 
 getHashI' :: (Shifting a, Eq a, Show a) => [([a], Integer)] -> [a] -> Integer -> Handle Integer
 getHashI' = combineHashingI' chooseAndMergeI shuffleListI'
+
+-- ┌────────────────────┐
+-- │ INVERSE VALIDATION │
+-- └────────────────────┘
+
+isInverseOnRange :: (a -> Integer -> b) -> (a -> b -> Integer) -> a -> [Integer] -> Integer -> IO ()
+isInverseOnRange _ _ _ [] _ = putStrLn "| All tests passed. |"
+isInverseOnRange f fI a (key:rest) lim =
+  if key == fI a (f a key)
+  then putStrLn (show key ++ ": Passed. " ++ show (lim - 1) ++ " left.") >> isInverseOnRange f fI a rest (lim - 1)
+  else do
+    putStrLn ("| Failed on number " ++ show key ++ " with:")
+    putStrLn ("|   key = " ++ show key)
+    putStrLn ("|   output = " ++ show (fI a (f a key)))
+
+isInverseOnRange2 :: (a -> Integer -> Integer -> b) -> (a -> b -> Integer -> Integer) -> a -> Integer -> [Integer] -> Integer -> IO ()
+isInverseOnRange2 f2 f2I a key1 key2s lim =
+  let f a' = f2 a' key1
+      fI a' b = f2I a' b key1
+   in isInverseOnRange f fI a key2s lim
+
+isInverseOnRange2' :: (a -> Integer -> Integer -> b) -> (a -> b -> Integer -> Integer) -> a -> Integer -> [Integer] -> Integer -> IO ()
+isInverseOnRange2' f2 f2I a key2 key1s lim =
+  let f a' key1 = f2 a' key1 key2
+      fI a' b = f2I a' b key2
+   in isInverseOnRange f fI a key1s lim
+
+isInverse :: (a -> Integer -> b) -> (a -> Integer) -> (a -> b -> Integer) -> a -> IO ()
+isInverse f sprF fI a = isInverseOnRange f fI a [0 .. sprF a - 1] (sprF a)
+
+isInverse2 :: (a -> Integer -> Integer -> b) -> (a -> Integer) -> (a -> b -> Integer -> Integer) -> a -> Integer -> IO ()
+isInverse2 f2 sprF f2I a key1 = isInverseOnRange2 f2 f2I a key1 [0 .. sprF a - 1] (sprF a)
+
+isInverse2' :: (a -> Integer -> Integer -> b) -> (a -> Integer) -> (a -> b -> Integer -> Integer) -> a -> Integer -> IO ()
+isInverse2' f2 sprF f2I a key2 = isInverseOnRange2' f2 f2I a key2 [0 .. sprF a - 1] (sprF a)
 
 -- ┌─────────────────────────────────────────────────────┐
 -- │ PRE-DEFINED STRINGS FROM WHICH HASHES WILL BE DRAWN │
@@ -534,7 +572,7 @@ getPrivateKey s = liftA2 (^) base pow where
     Error tr -> Error tr
     Content n ->
       if n < 0
-      then newError ("Cannot have negative exponent in private key: " ++ orange ++ powStr ++ normal ++ ".")
+      then newError ("Cannot have negative exponent in private key: " ++ hlColor ++ powStr ++ normal ++ ".")
       else Content n
 
 -- ┌─────────────────────┐
@@ -544,8 +582,8 @@ getPrivateKey s = liftA2 (^) base pow where
 getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Handle [Char]
 getFinalHash config publicStr choiceStr shuffleStr =
   liftH2
-    ("Trace in `getFinalHash`, getting the " ++ orange ++ "choice" ++ normal ++ " key:")
-    ("Trace in `getFinalHash`, getting the " ++ orange ++ "shuffle" ++ normal ++ " key:")
+    ("Trace in `getFinalHash`, getting the " ++ hlColor ++ "choice" ++ normal ++ " key:")
+    ("Trace in `getFinalHash`, getting the " ++ hlColor ++ "shuffle" ++ normal ++ " key:")
     (getHash config) choiceKey shuffleKey
   where
     publicKey = getPublicKey publicStr
@@ -559,8 +597,8 @@ getFinalHash config publicStr choiceStr shuffleStr =
 checkConfigValidity :: [([Char], Integer)] -> Handle [([Char], Integer)]
 checkConfigValidity [] = newError "Cannot have empty configuration."
 checkConfigValidity [(lst, num)]
-  | num < 0 = Error $ (red ++ "Invalid configuration: number " ++ orange ++ show num ++ red ++ " must be non-negative." ++ normal) :=> []
-  | num > length' lst = Error $ (red ++ "Invalid configuration: too many elements drawn from " ++ orange ++ "\"" ++ lst ++ "\"" ++ red ++ "." ++ normal) :=>
+  | num < 0 = hlError "Invalid configuration: number " (show num) " must be non-negative."
+  | num > length' lst = Error $ (errColor ++ "Invalid configuration: too many elements drawn from " ++ hlColor ++ show lst ++ errColor ++ "." ++ normal) :=>
       [
         ("Available amount: " ++ show (length lst)) :=> [],
         ("Demanded: " ++ show num) :=> []
@@ -763,7 +801,7 @@ readFileMaybe = safeReadWithHandler (const $ return Nothing)
 
 readFileHandle :: FilePath -> IO (Handle String)
 readFileHandle = safeReadWithHandler handler
-  where handler e = return . Error $ (red ++ "Error reading configuration file:" ++ normal) :=> [ show e :=> [] ]
+  where handler e = return . Error $ (errColor ++ "Error reading configuration file:" ++ normal) :=> [ show e :=> [] ]
 
 getConfigFromContents :: Maybe String -> String -> IO (Handle [([Char], Integer)])
 getConfigFromContents publicStrM contents = process specs
@@ -773,20 +811,16 @@ getConfigFromContents publicStrM contents = process specs
     process :: [(String, String)] -> IO (Handle [([Char], Integer)])
     process [] = return (Content defaultConfiguration)
     process ((publicStr', argStr) : rest) = case publicStrM of
-      Nothing -> return . Error $ (red ++ "Cannot use configuration file: public key was not pre-supplied. Either:" ++ normal) :=>
+      Nothing -> return . Error $ (errColor ++ "Cannot use configuration file: public key was not pre-supplied. Either:" ++ normal) :=>
         [
-          "Disable configuration files by passing the `-i` argument, or" :=> [],
-          "Pass the public key inline as one of the arguments, or" :=> [],
-          "Remove the configuration files." :=> []
+          ("Disable configuration files by passing the " ++ hlColor ++ "--pure" ++ normal ++ " option, or") :=> [],
+          (hlColor ++ "Pass the public key inline" ++ normal ++ " as one of the arguments, or") :=> [],
+          (hlColor ++ "Remove" ++ normal ++ " the configuration files.") :=> []
         ]
       Just publicStr ->
         if publicStr == publicStr'
         then case parseArgs (True, True, True) (words argStr) of
-          Error tr -> return . Error $ "Trace while reading options from configuration file:" :=>
-            [
-              tr,
-              argStr :=> []
-            ]
+          Error tr -> return . Error $ "Trace while reading options from configuration file:" :=> [tr]
           Content args -> getConfig (insertWith const "pure" "" args)
         else process rest
 
@@ -801,7 +835,7 @@ getConfig args
       "pin" -> Content pinCodeConfiguration
       "mediumpin" -> Content mediumPinCodeConfiguration
       "longpin" -> Content longPinCodeConfiguration
-      str -> Error $ (red ++ "Unrecognized configuration keyword: " ++ orange ++ str ++ red ++ "." ++ normal) :=> []
+      str -> hlError "Unrecognized configuration keyword: " str "."
   | member "select" args =
       return $ readHandle "\"(Int,Int,Int,Int)\"" (args ! "select")
       >>= (checkConfigValidity . getConfigFromSpec)
@@ -840,15 +874,16 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'i' -> insert' "info" s <$> parseArgs trp rest
   'q' -> insert' "query" s <$> parseArgs trp rest
   'f' -> insert' "config-file" s <$> parseArgs trp rest
-  ch -> newError $ "Unsupported option: -" ++ [ch] ++ "."
+  ch -> hlError "Unsupported option: -" [ch] "."
+parseArgs _ [['-', _]] = hlError "All short options require arguments. Use " "--help" " for details."
 parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' "pure" "" <$> parseArgs trp rest
   "list" -> insert' "list" "" <$> parseArgs trp rest
   "help" -> insert' "info" "help" <$> parseArgs trp rest
   "version" -> insert' "info" "version" <$> parseArgs trp rest
-  str -> newError $ "Unsupported option: --" ++ str ++ "."
+  str -> hlError "Unsupported option: -" str "."
 parseArgs (b1, b2, b3) (s : rest)
-  | b3 = Error $ (red ++ "Excessive argument: " ++ orange ++ show s ++ red ++ ". All three keys were already provided." ++ normal) :=> []
+  | b3 = hlError "Excessive argument: " s ". All three keys were already provided."
   | b2 = insert' "third" s <$> parseArgs (True, True, True) rest
   | b1 = insert' "second" s <$> parseArgs (True, True, False) rest
   | otherwise = insert' "first" s <$> parseArgs (True, False, False) rest
@@ -887,4 +922,4 @@ toIO action = do
     Content () -> return ()
 
 main :: IO ()
-main = getArgs >>= toIO . raiseH' (raise2 performAction <*> getConfig) . parseArgs (False, False, False) 
+main = getArgs >>= toIO . raiseH' (raise2 performAction <*> getConfig) . parseArgs (False, False, False)
