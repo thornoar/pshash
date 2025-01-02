@@ -161,14 +161,14 @@ errColor = "\ESC[31m" -- ]
 hlColor :: String
 hlColor = "\ESC[33m" -- ]
 
-normal :: String
-normal = "\ESC[0m" -- ]
+dfColor :: String
+dfColor = "\ESC[0m" -- ]
 
 newError :: String -> Handle a
-newError = Error . (:=> []) . (++ normal) . (errColor ++)
+newError = Error . (:=> []) . (++ dfColor) . (errColor ++)
 
 hlError :: String -> String -> String -> Handle a
-hlError pref hl post = Error $ (errColor ++ pref ++ hlColor ++ hl ++ errColor ++ post ++ normal) :=> []
+hlError pref hl post = Error $ (errColor ++ pref ++ hlColor ++ hl ++ errColor ++ post ++ dfColor) :=> []
 
 liftH2 :: String -> String -> (a -> b -> c) -> (Handle a -> Handle b -> Handle c)
 liftH2 _ _ f (Content a) (Content b) = Content (f a b)
@@ -212,7 +212,7 @@ raise2 f a mb = mb >>= f a
 
 readHandle :: (Read a) => String -> String -> Handle a
 readHandle msg str = case readMaybe str of
-  Nothing -> Error $ (errColor ++ "Failed to read \"" ++ hlColor ++ str ++ errColor ++ "\" as " ++ hlColor ++ msg ++ errColor ++ "." ++ normal) :=> []
+  Nothing -> Error $ (errColor ++ "Failed to read " ++ hlColor ++ "\"" ++ str ++ "\"" ++ errColor ++ " as " ++ hlColor ++ msg ++ errColor ++ "." ++ dfColor) :=> []
   Just a -> Content a
 
 addTrace :: String -> Handle a -> Handle a
@@ -225,15 +225,16 @@ addTrace msg (Error tr) = Error (msg :=> [tr])
 
 mapHashingI :: (Shifting b) => (a -> b -> Handle Integer) -> (a -> Integer) -> ([a] -> [b] -> Handle Integer)
 mapHashingI _ _ [] [] = Content 0
-mapHashingI _ _ _ [] = newError "Failed to map un-hashing: list of sources too long."
-mapHashingI _ _ [] _ = newError "Failed to map un-hashing: list of hashes too long."
+mapHashingI _ _ _ [] = newError "A bug in the Matrix, calling `mapHashingI`."
+mapHashingI _ _ [] _ = newError "A bug in the Matrix, calling `mapHashingI`."
 mapHashingI fI spr (a:as) (b:bs) =
   let curSpr = spr a
       restSpr = product $ map spr as
       curKeyH = fI a b
       restPreKeyH = mapHashingI fI spr as bs -- - shift b
    in case (curKeyH, restPreKeyH) of
-        (Error tr1, Error tr2) -> Error ("Double trace in call of `mapHashing`:" :=> [tr1, tr2])
+        (Error tr1, Error (msg :=> [])) -> Error ("Double trace in call of `mapHashingI`:" :=> [tr1, msg :=> []])
+        (Error tr1, Error (_ :=> trss)) -> Error ("Branching trace in call of `mapHashingI`:" :=> (tr1 : trss))
         (Error tr, _) -> Error ("Trace in call of `mapHashingI`:" :=> [tr])
         (_, Error tr) -> Error tr
         (Content curKey, Content nextPreKey) -> Content $ curKey + curSpr * mod (nextPreKey - shift b) restSpr
@@ -259,10 +260,10 @@ chooseOrderedI :: (Shifting a, Eq a, Show a) => ([a], Integer) -> [a] -> Handle 
 chooseOrderedI (_,0) [] = Content 0
 chooseOrderedI (src,num) hash
   | num /= length' hash = Error $
-      (errColor ++ "Invalid hash: length should match source configuration." ++ normal) :=>
+      (errColor ++ "Invalid hash: length should match source configuration." ++ dfColor) :=>
       [
-        ("Reversing hash: " ++ hlColor ++ show hash ++ normal ++ " with length " ++ show (length hash)) :=> [],
-        ("With source: " ++ hlColor ++ show (src,num) ++ normal) :=> []
+        ("Reversing hash: " ++ hlColor ++ show hash ++ dfColor ++ " with length " ++ hlColor ++ show (length hash) ++ dfColor) :=> [],
+        ("With source: " ++ hlColor ++ show (src,num) ++ dfColor) :=> []
       ]  
 chooseOrderedI (src, num) (a:as) =
   let srcLen = length' src
@@ -271,15 +272,15 @@ chooseOrderedI (src, num) (a:as) =
       keyDivH = chooseOrderedI (filter (/= a) src, num-1) as
    in case keyModM of
         Nothing -> Error $
-          (errColor ++ ("Invalid hash: element " ++ hlColor ++ show a ++ errColor ++ " could not be found in source.") ++ normal) :=>
+          (errColor ++ ("Invalid hash: element " ++ hlColor ++ show a ++ errColor ++ " could not be found in source.") ++ dfColor) :=>
           [
-            ("Maybe the element " ++ hlColor ++ show a ++ normal ++ " is " ++ hlColor ++ "repeated" ++ normal ++ " in the hash,") :=> [],
-            ("Or the hash " ++ hlColor ++ "is incompatible" ++ normal ++ " with the choice key?") :=> []
+            ("Maybe the element " ++ hlColor ++ show a ++ dfColor ++ " is " ++ hlColor ++ "repeated" ++ dfColor ++ " in the hash,") :=> [],
+            ("Or the hash " ++ hlColor ++ "is incompatible" ++ dfColor ++ " with the choice key?") :=> []
           ]
         Just keyMod -> case keyDivH of
           Error tr -> Error tr
           Content keyDiv -> Content $ keyMod + srcLen * mod (keyDiv - shift a) prevSpread
-chooseOrderedI (_,_) _ = newError "A bug in the Matrix."
+chooseOrderedI (_,_) _ = newError "A bug in the Matrix, calling `chooseOrderedI`."
 
 shuffleListI :: (Shifting a, Eq a, Show a) => [a] -> [a] -> Handle Integer
 shuffleListI lst = chooseOrderedI (lst, length' lst)
@@ -296,18 +297,18 @@ mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Handle Inte
 mergeTwoListsI ([], src) hash
   | src == hash = Content 0
   | otherwise = Error $
-      (errColor ++ "Invald hash: consists of different elements than source." ++ normal) :=>
+      (errColor ++ "Invald hash: element mismatch." ++ dfColor) :=>
       [
-        ("Reversing hash: " ++ hlColor ++ show hash ++ normal) :=> [],
-        ("Using source: " ++ hlColor ++ show src ++ normal) :=> []
+        ("Reversing hash: " ++ hlColor ++ show hash ++ dfColor) :=> [],
+        ("Using source: " ++ hlColor ++ show src ++ dfColor) :=> []
       ]
 mergeTwoListsI (src, []) hash
   | src == hash = Content 0
   | otherwise = Error $
-      (errColor ++ "Invald hash: consists of different elements than source." ++ normal) :=>
+      (errColor ++ "Invald hash: elament mismatch." ++ dfColor) :=>
       [
-        ("Reversing hash: " ++ hlColor ++ show hash ++ normal) :=> [],
-        ("Using source: " ++ hlColor ++ show src ++ normal) :=> []
+        ("Reversing hash: " ++ hlColor ++ show hash ++ dfColor) :=> [],
+        ("Using source: " ++ hlColor ++ show src ++ dfColor) :=> []
       ]
 mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
   | m == e1 = case mergeTwoListsI (rest1, e2:rest2) ms of
@@ -317,12 +318,12 @@ mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
       Error tr -> Error tr
       Content prevKey -> Content $ spr1 + mod (prevKey - shift m) spr2
   | otherwise = Error $
-      (errColor ++ "Invalid hash: element " ++ hlColor ++ show m ++ errColor ++ " does not match either source." ++ normal) :=>
+      (errColor ++ "Invalid hash: element " ++ hlColor ++ show m ++ errColor ++ " does not match either source." ++ dfColor) :=>
       [
-        ("Reversing hash: " ++ hlColor ++ show (m:ms) ++ normal) :=> [],
-        ("First source list: " ++ hlColor ++ show (e1:rest1) ++ normal) :=> [],
-        ("Second source list: " ++ hlColor ++ show (e2:rest2) ++ normal) :=> [],
-        ("The head of the hash should be either " ++ hlColor ++ show e1 ++ normal ++ " or " ++ hlColor ++ show e2 ++ normal) :=> []
+        ("Reversing hash: " ++ hlColor ++ show (m:ms) ++ dfColor) :=> [],
+        ("First source list: " ++ hlColor ++ show (e1:rest1) ++ dfColor) :=> [],
+        ("Second source list: " ++ hlColor ++ show (e2:rest2) ++ dfColor) :=> [],
+        ("The head of the hash should be either " ++ hlColor ++ show e1 ++ dfColor ++ " or " ++ hlColor ++ show e2 ++ dfColor) :=> []
       ]  
   where
     spr1 = mergeTwoListsSpread (length' rest1, 1 + length' rest2)
@@ -331,14 +332,14 @@ mergeTwoListsI (_, _) [] = newError "Invalid hash: too few elements."
 
 mergeListsI :: (Shifting a, Eq a, Show a) => [[a]] -> [a] -> Handle Integer
 mergeListsI [] [] = Content 0
-mergeListsI [] _  = newError "Invalid hash: too many characters."
+mergeListsI [] _  = newError "A bug in the Matrix, calling `mergeListsI`."
 mergeListsI [src] lst
   | lst == src = Content 0
   | otherwise = Error $
-    (errColor ++ "Invalid hash: element mismatch." ++ normal) :=>
+    (errColor ++ "Invalid hash: element mismatch." ++ dfColor) :=>
       [
-        ("Reversing hash: " ++ hlColor ++ show lst ++ normal) :=> [],
-        ("Current source: " ++ hlColor ++ show src ++ normal) :=> []
+        ("Reversing hash: " ++ hlColor ++ show lst ++ dfColor) :=> [],
+        ("Current source: " ++ hlColor ++ show src ++ dfColor) :=> []
       ]
 mergeListsI [l1, l2] res = mergeTwoListsI (l1,l2) res
 mergeListsI (l:ls) res =
@@ -572,7 +573,7 @@ getPrivateKey s = liftA2 (^) base pow where
     Error tr -> Error tr
     Content n ->
       if n < 0
-      then newError ("Cannot have negative exponent in private key: " ++ hlColor ++ powStr ++ normal ++ ".")
+      then hlError "Cannot have negative exponent in private key: " powStr "."
       else Content n
 
 -- ┌─────────────────────┐
@@ -582,8 +583,8 @@ getPrivateKey s = liftA2 (^) base pow where
 getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Handle [Char]
 getFinalHash config publicStr choiceStr shuffleStr =
   liftH2
-    ("Trace in `getFinalHash`, getting the " ++ hlColor ++ "choice" ++ normal ++ " key:")
-    ("Trace in `getFinalHash`, getting the " ++ hlColor ++ "shuffle" ++ normal ++ " key:")
+    ("Trace in `getFinalHash`, getting the " ++ hlColor ++ "choice" ++ dfColor ++ " key:")
+    ("Trace in `getFinalHash`, getting the " ++ hlColor ++ "shuffle" ++ dfColor ++ " key:")
     (getHash config) choiceKey shuffleKey
   where
     publicKey = getPublicKey publicStr
@@ -598,10 +599,11 @@ checkConfigValidity :: [([Char], Integer)] -> Handle [([Char], Integer)]
 checkConfigValidity [] = newError "Cannot have empty configuration."
 checkConfigValidity [(lst, num)]
   | num < 0 = hlError "Invalid configuration: number " (show num) " must be non-negative."
-  | num > length' lst = Error $ (errColor ++ "Invalid configuration: too many elements drawn from " ++ hlColor ++ show lst ++ errColor ++ "." ++ normal) :=>
+  | num > length' lst = Error $ (errColor ++ "Invalid configuration: too many elements drawn." ++ dfColor) :=>
       [
-        ("Available amount: " ++ show (length lst)) :=> [],
-        ("Demanded: " ++ show num) :=> []
+        ("Using source: " ++ hlColor ++ show lst ++ dfColor) :=> [],
+        ("Available amount: " ++ hlColor ++ show (length lst) ++ dfColor) :=> [],
+        ("Demanded: " ++ hlColor ++ show num ++ dfColor) :=> []
       ]
   | otherwise = Content [(lst, num)]
 checkConfigValidity (src : rest) = case checkConfigValidity [src] of
@@ -773,19 +775,23 @@ queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO
 queryAction config "public" choiceStr shuffleStr hashStr = handleWith print $ retrievePublicKey config choiceStr shuffleStr hashStr
 queryAction config "choice" publicStr shuffleStr hashStr = handleWith print $ retrieveChoiceKey config publicStr shuffleStr hashStr
 queryAction config "shuffle" publicStr choiceStr hashStr = handleWith print $ retrieveShuffleKey config publicStr choiceStr hashStr
-queryAction _ kw _ _ _ = return $ newError ("Query keyword not recognized: " ++ kw ++ ".")
+queryAction _ kw _ _ _ = return $ hlError "Query keyword not recognized: " kw "."
 
 listPairsAction :: [([Char], Integer)] -> String -> String -> [Char] -> IO (Handle ())
 listPairsAction config publicStr limitStr hashStr =
   let publicKey = getPublicKey publicStr
-      mlimit = readHandle "positive integer" limitStr :: Handle Integer
+      mlimit = readHandle "integer" limitStr :: Handle Integer
       format :: Integer -> Integer -> String
       format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show shuffleKey
       getPair :: Integer -> Handle String
       getPair shuffleKey = fmap (format shuffleKey) (getHashI' config hashStr shuffleKey)
       sequence' :: [IO (Handle ())] -> IO (Handle ())
       sequence' [] = return (Content ())
-      sequence' (io : rest) = liftA2 (liftA2 (const id)) io (sequence' rest)
+      sequence' (io : rest) = do
+        res <- io
+        case res of
+          Error tr -> return (Error tr)
+          Content () -> sequence' rest
    in case mlimit of
         Error tr -> return (Error $ "Trace in `listPairsAction`:" :=> [tr])
         Content limit -> sequence' $ take' limit $ map (handleWith putStrLn  . getPair) [0 .. numberOfShuffleKeys' config - 1]
@@ -801,7 +807,7 @@ readFileMaybe = safeReadWithHandler (const $ return Nothing)
 
 readFileHandle :: FilePath -> IO (Handle String)
 readFileHandle = safeReadWithHandler handler
-  where handler e = return . Error $ (errColor ++ "Error reading configuration file:" ++ normal) :=> [ show e :=> [] ]
+  where handler e = return . Error $ (errColor ++ "Error reading configuration file:" ++ dfColor) :=> [ show e :=> [] ]
 
 getConfigFromContents :: Maybe String -> String -> IO (Handle [([Char], Integer)])
 getConfigFromContents publicStrM contents = process specs
@@ -811,15 +817,15 @@ getConfigFromContents publicStrM contents = process specs
     process :: [(String, String)] -> IO (Handle [([Char], Integer)])
     process [] = return (Content defaultConfiguration)
     process ((publicStr', argStr) : rest) = case publicStrM of
-      Nothing -> return . Error $ (errColor ++ "Cannot use configuration file: public key was not pre-supplied. Either:" ++ normal) :=>
+      Nothing -> return . Error $ (errColor ++ "Cannot use configuration file: public key was not pre-supplied. Either:" ++ dfColor) :=>
         [
-          ("Disable configuration files by passing the " ++ hlColor ++ "--pure" ++ normal ++ " option, or") :=> [],
-          (hlColor ++ "Pass the public key inline" ++ normal ++ " as one of the arguments, or") :=> [],
-          (hlColor ++ "Remove" ++ normal ++ " the configuration files.") :=> []
+          ("Disable configuration files by passing the " ++ hlColor ++ "--pure" ++ dfColor ++ " option, or") :=> [],
+          (hlColor ++ "Pass the public key inline" ++ dfColor ++ " as one of the arguments, or") :=> [],
+          (hlColor ++ "Remove" ++ dfColor ++ " the configuration files.") :=> []
         ]
       Just publicStr ->
         if publicStr == publicStr'
-        then case parseArgs (True, True, True) (words argStr) of
+        then case parseArgs' (True, True, True) (words argStr) of
           Error tr -> return . Error $ "Trace while reading options from configuration file:" :=> [tr]
           Content args -> getConfig (insertWith const "pure" "" args)
         else process rest
@@ -840,7 +846,7 @@ getConfig args
       return $ readHandle "\"(Int,Int,Int,Int)\"" (args ! "select")
       >>= (checkConfigValidity . getConfigFromSpec)
   | member "config" args =
-      return $ readHandle "a source configuration" (args ! "config")
+      return $ readHandle "source configuration" (args ! "config")
       >>= checkConfigValidity
   | any (`member` args) ["pure", "info", "query", "list"] = return (Content defaultConfiguration)
   | member "config-file" args = do
@@ -882,11 +888,20 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "help" -> insert' "info" "help" <$> parseArgs trp rest
   "version" -> insert' "info" "version" <$> parseArgs trp rest
   str -> hlError "Unsupported option: -" str "."
+parseArgs _ (['-'] : _) = newError "All dashes should be followed by command line options."
+parseArgs _ (('-':ch:opt) : _) = Error $ (errColor ++ "Violation of command line option format. Try:" ++ dfColor) :=>
+  [
+    (hlColor ++ ('-':'-':ch:opt) ++ dfColor ++ " for long option, or") :=> [],
+    (hlColor ++ ['-',ch] ++ dfColor ++ " for short option.") :=> []
+  ]
 parseArgs (b1, b2, b3) (s : rest)
   | b3 = hlError "Excessive argument: " s ". All three keys were already provided."
   | b2 = insert' "third" s <$> parseArgs (True, True, True) rest
   | b1 = insert' "second" s <$> parseArgs (True, True, False) rest
   | otherwise = insert' "first" s <$> parseArgs (True, False, False) rest
+
+parseArgs' :: (Bool, Bool, Bool) -> [String] -> Handle (Map String String)
+parseArgs' trp = addTrace "Trace in call of `parseArgs`:" . parseArgs trp
 
 getKeyStr :: Map String String -> String -> IO String
 getKeyStr args str = if member str args then return $ args ! str else getLine
@@ -900,7 +915,7 @@ passKeysToAction args act = do
 
 printTrace :: Int -> Trace -> IO ()
 printTrace lvl (msg :=> lst) = do
-  let prefix = "\ESC[1;33m| \ESC[0m" ++ if lvl == 0 then "" else replicate (2*(lvl-1)) ' ' ++ "|_" -- ]]
+  let prefix = "\ESC[1;33m| \ESC[0m" ++ if lvl == 0 then "" else replicate (3*(lvl-1)) ' ' ++ "|> " -- ]]
   putStrLn $ prefix ++ msg
   mapM_ (printTrace (lvl+1)) lst
 
@@ -922,4 +937,4 @@ toIO action = do
     Content () -> return ()
 
 main :: IO ()
-main = getArgs >>= toIO . raiseH' (raise2 performAction <*> getConfig) . parseArgs (False, False, False)
+main = getArgs >>= toIO . raiseH' (raise2 performAction <*> getConfig) . parseArgs' (False, False, False)

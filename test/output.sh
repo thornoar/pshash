@@ -18,9 +18,15 @@ function compare { # == \"\033[35m%s\033[34m\"...
     fi
 }
 
-compare "$cmd -d long AAA0-=~!@ 123 123" "@&FjQ*34kzZu1O\$IGncBb%5Hy"
-compare "$cmd -d mediumpin qwerty 89 9045" "185074"
 compare "$cmd zxc-%-vbn 89-45 9045-4557" "FkPw=p+VyMjdv6XN\$2^3i@QW4"
+compare "$cmd -d long AAA0-=~!@ 123 123" "@&FjQ*34kzZu1O\$IGncBb%5Hy"
+compare "$cmd -d medium ##### 9-999 125-125" "4*-mK!el7S6Ds=%HT5t0"
+compare "$cmd -d short ##### 123-1000 666-1" "H\$!x9*PMZ#z6f4h5"
+compare "$cmd -d anlong ##### 123-1000 666-1" "bWZHh3y92TzV84XBx6af0"
+compare "$cmd -d anshort ##### 123-1000 666-1" "3xPM47Zz2Hfh"
+compare "$cmd -d pin ##### 123-1000 666-1" "0349"
+compare "$cmd -d mediumpin qwerty 89 9045" "185074"
+compare "$cmd -d longpin tyuio 1000 9000" "30624859"
 compare "$cmd -n (4,6,5,5) hahaha 456 123" "&Uo0b\$u1*=FdEVW4O+26"
 compare "$cmd -c [(\"^&*#\",3),(\"cfrvgtbhy\",8),(\"AZSXDCFV\",5)] e3r4t5 5000 1000" "cZD^Ffgtrvh&XbA#"
 compare "$cmd -q public 735-5 537-5 X+I?3tioB4f\$y=P^6CkN2SYjp" "\"vftyhb135\""
