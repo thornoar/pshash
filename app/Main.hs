@@ -12,7 +12,7 @@ import Control.Applicative (liftA2)
 import Control.Exception
 
 currentVersion :: String
-currentVersion = "0.1.10.1"
+currentVersion = "0.1.10.2"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -913,11 +913,25 @@ passKeysToAction args act = do
   third <- getKeyStr args "third"
   act first second third
 
-printTrace :: Int -> Trace -> IO ()
-printTrace lvl (msg :=> lst) = do
-  let prefix = "\ESC[1;33m| \ESC[0m" ++ if lvl == 0 then "" else replicate (3*(lvl-1)) ' ' ++ "|> " -- ]]
+printTraceList :: [Bool] -> [Trace] -> IO ()
+printTraceList _ [] = return ()
+printTraceList places [tr] = printTrace places [False,False] tr
+printTraceList places (tr:rest) = printTrace places [True, False] tr >> printTraceList places rest
+
+printTrace :: [Bool] -> [Bool] -> Trace -> IO ()
+printTrace places pass (msg :=> lst) = do
+  let prefix = map (\b -> if b then '|' else ' ') places ++ "|_"
   putStrLn $ prefix ++ msg
-  mapM_ (printTrace (lvl+1)) lst
+  printTraceList (places ++ pass) lst
+
+toIO :: IO (Handle ()) -> IO ()
+toIO action = do
+  res <- action
+  case res of
+    Error tr -> do
+      putStrLn "\ESC[1;31mError:\ESC[0m" -- ]]
+      printTrace [] [False,False] tr
+    Content () -> return ()
 
 performAction :: Map String String -> Handle [([Char], Integer)] -> IO (Handle ())
 performAction _ (Error tr) = return (Error $ "Trace in `performAction`:" :=> [tr])
@@ -926,15 +940,6 @@ performAction args (Content config)
   | member "query" args = passKeysToAction args (queryAction config (args ! "query"))
   | member "list" args = passKeysToAction args (listPairsAction config)
   | otherwise = passKeysToAction args (hashAction config)
-
-toIO :: IO (Handle ()) -> IO ()
-toIO action = do
-  res <- action
-  case res of
-    Error tr -> do
-      putStrLn "\ESC[1;31mError:\ESC[0m" -- ]]
-      printTrace 0 tr
-    Content () -> return ()
 
 main :: IO ()
 main = getArgs >>= toIO . raiseH' (raise2 performAction <*> getConfig) . parseArgs' (False, False, False)
