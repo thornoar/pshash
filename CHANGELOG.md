@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.10.3
+
+* Minor error changes (removed quotes in some places).
+
 ## 0.1.10.2
 
 * Reverted error tree style, fixed minor bugs.

@@ -12,7 +12,7 @@ import Control.Applicative (liftA2)
 import Control.Exception
 
 currentVersion :: String
-currentVersion = "0.1.10.2"
+currentVersion = "0.1.10.3"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -212,7 +212,7 @@ raise2 f a mb = mb >>= f a
 
 readHandle :: (Read a) => String -> String -> Handle a
 readHandle msg str = case readMaybe str of
-  Nothing -> Error $ (errColor ++ "Failed to read " ++ hlColor ++ "\"" ++ str ++ "\"" ++ errColor ++ " as " ++ hlColor ++ msg ++ errColor ++ "." ++ dfColor) :=> []
+  Nothing -> Error $ (errColor ++ "Failed to read " ++ hlColor ++ str ++ errColor ++ " as " ++ hlColor ++ msg ++ errColor ++ "." ++ dfColor) :=> []
   Just a -> Content a
 
 addTrace :: String -> Handle a -> Handle a
@@ -843,7 +843,7 @@ getConfig args
       "longpin" -> Content longPinCodeConfiguration
       str -> hlError "Unrecognized configuration keyword: " str "."
   | member "select" args =
-      return $ readHandle "\"(Int,Int,Int,Int)\"" (args ! "select")
+      return $ readHandle "(Int,Int,Int,Int)" (args ! "select")
       >>= (checkConfigValidity . getConfigFromSpec)
   | member "config" args =
       return $ readHandle "source configuration" (args ! "config")
