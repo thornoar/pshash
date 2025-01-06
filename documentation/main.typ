@@ -12,11 +12,14 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 #show: theorem
 
 // Local definitions
-#show: shorthands.with(
-  ($++$, math.union.plus),
-  ($!!$, math.class("binary", [!])),
-  ($::$, math.class("binary", [:])),
-)
+// #show: shorthands.with(
+//   // ($\&$, math.union.plus),
+//   // ($!!$, math.class("binary", [!])),
+//   // ($::$, math.class("binary", [:])),
+// )
+#let concat = math.union.plus
+#let elt = math.class("binary", [:])
+#let excl = math.class("binary", [!])
 #let ch = math.cal([C])
 #let mg = math.cal([M])
 #let ech = math.overline(math.cal([C]))
@@ -36,7 +39,7 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 // Begin Document
 #let keywords = ("Combinatorics", "Hash", "Security", "Haskell", "Functional programming")
 #show: title([ On rearrangement hashing with Haskell ], abstract: [
-  In this paper I introduce and develop a mathematical method of producing a cryptographic hash of adjustable length, given a public key and a pair of private keys. The hashing is done through encoding selections and permutations with natural numbers, and then composing the hash from a set of source strings with respect to the permutations encoded by the keys. The attempts to construct a suitable integer-to-selection mapping lead to interesting mathematical definitions and statements, which are discussed in this paper and applied to give bounds on the reliability of the hashing algorithm. An implementation is provided in the Haskell programming language (source and binary available at https://github.com/thornoar/pshash) and applied in the setting of password creation.
+  In this paper I introduce and develop a mathematical method of producing a pseudo-cryptographic hash of adjustable length, given a public key and a pair of private keys. The hashing is done through encoding selections and permutations with natural numbers, and then composing the hash from a set of source strings with respect to the permutations encoded by the keys. The attempts to construct a suitable integer-to-selection mapping lead to interesting mathematical definitions and statements, which are discussed in this paper and applied to give bounds on the reliability of the hashing algorithm. An implementation is provided in the Haskell programming language (source available at https://github.com/thornoar/pshash) and applied in the setting of password creation.
 ], date: datetime(year: 2024, month: 3, day: 26), keywords: keywords, logo: image("figures/haskell.png", width: 20%), keywordlength: 60%)
 
 = Introduction
@@ -61,9 +64,9 @@ By $E$ we will commonly understand a finite enumerated set of distinct elements,
 
 The symbol "$\# $" will be used to describe the number of ways to make a combinatorial selection. For example, $\#^m (E)$ is the number of ways to choose $m$ elements from a source $E$ with significant order.
 
-The expression $[A]$ will denote the set of all ordered lists composed from elements of the set $A$. We assume that all elements in a list are distinct. Every list can therefore be considered a source. The subset $[A]_m subset [A]$ will include only the lists of length $m$. Extending the notation, we will define $[A_0, A_1, ..., A_(N-1)]$ as the set of lists $alpha = [a_0, a_1, ..., a_(N-1)]$ of length $N$ where the first element is from $A_0$, the second from $A_1$, and so on, until the last one from $A_(N-1)$. Finally, if $alpha in [A]$ and $beta in [B]$, the list $alpha ++ beta in [A union B]$ will be the concatenation of lists $alpha$ and $beta$.
+The expression $[A]$ will denote the set of all ordered lists composed from elements of the set $A$. We assume that all elements in a list are distinct. Every list can therefore be considered a source. The subset $[A]_m subset [A]$ will include only the lists of length $m$. Extending the notation, we will define $[A_0, A_1, ..., A_(N-1)]$ as the set of lists $alpha = [a_0, a_1, ..., a_(N-1)]$ of length $N$ where the first element is from $A_0$, the second from $A_1$, and so on, until the last one from $A_(N-1)$. Finally, if $alpha in [A]$ and $beta in [B]$, the list $alpha concat beta in [A union B]$ will be the concatenation of lists $alpha$ and $beta$.
 
-Let $alpha$ be a list. $|alpha|$ will denote its length, while $alpha :: i$ will represent its $i$-th element, with the enumeration starting from $i = 0$. On the contrary, the expression $alpha !! i$ will denote the list $alpha$ without its $i$-th element. All sources are associated with the ordered list of all their elements, and thus expressions such as $E :: i$ and $|E|$ have meaning for a source $E$.
+Let $alpha$ be a list. $|alpha|$ will denote its length, while $alpha elt i$ will represent its $i$-th element, with the enumeration starting from $i = 0$. On the contrary, the expression $alpha excl i$ will denote the list $alpha$ without its $i$-th element. All sources are associated with the ordered list of all their elements, and thus expressions such as $E elt i$ and $|E|$ have meaning for a source $E$.
 
 Let $k in NN_0$, $n in NN$. The numbers $lun k, lln k in NN_0$ are defined to be such that $0 <= lun k < n$ and\ $lln k dot n + lun k = k$. The number $lun k$ is the remainder after division by $n$, and $lln k$ is the result of division.
 
@@ -80,7 +83,7 @@ The defining feature of the public key is that it is either publicly known or at
 #def("First-order choice function")[
   Let $E$ be a source, $k in NN_0$. The _choice function of order 1_ is defined as the following one-element list:
   $
-    ch^1(E, k) = [E :: lui(|E|) k].
+    ch^1(E, k) = [E elt lui(|E|) k].
   $
 ] <c1ek>
 
@@ -126,9 +129,9 @@ With this proposition at hand, we have a natural way of extending the definition
 #def[
   Let $E$ be a source with cardinality $|E| = n$, $k in NN_0$, $2 <= m <= n$. The _choice function of order $m$_ is defined recursively as
   $
-    ch^m (E, k) = [E :: lun k] ++ ch^(m-1) (E', k'),
+    ch^m (E, k) = [E elt lun k] concat ch^(m-1) (E', k'),
   $
-  where $E' = E !! lun k$ and $k' = lln k + T(lun k)$, while $T : NN_0 -> NN_0$ is a fixed argument shift function.
+  where $E' = E excl lun k$ and $k' = lln k + T(lun k)$, while $T : NN_0 -> NN_0$ is a fixed argument shift function.
 ]
 
 #prop[
@@ -156,7 +159,7 @@ These properties make the choice function a fine candidate for a hash mapping. S
   $E = #[`qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789!@#$%`]$ //$
 ]
 
-The choice function gives us a way to enumerate all possible ways to select a sub-list from $E$. What is more, these selections can be made more "random" and unpredictable by means of complicating the argument shift function $T$. A reasonable practice is to set $T(lui(n)k)$ to the ASCII value of the character $E :: lui(n)k$. This way, each chosen character will influence the choice of the next, creating what is called a "chaotic system", where its behavior is fully determined, but even small changes to inputs eventually produce large changes in the output. Here is a little input-output table for the choice function of order 10 with the specified source and shift function:
+The choice function gives us a way to enumerate all possible ways to select a sub-list from $E$. What is more, these selections can be made more "random" and unpredictable by means of complicating the argument shift function $T$. A reasonable practice is to set $T(lui(n)k)$ to the ASCII value of the character $E elt lui(n)k$. This way, each chosen character will influence the choice of the next, creating what is called a "chaotic system", where its behavior is fully determined, but even small changes to inputs eventually produce large changes in the output. Here is a little input-output table for the choice function of order 10 with the specified source and shift function:
 
 #align(center)[
   #table(
@@ -181,7 +184,7 @@ There is, however, a serious problem. This selection method does not guarantee t
 #def[
   Let $conf$ be be the list of pairs $(E_i, m_i)$, where $E_i$ are sources, $|E_i| = n_i$, $m_i <= n_i$, for $i in (N)$. The _elevated choice function_ corresponding to these data is defined for a key $k in NN_0$ by means of the following recursion:
   $
-    ech (conf, k) = [ ch^(m_0)(E_0, lui(n_0) k) ] ++ ech (conf !! 0, #h(5pt) lli(n_0) k + T(lui(n_0) k)),
+    ech (conf, k) = [ ch^(m_0)(E_0, lui(n_0) k) ] concat ech (conf excl 0, #h(5pt) lli(n_0) k + T(lui(n_0) k)),
   $
   where $T$ is an argument shift function. The base of the recursion is given when $conf$ is empty, in which case $ech ([#hphantom(1pt)], k) = [#hphantom(1pt)]$. Otherwise, for every key $k$, its image is an element of
   $
@@ -199,7 +202,7 @@ where $E_i$, $n_i$, and $m_i$ compose the configuration $conf$. In fact, due to 
 This solves the problem with lacking symbol categories --- now we can separate upper-case letters, lower-case letters, numbers, etc., into different sources and apply the elevated choice function, specifying the number of symbols from each source. However, there are two issues arising:
 
 - The result of the elevated choice function will be something like `"amwYXT28@!"`, which is not a bad password, but it would be nice to be able to shuffle the individual selections between each other instead of lining them up one after another.
-- Despite the fact that the argument shift function makes the password selection chaotic, the function is a bijection, which means that it can be reversed. With sufficient knowledge of the algorithm, a hacker can write an inverse algorithm that retrieves the private key from the resulting password. This is a deal breaker for our function, because it defeats the purpose --- you may as well have one password for everything. The way to solve this problem it to make the choice function artificially non-injective, or overlapping, in a controlled way. In such case, many different keys will produce the same password, and it will be impossible to know which one of them is the correct one. This violates the common non-collision property of hash functions, but it is necessary given the nature of the function we are developing.
+- Despite the fact that the argument shift function makes the password selection chaotic, the function is a bijection, which means that it can be reversed. With sufficient knowledge of the algorithm, a hacker can write an inverse algorithm that retrieves the private key from the resulting password. This is a deal breaker for our function, because it defeats the purpose --- you may as well have one password for everything. The way to solve this problem it to make the choice function artificially non-injective, or non-collision-free, in a controlled way. In such case, many different keys will produce the same password, and it will be impossible to know which one of them is the correct one. This violates the common non-collision property of hash functions, but it is necessary given the nature of the function we are developing.
 
 We will solve one problem at a time.
 
@@ -240,13 +243,13 @@ We will solve one problem at a time.
   $
   with the following recursive procedure: for $alpha in [E_1]_(m_1), hs beta in [E_2]_(m_2), hs k in NN_0$ consider two cases:
   + Either $alpha$ or $beta$ is empty, that is, $m_1 = 0$ or $m_2 = 0$.
-    Then set $mg^2 (alpha, beta, k)$ to be equal to $alpha ++ beta$.
+    Then set $mg^2 (alpha, beta, k)$ to be equal to $alpha concat beta$.
   + Neither $alpha$ nor $beta$ is empty.
-    Then we will assume that the merge function is already defined for $(alpha !! 0, beta, -)$ and $(alpha, beta !! 0, -)$. Let $s_1$ be the spread of the function $mg^2 (alpha !! 0, beta, -)$ and $s_2$ be the spread of $mg^2 (alpha, beta !! 0, -)$. Finally, denote the remainder $lui((s_1 + s_2)) k$ by $k'$. The merge of $alpha$ and $beta$ with key $k$ and an argument shift function $T$ is defined as
+    Then we will assume that the merge function is already defined for $(alpha excl 0, beta, -)$ and $(alpha, beta excl 0, -)$. Let $s_1$ be the spread of the function $mg^2 (alpha excl 0, beta, -)$ and $s_2$ be the spread of $mg^2 (alpha, beta excl 0, -)$. Finally, denote the remainder $lui((s_1 + s_2)) k$ by $k'$. The merge of $alpha$ and $beta$ with key $k$ and an argument shift function $T$ is defined as
     $
       mg^2 (alpha, beta, k) = cases(
-        [alpha :: 0] ++ mg^2 (alpha !! 0, hs beta, hs k' + T(k'))\, #h(0.7em) k' < s_1,
-        [beta :: 0] ++ mg^2 (alpha, hs beta !! 0, hs k' + T(k'))\, #h(0.7em) #mtxt("otherwise,") 
+        [alpha elt 0] concat mg^2 (alpha excl 0, hs beta, hs k' + T(k'))\, #h(0.7em) k' < s_1,
+        [beta elt 0] concat mg^2 (alpha, hs beta excl 0, hs k' + T(k'))\, #h(0.7em) #mtxt("otherwise,") 
       )
     $
     // where $T$ is an argument shift function.
@@ -254,7 +257,7 @@ We will solve one problem at a time.
 
 The merge function takes two lists and combines them together in one, in such a way that the order of elements in each of the two lists is not disturbed. For example, the merge of $[1,2,3]$ and $[a,b,c]$ with a certain key could be $[1,a,b,2,c,3]$. We will now derive some properties of $mg^2$. If $s_1$ and $s_2$ are what they are in the above definition, we immediately see that $mg^2(alpha, beta, -)$ is periodic with period $s_1 + s_2$, since it depends only on $k' = #lui($(s_1 + s_2)$)k$. Moreover, it is clear from the definition that $mg^2(alpha, beta, -)$ is injective on the interval $((s_1 + s_2))$, which means that its spread is equal exactly to $s_1 + s_2$:
 $
-#spr (mg^2 (alpha, beta, -)) = #spr (mg^2 (alpha !! 0, beta, -)) + #spr (mg^2 (alpha, beta !! 0, -)).
+#spr (mg^2 (alpha, beta, -)) = #spr (mg^2 (alpha excl 0, beta, -)) + #spr (mg^2 (alpha, beta excl 0, -)).
 $ <recspr>
 // From this recursive relationship we can derive this useful proposition:
 
@@ -278,10 +281,10 @@ Using some combinatorial logic, we can see that the number $(m_1 + m_2)!/(m_1 ! 
   $
     mg^N (oval, k) = cases(
       mg^2 (alpha_0, alpha_1, k)\, #h(1em) N = 2\,,
-      mg^2(alpha_0, hs mg^(N-1)(oval !! 0, lui(s) k), hs lli(s) k + T(lui(s) k))\, #h(1em) N > 2\,
+      mg^2(alpha_0, hs mg^(N-1)(oval excl 0, lui(s) k), hs lli(s) k + T(lui(s) k))\, #h(1em) N > 2\,
     )
   $
-  where $s$ is the spread of the function $mg^(N-1)(oval !! 0, hs -)$, and $T$ is an argument shift function.
+  where $s$ is the spread of the function $mg^(N-1)(oval excl 0, hs -)$, and $T$ is an argument shift function.
 ]
 
 #exer[
@@ -349,7 +352,7 @@ Note that the term "hash" is used loosely here, as it may not adhere to the form
     \#^((k_1,k_2)) = \#^shuf (conf) dot \#^mc (conf) = product_(i=0)^(N-1) (n_i | m_i)! dot ((sum_(i=0)^(N-1) m_i)!)^2 dot (product_(i=0)^(N-1) m_i !)^(-1) #h(-13pt).
   $ <k1k2>
 
-- *Overlapping.*
+- *Collisions.*
   However, the number in @k1k2 does not equal the number of all possible values of $hash$. When applying $shuf$ after $mc$, we are changing the order of elements in each source twice. That is, the information about the order of these elements, stored in the output of $ech$, is lost after this output is reshuffled with $shuf$. The number of all possible outputs of $hash$ is the number of ways of choosing $m_i$ elements from $E_i$ (unordered), multiplied by the number of ways to reorder them as one list. We therefore recognize that
   $
     \#^hash (conf) = product_(i=0)^(N-1) mat(n_i; m_i) dot (sum_(i=0)^(N-1) m_i)!
