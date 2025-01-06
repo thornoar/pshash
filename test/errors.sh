@@ -30,3 +30,4 @@ run "$cmd -n (5,9,4,) pub 0 0" 30
 run "$cmd -c () pub 0 0" 30
 run "$cmd -" 30
 run "$cmd -rts haha" 30
+run "$cmd -p 3" 30

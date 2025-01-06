@@ -9,10 +9,11 @@ import System.Environment (getArgs)
 import System.Directory (getHomeDirectory)
 import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
+import Control.Monad ((<=<))
 import Control.Exception
 
 currentVersion :: String
-currentVersion = "0.1.10.3"
+currentVersion = "0.1.11.0"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -207,6 +208,9 @@ fmap2 f ma b = fmap (`f` b) ma
 fmap2' :: (Monad m) => (a -> b -> m c) -> (m a -> b -> m c)
 fmap2' f ma b = ma >>= (`f` b)
 
+raise :: (Monad m) => (a -> m b) -> (m a -> m b)
+raise f ma = ma >>= f
+
 raise2 :: (Monad m) => (a -> b -> m c) -> (a -> m b -> m c)
 raise2 f a mb = mb >>= f a
 
@@ -264,7 +268,7 @@ chooseOrderedI (src,num) hash
       [
         ("Reversing hash: " ++ hlColor ++ show hash ++ dfColor ++ " with length " ++ hlColor ++ show (length hash) ++ dfColor) :=> [],
         ("With source: " ++ hlColor ++ show (src,num) ++ dfColor) :=> []
-      ]  
+      ]
 chooseOrderedI (src, num) (a:as) =
   let srcLen = length' src
       keyModM = toInteger <$> elemIndex a src
@@ -324,7 +328,7 @@ mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
         ("First source list: " ++ hlColor ++ show (e1:rest1) ++ dfColor) :=> [],
         ("Second source list: " ++ hlColor ++ show (e2:rest2) ++ dfColor) :=> [],
         ("The head of the hash should be either " ++ hlColor ++ show e1 ++ dfColor ++ " or " ++ hlColor ++ show e2 ++ dfColor) :=> []
-      ]  
+      ]
   where
     spr1 = mergeTwoListsSpread (length' rest1, 1 + length' rest2)
     spr2 = mergeTwoListsSpread (1 + length' rest1, length' rest2)
@@ -650,59 +654,82 @@ handleWith f ma = case ma of
 
 infoAction :: [([Char], Integer)] -> String -> IO (Handle ())
 infoAction config "help" = do
-      putStrLn "usage: pshash [--help | --version | --list | --pure | -[d|n|c|i|q|f] ARGUMENT | PUBLIC CHOICE SHUFFLE]"
+      putStrLn "usage: pshash [ --help | --version | --list | --pure ]"
+      putStrLn "              [ -d|n|c|i|q|f|p ARGUMENT ]"
+      putStrLn "              [ PUBLIC CHOICE SHUFFLE ]"
       putStrLn ""
       putStrLn "options:"
       putStrLn "  --help              show this help message and exit"
       putStrLn ""
       putStrLn "  --version           print the current version of pshash"
       putStrLn ""
-      putStrLn "  -d KEYWORD          specify the source configuration. KEYWORD can be one of the following:"
-      putStrLn "                          long (8 upper case, 8 lower case, 5 special characters, 4 digits) -- the default"
-      putStrLn "                          medium (5 symbols of each type)"
-      putStrLn "                          short (4 symbols of each type)"
-      putStrLn "                          anlong (7 upper case, 7 lower case, 7 digits)"
-      putStrLn "                          anshort (4 upper case, 4 lower case, 4 digits)"
-      putStrLn "                          pin (4-digit pin code)"
-      putStrLn "                          mediumpin (6-digit pin code)"
-      putStrLn "                          longpin (8-digit pin code)"
-      putStrLn ""
-      putStrLn "  -n \"(L, U, S, D)\"   specify how many Lower case, Upper case, Special characters, and Digits should be used"
-      putStrLn ""
-      putStrLn "  -c CONFIGURATION    specify the source configuration manually"
-      putStrLn ""
-      putStrLn "  -i KEYWORD          show security information. KEYWORD can be one of the following:"
-      putStrLn "                          help (same as `--help`)"
-      putStrLn "                          version (same as `--version`)"
-      putStrLn "                          numbers (show the number of hashes and keys)"
-      putStrLn "                          times (show the times required to crack your passwords)"
-      putStrLn ""
-      putStrLn "  -q KEYWORD          retrieve one of the keys from a final hash and two remaining keys. KEYWORD can be:"
-      putStrLn "                          public (followed by CHOICE SHUFFLE HASH)"
-      putStrLn "                          choice (followed by PUBLIC SHUFFLE HASH)"
-      putStrLn "                          shuffle (followed by PUBLIC CHOICE HASH)"
-      putStrLn ""
-      putStrLn "  --list              print the list of (choice,shuffle) pairs that would produce the given hash."
-      putStrLn "                      accepts three arguments: the PUBLIC key, the NUMBER of pairs to compute, and the final HASH."
+      putStrLn "  --list              print the list of (choice,shuffle) pairs that would"
+      putStrLn "                      produce the given hash. accepts three arguments:"
+      putStrLn "                       - the PUBLIC key,"
+      putStrLn "                       - the NUMBER of pairs to compute, and"
+      putStrLn "                       - the final HASH."
       putStrLn ""
       putStrLn "  --pure              ignore all configuration files."
       putStrLn ""
-      putStrLn "  -f PATH             read the configuration file from PATH. If neither this nor the `-i` option is used,"
-      putStrLn "                      then the program will try to read configuration from the following files:"
-      mapM_ (putStrLn . (replicate 26 ' ' ++)) defaultConfigFiles
-      putStrLn "                      each line of the configuration file should follow the format"
-      putStrLn "                          PUBLIC: ARGS"
-      putStrLn "                      when using configuration files, the PUBLIC key needs to be specified as an argument."
-      putStrLn "                      the program will match it with one of the entries in the file and use the corresponding ARGS."
+      putStrLn "  -d KEYWORD          specify the source configuration. KEYWORD can be"
+      putStrLn "                      one of the following (default is long):"
+      putStrLn "                       - long (8 upper, 8 lower, 5 special, 4 digits)"
+      putStrLn "                       - medium (5 symbols of each type)"
+      putStrLn "                       - short (4 symbols of each type)"
+      putStrLn "                       - anlong (7 upper case, 7 lower case, 7 digits)"
+      putStrLn "                       - anshort (4 upper case, 4 lower case, 4 digits)"
+      putStrLn "                       - pin (4-digit pin code)"
+      putStrLn "                       - mediumpin (6-digit pin code)"
+      putStrLn "                       - longpin (8-digit pin code)"
+      putStrLn ""
+      putStrLn "  -n \"(L, U, S, D)\"   specify how many Lower case, Upper case,"
+      putStrLn "                      Special characters, and Digits should be used"
+      putStrLn ""
+      putStrLn "  -c CONFIGURATION    specify the source configuration manually,"
+      putStrLn "                      as Haskell [([Char], Integer)] type"
+      putStrLn ""
+      putStrLn "  -i KEYWORD          show meta information. KEYWORD can be one of:"
+      putStrLn "                       - help (same as `--help`)"
+      putStrLn "                       - version (same as `--version`)"
+      putStrLn "                       - numbers (show the total amounts of hashes/keys)"
+      putStrLn "                       - times (show times needed to crack your passwords)"
+      putStrLn ""
+      putStrLn "  -q KEYWORD          retrieve one of the keys from a final hash and"
+      putStrLn "                      two remaining keys. KEYWORD can be one of:"
+      putStrLn "                       - public (followed by CHOICE SHUFFLE HASH as keys)"
+      putStrLn "                       - choice (followed by PUBLIC SHUFFLE HASH as keys)"
+      putStrLn "                       - shuffle (followed by PUBLIC CHOICE HASH as keys)"
+      putStrLn ""                      
+      putStrLn "  -f PATH              read the configuration file from PATH. If neither"
+      putStrLn "                      this nor the `--pure` option is used, the program"
+      putStrLn "                      will try to read from the following files:"
+      mapM_ (putStrLn . ("                       - " ++)) defaultConfigFiles
+      putStrLn "                      each line of the file should follow the format"
+      putStrLn "                         PUBLIC: ARGS"
+      putStrLn "                      (other lines will be ignored)"
+      putStrLn "                      when using configuration files, the PUBLIC key needs"
+      putStrLn "                      to be specified inline as a command line argument."
+      putStrLn "                      the program will match it with one of the entries in"
+      putStrLn "                      the file and use the corresponding ARGS."
+      putStrLn ""
+      putStrLn "  -p SHIFT            shift all characters in the public key by the"
+      putStrLn "                      specified amount. This option is generally discouraged,"
+      putStrLn "                      but sometimes necessary to create multiple passwords"
+      putStrLn "                      with one set of keys"
       putStrLn ""
       putStrLn "main arguments:"
-      putStrLn "  PUBLIC stands for public key, a memorable string indicative of the password destination (e.g. \"google\", \"steam\")"
+      putStrLn "  PUBLIC              stands for public key, a memorable string indicative"
+      putStrLn "                      of the password destination (e.g. \"google\", \"steam\")"
+      putStrLn ""
+      putStrLn "  CHOICE              stands for choice private key, a large number"
       putStrLn $
         let numChoiceDouble = fromIntegral (numberOfChoiceKeys' config) :: Double
-         in "  CHOICE stands for choice private key, a large number between 0 and " ++ formatDouble (show numChoiceDouble) numberOfPlaces
+         in    "                      between 0 and " ++ formatDouble (show numChoiceDouble) numberOfPlaces
+      putStrLn ""
+      putStrLn "  SHUFFLE             stands for shuffle private key, a number"
       putStrLn $
         let numShuffleDouble = fromIntegral (numberOfShuffleKeys $ map snd config) :: Double
-         in "  SHUFFLE stands for shuffle private key, a number between 0 and " ++ formatDouble (show numShuffleDouble) numberOfPlaces
+         in    "                      between 0 and " ++ formatDouble (show numShuffleDouble) numberOfPlaces
       putStrLn ""
       putStrLn "using source configuration:"
       putStrLn $ "  " ++ show config
@@ -741,7 +768,7 @@ infoAction config "numbers" =
   putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
   return (Content ())
 infoAction config "times" = let amts = map dropElementInfo config in do
-  putStrLn $ "using the following distribution:               " ++ show amts
+  putStrLn $ "using the following configuration distribution: " ++ show amts
   putStrLn $ "assumed number of password checks per second:   " ++ "10 billion = 10^10"
   putStrLn $ "time to check one password:                     " ++ "10^(-10) s = 0.1 nanosecond"
   putStrLn ""
@@ -880,7 +907,8 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'i' -> insert' "info" s <$> parseArgs trp rest
   'q' -> insert' "query" s <$> parseArgs trp rest
   'f' -> insert' "config-file" s <$> parseArgs trp rest
-  ch -> hlError "Unsupported option: -" [ch] "."
+  'p' -> insert' "patch" s <$> parseArgs trp rest
+  ch -> hlError "Unsupported option: " ['-',ch] "."
 parseArgs _ [['-', _]] = hlError "All short options require arguments. Use " "--help" " for details."
 parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' "pure" "" <$> parseArgs trp rest
@@ -901,7 +929,21 @@ parseArgs (b1, b2, b3) (s : rest)
   | otherwise = insert' "first" s <$> parseArgs (True, False, False) rest
 
 parseArgs' :: (Bool, Bool, Bool) -> [String] -> Handle (Map String String)
-parseArgs' trp = addTrace "Trace in call of `parseArgs`:" . parseArgs trp
+parseArgs' trp = addTrace "Trace in call of `parseArgs`:" . raise patchFirstArg . parseArgs trp
+
+patchFirstArg :: Map String String -> Handle (Map String String)
+patchFirstArg args
+  | member "patch" args =
+    if member "first" args
+    then do
+      patchAmount <- (readHandle "integer" (args ! "patch") :: Handle Integer)
+      Content $ insertWith const "first" (map (chr . fromInteger . (`mod` 128) . (+ patchAmount) . toInteger . ord) (args ! "first")) args
+    else Error $ (errColor ++ "Cannot patch public key that was not pre-supplied. Either:" ++ dfColor) :=>
+      [
+        (hlColor ++ "Pass the public key inline" ++ dfColor ++ " as one of the arguments, or") :=> [],
+        (hlColor ++ "Remove" ++ dfColor ++ " the " ++ hlColor ++ "-p" ++ dfColor ++ " option.") :=> []
+      ]
+  | otherwise = Content args
 
 getKeyStr :: Map String String -> String -> IO String
 getKeyStr args str = if member str args then return $ args ! str else getLine

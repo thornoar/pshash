@@ -34,3 +34,4 @@ compare "$cmd -q choice vftyhb135 537-5 X+I?3tioB4f\$y=P^6CkN2SYjp" "21450464220
 compare "$cmd -q shuffle vftyhb135 735-5 X+I?3tioB4f\$y=P^6CkN2SYjp" "44655137246457"
 compare "$cmd --list 1asdfgh1 1 dU*wG6zh!^I0CfqB3&MF5jt-W" "4671573659263123921383069281900060449000 0"
 compare "$cmd -f /home/ramak/.config/pshash/pshash.conf phone 123-3 123-3" "926584"
+compare "$cmd -d anlong -p 66 qwer 90 90" "Lh5b1q92I4VzRriNB87eU"

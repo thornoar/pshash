@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.11.0
+
+* Added public key patching, restructured `--help` message.
+
 ## 0.1.10.3
 
 * Minor error changes (removed quotes in some places).
