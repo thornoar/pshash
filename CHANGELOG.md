@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.13.0
+
+* Added `@color` and `@no-color` options, `@all` config file keyword.
+
 ## 0.1.12.0
 
 * Added a `--bo-color` flag to disable error message coloring (mostly useful on Windows).

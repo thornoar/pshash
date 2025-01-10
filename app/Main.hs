@@ -1,18 +1,19 @@
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 module Main where
 
-import Data.Char (ord, chr)
+import Data.Char (ord, chr, toUpper)
 import Data.Map (Map, empty, insertWith, member, (!))
 import qualified Data.Map as DM
 import Data.List (elemIndex)
 import System.Environment (getArgs)
 import System.Directory (getHomeDirectory)
+import System.Info (os)
 import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
 import Control.Exception
 
 currentVersion :: String
-currentVersion = "0.1.12.0"
+currentVersion = "0.1.13.0"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -155,21 +156,6 @@ data Trace = String :=> [Trace] deriving (Read, Show)
 
 data Handle a = Content a | Error Trace deriving (Read, Show)
 
-errColor :: String
-errColor = "\ESC[31m" -- ]
-
-hlColor :: String
-hlColor = "\ESC[33m" -- ]
-
-dfColor :: String
-dfColor = "\ESC[0m" -- ]
-
-newError :: String -> Handle a
-newError = Error . (:=> []) . (++ dfColor) . (errColor ++)
-
-hlError :: String -> String -> String -> Handle a
-hlError pref hl post = Error $ (errColor ++ pref ++ hlColor ++ hl ++ errColor ++ post ++ dfColor) :=> []
-
 liftH2 :: String -> String -> (a -> b -> c) -> (Handle a -> Handle b -> Handle c)
 liftH2 _ _ f (Content a) (Content b) = Content (f a b)
 liftH2 msg1 msg2 _ (Error tr1) (Error tr2) = Error $ "Double trace:" :=>
@@ -219,7 +205,7 @@ raise2 f a mb = mb >>= f a
 
 readHandle :: (Read a) => String -> String -> Handle a
 readHandle msg str = case readMaybe str of
-  Nothing -> Error $ (errColor ++ "Failed to read " ++ hlColor ++ str ++ errColor ++ " as " ++ hlColor ++ msg ++ errColor ++ "." ++ dfColor) :=> []
+  Nothing -> Error $ ("<Failed to read {{" ++ str ++ "}} as {{" ++ msg ++ "}}.>") :=> []
   Just a -> Content a
 
 addTrace :: String -> Handle a -> Handle a
@@ -232,8 +218,8 @@ addTrace msg (Error tr) = Error (msg :=> [tr])
 
 mapHashingI :: (Shifting b) => (a -> b -> Handle Integer) -> (a -> Integer) -> ([a] -> [b] -> Handle Integer)
 mapHashingI _ _ [] [] = Content 0
-mapHashingI _ _ _ [] = newError "A bug in the Matrix, calling `mapHashingI`."
-mapHashingI _ _ [] _ = newError "A bug in the Matrix, calling `mapHashingI`."
+mapHashingI _ _ _ [] = Error $ "<A bug in the Matrix, calling `mapHashingI`.>" :=> []
+mapHashingI _ _ [] _ = Error $ "<A bug in the Matrix, calling `mapHashingI`.>" :=> []
 mapHashingI fI spr (a:as) (b:bs) =
   let curSpr = spr a
       restSpr = product $ map spr as
@@ -267,10 +253,10 @@ chooseOrderedI :: (Shifting a, Eq a, Show a) => ([a], Integer) -> [a] -> Handle 
 chooseOrderedI (_,0) [] = Content 0
 chooseOrderedI (src,num) hash
   | num /= length' hash = Error $
-      (errColor ++ "Invalid hash: length should match source configuration." ++ dfColor) :=>
+      "<Invalid hash: length should match source configuration.>" :=>
       [
-        ("Reversing hash: " ++ hlColor ++ show hash ++ dfColor ++ " with length " ++ hlColor ++ show (length hash) ++ dfColor) :=> [],
-        ("With source: " ++ hlColor ++ show (src,num) ++ dfColor) :=> []
+        ("Reversing hash: {" ++ show hash ++ "} with length {" ++ show (length hash) ++ "}") :=> [],
+        ("With source: {" ++ show (src,num) ++ "}") :=> []
       ]
 chooseOrderedI (src, num) (a:as) =
   let srcLen = length' src
@@ -279,15 +265,15 @@ chooseOrderedI (src, num) (a:as) =
       keyDivH = chooseOrderedI (filter (/= a) src, num-1) as
    in case keyModM of
         Nothing -> Error $
-          (errColor ++ ("Invalid hash: element " ++ hlColor ++ show a ++ errColor ++ " could not be found in source.") ++ dfColor) :=>
+          ("<Invalid hash: element {{" ++ show a ++ "}} could not be found in source.>") :=>
           [
-            ("Maybe the element " ++ hlColor ++ show a ++ dfColor ++ " is " ++ hlColor ++ "repeated" ++ dfColor ++ " in the hash,") :=> [],
-            ("Or the hash " ++ hlColor ++ "is incompatible" ++ dfColor ++ " with the choice key?") :=> []
+            ("Maybe the element {" ++ show a ++ "} is " ++ "{repeated}" ++ " in the hash,") :=> [],
+            ("Or the hash " ++ "{is incompatible}" ++ " with the choice key?") :=> []
           ]
         Just keyMod -> case keyDivH of
           Error tr -> Error tr
           Content keyDiv -> Content $ keyMod + srcLen * mod (keyDiv - shift a) prevSpread
-chooseOrderedI (_,_) _ = newError "A bug in the Matrix, calling `chooseOrderedI`."
+chooseOrderedI (_,_) _ = Error $ "<A bug in the Matrix, calling `chooseOrderedI`.>" :=> []
 
 shuffleListI :: (Shifting a, Eq a, Show a) => [a] -> [a] -> Handle Integer
 shuffleListI lst = chooseOrderedI (lst, length' lst)
@@ -304,18 +290,18 @@ mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Handle Inte
 mergeTwoListsI ([], src) hash
   | src == hash = Content 0
   | otherwise = Error $
-      (errColor ++ "Invald hash: element mismatch." ++ dfColor) :=>
+      "<Invald hash: element mismatch.>" :=>
       [
-        ("Reversing hash: " ++ hlColor ++ show hash ++ dfColor) :=> [],
-        ("Using source: " ++ hlColor ++ show src ++ dfColor) :=> []
+        ("Reversing hash: {" ++ show hash ++ "}") :=> [],
+        ("Using source: {" ++ show src ++ "}") :=> []
       ]
 mergeTwoListsI (src, []) hash
   | src == hash = Content 0
   | otherwise = Error $
-      (errColor ++ "Invald hash: elament mismatch." ++ dfColor) :=>
+      "<Invald hash: elament mismatch.>" :=>
       [
-        ("Reversing hash: " ++ hlColor ++ show hash ++ dfColor) :=> [],
-        ("Using source: " ++ hlColor ++ show src ++ dfColor) :=> []
+        ("Reversing hash: {" ++ show hash ++ "}") :=> [],
+        ("Using source: {" ++ show src ++ "}") :=> []
       ]
 mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
   | m == e1 = case mergeTwoListsI (rest1, e2:rest2) ms of
@@ -325,28 +311,28 @@ mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
       Error tr -> Error tr
       Content prevKey -> Content $ spr1 + mod (prevKey - shift m) spr2
   | otherwise = Error $
-      (errColor ++ "Invalid hash: element " ++ hlColor ++ show m ++ errColor ++ " does not match either source." ++ dfColor) :=>
+      ("<Invalid hash: element {" ++ show m ++ "< does not match either source." ++ "}") :=>
       [
-        ("Reversing hash: " ++ hlColor ++ show (m:ms) ++ dfColor) :=> [],
-        ("First source list: " ++ hlColor ++ show (e1:rest1) ++ dfColor) :=> [],
-        ("Second source list: " ++ hlColor ++ show (e2:rest2) ++ dfColor) :=> [],
-        ("The head of the hash should be either " ++ hlColor ++ show e1 ++ dfColor ++ " or " ++ hlColor ++ show e2 ++ dfColor) :=> []
+        ("Reversing hash: {" ++ show (m:ms) ++ "}") :=> [],
+        ("First source list: {" ++ show (e1:rest1) ++ "}") :=> [],
+        ("Second source list: {" ++ show (e2:rest2) ++ "}") :=> [],
+        ("The head of the hash should be either {" ++ show e1 ++ "} or {" ++ show e2 ++ "}") :=> []
       ]
   where
     spr1 = mergeTwoListsSpread (length' rest1, 1 + length' rest2)
     spr2 = mergeTwoListsSpread (1 + length' rest1, length' rest2)
-mergeTwoListsI (_, _) [] = newError "Invalid hash: too few elements."
+mergeTwoListsI (_, _) [] = Error $ "<Invalid hash: too few elements.>" :=> []
 
 mergeListsI :: (Shifting a, Eq a, Show a) => [[a]] -> [a] -> Handle Integer
 mergeListsI [] [] = Content 0
-mergeListsI [] _  = newError "A bug in the Matrix, calling `mergeListsI`."
+mergeListsI [] _  = Error $ "<A bug in the Matrix, calling `mergeListsI`.>" :=> []
 mergeListsI [src] lst
   | lst == src = Content 0
   | otherwise = Error $
-    (errColor ++ "Invalid hash: element mismatch." ++ dfColor) :=>
+    "<Invalid hash: element mismatch.>" :=>
       [
-        ("Reversing hash: " ++ hlColor ++ show lst ++ dfColor) :=> [],
-        ("Current source: " ++ hlColor ++ show src ++ dfColor) :=> []
+        ("Reversing hash: {" ++ show lst ++ "}") :=> [],
+        ("Current source: {" ++ show src ++ "}") :=> []
       ]
 mergeListsI [l1, l2] res = mergeTwoListsI (l1,l2) res
 mergeListsI (l:ls) res =
@@ -580,7 +566,7 @@ getPrivateKey s = liftA2 (^) base pow where
     Error tr -> Error tr
     Content n ->
       if n < 0
-      then hlError "Cannot have negative exponent in private key: " powStr "."
+      then Error $ ("<Cannot have negative exponent in private key: {{" ++ powStr ++ "}}.>") :=> []
       else Content n
 
 -- ┌─────────────────────┐
@@ -590,8 +576,8 @@ getPrivateKey s = liftA2 (^) base pow where
 getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Handle [Char]
 getFinalHash config publicStr choiceStr shuffleStr =
   liftH2
-    ("Trace in `getFinalHash`, getting the " ++ hlColor ++ "choice" ++ dfColor ++ " key:")
-    ("Trace in `getFinalHash`, getting the " ++ hlColor ++ "shuffle" ++ dfColor ++ " key:")
+    ("Trace in `getFinalHash`, getting the " ++ "{choice}" ++ " key:")
+    ("Trace in `getFinalHash`, getting the " ++ "{shuffle}" ++ " key:")
     (getHash config) choiceKey shuffleKey
   where
     publicKey = getPublicKey publicStr
@@ -603,14 +589,14 @@ getFinalHash config publicStr choiceStr shuffleStr =
 -- └─────────────────┘
 
 checkConfigValidity :: [([Char], Integer)] -> Handle [([Char], Integer)]
-checkConfigValidity [] = newError "Cannot have empty configuration."
+checkConfigValidity [] = Error $ "<Cannot have empty configuration.>" :=> []
 checkConfigValidity [(lst, num)]
-  | num < 0 = hlError "Invalid configuration: number " (show num) " must be non-negative."
-  | num > length' lst = Error $ (errColor ++ "Invalid configuration: too many elements drawn." ++ dfColor) :=>
+  | num < 0 = Error $ ("<Invalid configuration: number {{" ++ show num ++ "}} must be non-negative.>") :=> []
+  | num > length' lst = Error $ "<Invalid configuration: too many elements drawn.>" :=>
       [
-        ("Using source: " ++ hlColor ++ show lst ++ dfColor) :=> [],
-        ("Available amount: " ++ hlColor ++ show (length lst) ++ dfColor) :=> [],
-        ("Demanded: " ++ hlColor ++ show num ++ dfColor) :=> []
+        ("Using source: {" ++ show lst ++ "}") :=> [],
+        ("Available amount: {" ++ show (length lst) ++ "}") :=> [],
+        ("Demanded: {" ++ show num ++ "}") :=> []
       ]
   | otherwise = Content [(lst, num)]
 checkConfigValidity (src : rest) = case checkConfigValidity [src] of
@@ -657,29 +643,37 @@ handleWith f ma = case ma of
 
 infoAction :: [([Char], Integer)] -> String -> IO (Handle ())
 infoAction config "help" = do
-      putStrLn "usage: pshash [ --help | --version | --list | --pure | --no-color ]"
+      let show' :: [([Char],Integer)] -> String
+          show' config' = "[\n" ++ concatMap (("  " ++) . (++ "\n") . show) config' ++ "]"
+      putStrLn "usage: pshash [ --help | --version | --list | --pure ]"
+      putStrLn "              [ @color | @no-color ]"
       putStrLn "              [ -d|n|c|i|q|f|p ARGUMENT ]"
       putStrLn "              [ PUBLIC CHOICE SHUFFLE ]"
       putStrLn ""
       putStrLn "options:"
-      putStrLn "  --help              show this help message and exit"
+      putStrLn "  --help              Show this help message and exit"
       putStrLn ""
-      putStrLn "  --version           print the current version of pshash"
+      putStrLn "  --version           Print the current version of pshash"
       putStrLn ""
-      putStrLn "  --list              print the list of (choice,shuffle) pairs that would"
+      putStrLn "  --list              Print the list of (choice,shuffle) pairs that would"
       putStrLn "                      produce the given hash. accepts three arguments:"
       putStrLn "                       - the PUBLIC key,"
       putStrLn "                       - the NUMBER of pairs to compute, and"
       putStrLn "                       - the final HASH."
       putStrLn ""
-      putStrLn "  --pure              ignore all configuration files."
+      putStrLn "  --pure              Ignore all configuration files."
       putStrLn ""
-      putStrLn "  --no-color          disable color in error messages."
+      putStrLn "  @color              Enable colors in error messages."
       putStrLn ""
-      putStrLn "  -d KEYWORD          specify the source configuration. KEYWORD can be"
+      putStrLn "  @no-color           Disable colors in error messages."
+      putStrLn ""
+      putStrLn "                      (options starting with '@' are low-level, they are"
+      putStrLn "                      parsed in the very end of the execution chain)"
+      putStrLn ""
+      putStrLn "  -d KEYWORD          Specify the source configuration. KEYWORD can be"
       putStrLn "                      one of the following (default is long):"
       putStrLn "                       - long (8 upper, 8 lower, 5 special, 4 digits)"
-      putStrLn "                       - medium (5 symbols of each type)"
+      putStrLn "                       - medium (5 symbols of each type above)"
       putStrLn "                       - short (4 symbols of each type)"
       putStrLn "                       - anlong (7 upper case, 7 lower case, 7 digits)"
       putStrLn "                       - anshort (4 upper case, 4 lower case, 4 digits)"
@@ -687,57 +681,59 @@ infoAction config "help" = do
       putStrLn "                       - mediumpin (6-digit pin code)"
       putStrLn "                       - longpin (8-digit pin code)"
       putStrLn ""
-      putStrLn "  -n \"(L, U, S, D)\"   specify how many Lower case, Upper case,"
+      putStrLn "  -n \"(L, U, S, D)\"   Specify how many Lower case, Upper case,"
       putStrLn "                      Special characters, and Digits should be used"
       putStrLn ""
-      putStrLn "  -c CONFIGURATION    specify the source configuration manually,"
+      putStrLn "  -c CONFIGURATION    Specify the source configuration manually,"
       putStrLn "                      as Haskell [([Char], Integer)] type"
       putStrLn ""
-      putStrLn "  -i KEYWORD          show meta information. KEYWORD can be one of:"
+      putStrLn "  -i KEYWORD          Show meta information. KEYWORD can be one of:"
       putStrLn "                       - help (same as `--help`)"
       putStrLn "                       - version (same as `--version`)"
       putStrLn "                       - numbers (show the total amounts of hashes/keys)"
       putStrLn "                       - times (show times needed to crack your passwords)"
       putStrLn ""
-      putStrLn "  -q KEYWORD          retrieve one of the keys from a final hash and"
+      putStrLn "  -q KEYWORD          Retrieve one of the keys from a final hash and"
       putStrLn "                      two remaining keys. KEYWORD can be one of:"
       putStrLn "                       - public (followed by CHOICE SHUFFLE HASH as keys)"
       putStrLn "                       - choice (followed by PUBLIC SHUFFLE HASH as keys)"
       putStrLn "                       - shuffle (followed by PUBLIC CHOICE HASH as keys)"
       putStrLn ""                      
-      putStrLn "  -f PATH              read the configuration file from PATH. If neither"
+      putStrLn "  -f PATH             Read the configuration file from PATH. If neither"
       putStrLn "                      this nor the `--pure` option is used, the program"
       putStrLn "                      will try to read from the following files:"
       mapM_ (putStrLn . ("                       - " ++)) defaultConfigFiles
-      putStrLn "                      each line of the file should follow the format"
+      putStrLn "                      Each line of the file should follow the format"
       putStrLn "                         PUBLIC: ARGS"
       putStrLn "                      (other lines will be ignored)"
-      putStrLn "                      when using configuration files, the PUBLIC key needs"
+      putStrLn "                      A line with the keyword \"@all\" as PUBLIC will apply"
+      putStrLn "                      to all public keys."
+      putStrLn "                      When using configuration files, the PUBLIC key needs"
       putStrLn "                      to be specified inline as a command line argument."
-      putStrLn "                      the program will match it with one of the entries in"
+      putStrLn "                      The program will match it with one of the entries in"
       putStrLn "                      the file and use the corresponding ARGS."
       putStrLn ""
-      putStrLn "  -p SHIFT            shift all characters in the public key by the"
+      putStrLn "  -p SHIFT            Shift all characters in the public key by the"
       putStrLn "                      specified amount. This option is generally discouraged,"
       putStrLn "                      but sometimes necessary to create multiple passwords"
       putStrLn "                      with one set of keys"
       putStrLn ""
       putStrLn "main arguments:"
-      putStrLn "  PUBLIC              stands for public key, a memorable string indicative"
+      putStrLn "  PUBLIC              Stands for public key, a memorable string indicative"
       putStrLn "                      of the password destination (e.g. \"google\", \"steam\")"
       putStrLn ""
-      putStrLn "  CHOICE              stands for choice private key, a large number"
+      putStrLn "  CHOICE              Stands for choice private key, a large number"
       putStrLn $
         let numChoiceDouble = fromIntegral (numberOfChoiceKeys' config) :: Double
          in    "                      between 0 and " ++ formatDouble (show numChoiceDouble) numberOfPlaces
       putStrLn ""
-      putStrLn "  SHUFFLE             stands for shuffle private key, a number"
+      putStrLn "  SHUFFLE             Stands for shuffle private key, a number"
       putStrLn $
         let numShuffleDouble = fromIntegral (numberOfShuffleKeys $ map snd config) :: Double
          in    "                      between 0 and " ++ formatDouble (show numShuffleDouble) numberOfPlaces
       putStrLn ""
       putStrLn "using source configuration:"
-      putStrLn $ "  " ++ show config
+      putStrLn $ show' config
       return (Content ())
 infoAction _ "version" = putStrLn currentVersion >> return (Content ())
 infoAction config "numbers" =
@@ -801,13 +797,13 @@ infoAction config "times" = let amts = map dropElementInfo config in do
           ++ formatDouble (show inAoU) numberOfPlaces
           ++ ") ages of the Universe"
   return (Content ())
-infoAction _ cmd = return $ newError ("Info command not recognized: " ++ cmd ++ ".")
+infoAction _ cmd = return . Error $ ("Info command not recognized: " ++ cmd ++ ".") :=> []
 
 queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Handle ())
 queryAction config "public" choiceStr shuffleStr hashStr = handleWith print $ retrievePublicKey config choiceStr shuffleStr hashStr
 queryAction config "choice" publicStr shuffleStr hashStr = handleWith print $ retrieveChoiceKey config publicStr shuffleStr hashStr
 queryAction config "shuffle" publicStr choiceStr hashStr = handleWith print $ retrieveShuffleKey config publicStr choiceStr hashStr
-queryAction _ kw _ _ _ = return $ hlError "Query keyword not recognized: " kw "."
+queryAction _ kw _ _ _ = return . Error $ ("<Query keyword not recognized: {{" ++ kw ++ "}}.>") :=> []
 
 listPairsAction :: [([Char], Integer)] -> String -> String -> [Char] -> IO (Handle ())
 listPairsAction config publicStr limitStr hashStr =
@@ -839,7 +835,7 @@ readFileMaybe = safeReadWithHandler (const $ return Nothing)
 
 readFileHandle :: FilePath -> IO (Handle String)
 readFileHandle = safeReadWithHandler handler
-  where handler e = return . Error $ (errColor ++ "Error reading configuration file:" ++ dfColor) :=> [ show e :=> [] ]
+  where handler e = return . Error $ "<Error reading configuration file:>" :=> [ show e :=> [] ]
 
 getConfigFromContents :: Maybe String -> String -> IO (Handle [([Char], Integer)])
 getConfigFromContents publicStrM contents = process specs
@@ -849,14 +845,14 @@ getConfigFromContents publicStrM contents = process specs
     process :: [(String, String)] -> IO (Handle [([Char], Integer)])
     process [] = return (Content defaultConfiguration)
     process ((publicStr', argStr) : rest) = case publicStrM of
-      Nothing -> return . Error $ (errColor ++ "Cannot use configuration file: public key was not pre-supplied. Either:" ++ dfColor) :=>
+      Nothing -> return . Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
         [
-          ("Disable configuration files by passing the " ++ hlColor ++ "--pure" ++ dfColor ++ " option, or") :=> [],
-          (hlColor ++ "Pass the public key inline" ++ dfColor ++ " as one of the arguments, or") :=> [],
-          (hlColor ++ "Remove" ++ dfColor ++ " the configuration files.") :=> []
+          ("Disable configuration files by passing the " ++ "{--pure}" ++ " option, or") :=> [],
+          ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
+          ("{Remove}" ++ " the configuration files.") :=> []
         ]
       Just publicStr ->
-        if publicStr == publicStr'
+        if publicStr == publicStr' || publicStr' == "@all"
         then case parseArgs' (True, True, True) (words argStr) of
           Error tr -> return . Error $ "Trace while reading options from configuration file:" :=> [tr]
           Content args -> getConfig (insertWith const "pure" "" args)
@@ -873,7 +869,7 @@ getConfig args
       "pin" -> Content pinCodeConfiguration
       "mediumpin" -> Content mediumPinCodeConfiguration
       "longpin" -> Content longPinCodeConfiguration
-      str -> hlError "Unrecognized configuration keyword: " str "."
+      str -> Error $ ("<Unrecognized configuration keyword: {{" ++ str ++ "}}.>") :=> []
   | member "select" args =
       return $ readHandle "(Int,Int,Int,Int)" (args ! "select")
       >>= (checkConfigValidity . getConfigFromSpec)
@@ -905,6 +901,7 @@ insert' = insertWith (const id)
 
 parseArgs :: (Bool, Bool, Bool) -> [String] -> Handle (Map String String)
 parseArgs _ [] = Content empty
+parseArgs trp (('@':_) : rest) = parseArgs trp rest
 parseArgs trp (['-', opt] : s : rest) = case opt of
   'd' -> insert' "keyword" s <$> parseArgs trp rest
   'n' -> insert' "select" s <$> parseArgs trp rest
@@ -913,23 +910,22 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'q' -> insert' "query" s <$> parseArgs trp rest
   'f' -> insert' "config-file" s <$> parseArgs trp rest
   'p' -> insert' "patch" s <$> parseArgs trp rest
-  ch -> hlError "Unsupported option: " ['-',ch] "."
-parseArgs _ [['-', _]] = hlError "All short options require arguments. Use " "--help" " for details."
+  ch -> Error $ ("<Unsupported option: {{" ++ ['-',ch] ++ "}}.>") :=> []
+parseArgs _ [['-', _]] = Error $ "<All short options require arguments. Use {{--help}} for details.>" :=> []
 parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' "pure" "" <$> parseArgs trp rest
   "list" -> insert' "list" "" <$> parseArgs trp rest
-  "no-color" -> insert' "no-color" "" <$> parseArgs trp rest
   "help" -> insert' "info" "help" <$> parseArgs trp rest
   "version" -> insert' "info" "version" <$> parseArgs trp rest
-  str -> hlError "Unsupported option: -" str "."
-parseArgs _ (['-'] : _) = newError "All dashes should be followed by command line options."
-parseArgs _ (('-':ch:opt) : _) = Error $ (errColor ++ "Violation of command line option format. Try:" ++ dfColor) :=>
+  str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
+parseArgs _ (['-'] : _) = Error $ "<All dashes should be followed by command line options.>" :=> []
+parseArgs _ (('-':ch:opt) : _) = Error $ "<Violation of command line option format. Try:>" :=>
   [
-    (hlColor ++ ('-':'-':ch:opt) ++ dfColor ++ " for long option, or") :=> [],
-    (hlColor ++ ['-',ch] ++ dfColor ++ " for short option.") :=> []
+    ("{" ++ ('-':'-':ch:opt) ++ "} for long option, or") :=> [],
+    ("{" ++ ['-',ch] ++ "} for short option.") :=> []
   ]
 parseArgs (b1, b2, b3) (s : rest)
-  | b3 = hlError "Excessive argument: " s ". All three keys were already provided."
+  | b3 = Error $ ("<Excessive argument: {{" ++ s ++ "}}. All three keys were already provided.>") :=> []
   | b2 = insert' "third" s <$> parseArgs (True, True, True) rest
   | b1 = insert' "second" s <$> parseArgs (True, True, False) rest
   | otherwise = insert' "first" s <$> parseArgs (True, False, False) rest
@@ -944,10 +940,10 @@ patchFirstArg args
     then do
       patchAmount <- (readHandle "integer" (args ! "patch") :: Handle Integer)
       Content $ insertWith const "first" (map (chr . fromInteger . (`mod` 128) . (+ patchAmount) . toInteger . ord) (args ! "first")) args
-    else Error $ (errColor ++ "Cannot patch public key that was not pre-supplied. Either:" ++ dfColor) :=>
+    else Error $ "<Cannot patch public key that was not pre-supplied. Either:>" :=>
       [
-        (hlColor ++ "Pass the public key inline" ++ dfColor ++ " as one of the arguments, or") :=> [],
-        (hlColor ++ "Remove" ++ dfColor ++ " the " ++ hlColor ++ "-p" ++ dfColor ++ " option.") :=> []
+        ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
+        ("{Remove}" ++ " the " ++ "{-p}" ++ " option.") :=> []
       ]
   | otherwise = Content args
 
@@ -973,26 +969,11 @@ removeCodes (msg :=> trs) = removeCodesInString True msg :=> map removeCodes trs
 
 performAction :: Map String String -> Handle [([Char], Integer)] -> IO (Handle ())
 performAction _ (Error tr) = return (Error $ "Trace in `performAction`:" :=> [tr])
-performAction args (Content config) = do
-  let baseAction :: IO (Handle ())
-      baseAction
-        | member "info" args = infoAction config (args ! "info")
-        | member "query" args = passKeysToAction args (queryAction config (args ! "query"))
-        | member "list" args = passKeysToAction args (listPairsAction config)
-        | otherwise = passKeysToAction args (hashAction config)
-      noColor :: Bool
-      noColor = member "no-color" args
-      addErrorWord :: IO (Handle a) -> IO (Handle a)
-      addErrorWord act = do
-        res <- act
-        case res of
-          Content a -> return (Content a)
-          Error tr -> putStrLn (if noColor then "Error:" else "\ESC[1;31mError:\ESC[0m") >> return (Error tr)
-  let errorPatch :: Handle a -> Handle a
-      errorPatch
-        | noColor = fmapE removeCodes
-        | otherwise = id
-  (addErrorWord . fmap errorPatch) baseAction
+performAction args (Content config)
+  | member "info" args = infoAction config (args ! "info")
+  | member "query" args = passKeysToAction args (queryAction config (args ! "query"))
+  | member "list" args = passKeysToAction args (listPairsAction config)
+  | otherwise = passKeysToAction args (hashAction config)
 
 printTraceList :: [Bool] -> [Trace] -> IO ()
 printTraceList _ [] = return ()
@@ -1005,12 +986,43 @@ printTrace places pass (msg :=> lst) = do
   putStrLn $ prefix ++ msg
   printTraceList (places ++ pass) lst
 
-toIO :: IO (Handle ()) -> IO ()
-toIO action = do
+formatWithColor :: String -> String
+formatWithColor [] = []
+formatWithColor ('<':rest) = "\ESC[31m" ++ formatWithColor rest
+formatWithColor ('>':rest) = "\ESC[0m" ++ formatWithColor rest
+formatWithColor ('{':'{':rest) = "\ESC[33m" ++ formatWithColor rest
+formatWithColor ('}':'}':rest) = "\ESC[31m" ++ formatWithColor rest
+formatWithColor ('{':rest) = "\ESC[33m" ++ formatWithColor rest
+formatWithColor ('}':rest) = "\ESC[0m" ++ formatWithColor rest
+formatWithColor (c:rest) = c : formatWithColor rest
+
+formatWithoutColor :: String -> Bool -> String
+formatWithoutColor [] _ = []
+formatWithoutColor ('<':rest) _ = formatWithoutColor rest True
+formatWithoutColor ('>':rest) _ = formatWithoutColor rest False
+formatWithoutColor ('{':'{':rest) upper = '*' : formatWithoutColor rest upper
+formatWithoutColor ('}':'}':rest) upper = '*' : formatWithoutColor rest upper
+formatWithoutColor ('{':rest) upper = '*' : formatWithoutColor rest upper
+formatWithoutColor ('}':rest) upper = '*' : formatWithoutColor rest upper
+formatWithoutColor (c:rest) True = toUpper c : formatWithoutColor rest True
+formatWithoutColor (c:rest) False = c : formatWithoutColor rest False
+
+formatTrace :: Bool -> Trace -> Trace
+formatTrace True (msg :=> trs) = formatWithColor msg :=> map (formatTrace True) trs
+formatTrace False (msg :=> trs) = formatWithoutColor msg False :=> map (formatTrace False) trs
+
+toIO :: [String] -> IO (Handle ()) -> IO ()
+toIO rawArgs action = do
+  let color
+        | "@no-color" `elem` rawArgs = False
+        | "@color" `elem` rawArgs = True
+        | os == "linux" || os == "linux-android" = True
+        | otherwise = False
+      errorWord = if color then "\ESC[1;31mError:\ESC[0m" else "ERROR:"
   res <- action
   case res of
-    Error tr -> printTrace [] [False,False] tr
+    Error tr -> putStrLn errorWord >> printTrace [] [False,False] (formatTrace color tr)
     Content () -> return ()
 
 main :: IO ()
-main = getArgs >>= toIO . raiseH' (raise2 performAction <*> getConfig) . parseArgs' (False, False, False)
+main = getArgs >>= toIO <*> (raiseH' (raise2 performAction <*> getConfig) . parseArgs' (False, False, False))
