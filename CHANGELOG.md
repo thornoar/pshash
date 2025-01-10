@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.12.0
+
+* Added a `--bo-color` flag to disable error message coloring (mostly useful on Windows).
+
 ## 0.1.11.0
 
 * Added public key patching, restructured `--help` message.

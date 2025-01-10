@@ -9,11 +9,10 @@ import System.Environment (getArgs)
 import System.Directory (getHomeDirectory)
 import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
-import Control.Monad ((<=<))
 import Control.Exception
 
 currentVersion :: String
-currentVersion = "0.1.11.0"
+currentVersion = "0.1.12.0"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -184,6 +183,10 @@ liftH2 _ msg2 _ _ (Error tr) = Error (msg2 :=> [tr])
 raiseH' :: (Monad m) => (a -> m (Handle b)) -> (Handle a -> m (Handle b))
 raiseH' f (Content a) = f a
 raiseH' _ (Error tr) = return (Error tr)
+
+fmapE :: (Trace -> Trace) -> Handle a -> Handle a
+fmapE _ (Content a) = Content a
+fmapE f (Error tr) = Error (f tr)
 
 instance Functor Handle where
   fmap f ma = case ma of
@@ -654,7 +657,7 @@ handleWith f ma = case ma of
 
 infoAction :: [([Char], Integer)] -> String -> IO (Handle ())
 infoAction config "help" = do
-      putStrLn "usage: pshash [ --help | --version | --list | --pure ]"
+      putStrLn "usage: pshash [ --help | --version | --list | --pure | --no-color ]"
       putStrLn "              [ -d|n|c|i|q|f|p ARGUMENT ]"
       putStrLn "              [ PUBLIC CHOICE SHUFFLE ]"
       putStrLn ""
@@ -670,6 +673,8 @@ infoAction config "help" = do
       putStrLn "                       - the final HASH."
       putStrLn ""
       putStrLn "  --pure              ignore all configuration files."
+      putStrLn ""
+      putStrLn "  --no-color          disable color in error messages."
       putStrLn ""
       putStrLn "  -d KEYWORD          specify the source configuration. KEYWORD can be"
       putStrLn "                      one of the following (default is long):"
@@ -913,6 +918,7 @@ parseArgs _ [['-', _]] = hlError "All short options require arguments. Use " "--
 parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' "pure" "" <$> parseArgs trp rest
   "list" -> insert' "list" "" <$> parseArgs trp rest
+  "no-color" -> insert' "no-color" "" <$> parseArgs trp rest
   "help" -> insert' "info" "help" <$> parseArgs trp rest
   "version" -> insert' "info" "version" <$> parseArgs trp rest
   str -> hlError "Unsupported option: -" str "."
@@ -955,6 +961,39 @@ passKeysToAction args act = do
   third <- getKeyStr args "third"
   act first second third
 
+removeCodesInString :: Bool -> String -> String
+removeCodesInString _ [] = []
+removeCodesInString False ('m':rest) = removeCodesInString True rest
+removeCodesInString False (_:rest) = removeCodesInString False rest
+removeCodesInString True ('\ESC':rest) = removeCodesInString False rest
+removeCodesInString True (c:rest) = c : removeCodesInString True rest
+
+removeCodes :: Trace -> Trace
+removeCodes (msg :=> trs) = removeCodesInString True msg :=> map removeCodes trs
+
+performAction :: Map String String -> Handle [([Char], Integer)] -> IO (Handle ())
+performAction _ (Error tr) = return (Error $ "Trace in `performAction`:" :=> [tr])
+performAction args (Content config) = do
+  let baseAction :: IO (Handle ())
+      baseAction
+        | member "info" args = infoAction config (args ! "info")
+        | member "query" args = passKeysToAction args (queryAction config (args ! "query"))
+        | member "list" args = passKeysToAction args (listPairsAction config)
+        | otherwise = passKeysToAction args (hashAction config)
+      noColor :: Bool
+      noColor = member "no-color" args
+      addErrorWord :: IO (Handle a) -> IO (Handle a)
+      addErrorWord act = do
+        res <- act
+        case res of
+          Content a -> return (Content a)
+          Error tr -> putStrLn (if noColor then "Error:" else "\ESC[1;31mError:\ESC[0m") >> return (Error tr)
+  let errorPatch :: Handle a -> Handle a
+      errorPatch
+        | noColor = fmapE removeCodes
+        | otherwise = id
+  (addErrorWord . fmap errorPatch) baseAction
+
 printTraceList :: [Bool] -> [Trace] -> IO ()
 printTraceList _ [] = return ()
 printTraceList places [tr] = printTrace places [False,False] tr
@@ -970,18 +1009,8 @@ toIO :: IO (Handle ()) -> IO ()
 toIO action = do
   res <- action
   case res of
-    Error tr -> do
-      putStrLn "\ESC[1;31mError:\ESC[0m" -- ]]
-      printTrace [] [False,False] tr
+    Error tr -> printTrace [] [False,False] tr
     Content () -> return ()
-
-performAction :: Map String String -> Handle [([Char], Integer)] -> IO (Handle ())
-performAction _ (Error tr) = return (Error $ "Trace in `performAction`:" :=> [tr])
-performAction args (Content config)
-  | member "info" args = infoAction config (args ! "info")
-  | member "query" args = passKeysToAction args (queryAction config (args ! "query"))
-  | member "list" args = passKeysToAction args (listPairsAction config)
-  | otherwise = passKeysToAction args (hashAction config)
 
 main :: IO ()
 main = getArgs >>= toIO . raiseH' (raise2 performAction <*> getConfig) . parseArgs' (False, False, False)
