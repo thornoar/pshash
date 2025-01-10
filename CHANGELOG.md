@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.13.1
+
+* Minor adjustments for Windows
+
 ## 0.1.13.0
 
 * Added `@color` and `@no-color` options, `@all` config file keyword.
