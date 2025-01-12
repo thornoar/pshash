@@ -13,7 +13,7 @@ import Control.Applicative (liftA2)
 import Control.Exception
 
 currentVersion :: String
-currentVersion = "0.1.13.1"
+currentVersion = "0.1.13.2"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -646,7 +646,7 @@ infoAction config "help" = do
       let show' :: [([Char],Integer)] -> String
           show' config' = "[\n" ++ concatMap (("  " ++) . (++ "\n") . show) config' ++ "]"
       putStrLn "usage: pshash [ --help | --version | --list | --pure ]"
-      putStrLn "              [ !color | !no-color ]"
+      putStrLn "              [ +color | +no-color ]"
       putStrLn "              [ -d|n|c|i|q|f|p ARGUMENT ]"
       putStrLn "              [ PUBLIC CHOICE SHUFFLE ]"
       putStrLn ""
@@ -663,11 +663,11 @@ infoAction config "help" = do
       putStrLn ""
       putStrLn "  --pure              Ignore all configuration files."
       putStrLn ""
-      putStrLn "  !color              Enable colors in error messages."
+      putStrLn "  +color              Enable colors in error messages."
       putStrLn ""
-      putStrLn "  !no-color           Disable colors in error messages."
+      putStrLn "  +no-color           Disable colors in error messages."
       putStrLn ""
-      putStrLn "                      (options starting with '!' are low-level, they are"
+      putStrLn "                      (options starting with '+' are low-level, they are"
       putStrLn "                      parsed in the very end of the execution chain)"
       putStrLn ""
       putStrLn "  -d KEYWORD          Specify the source configuration. KEYWORD can be"
@@ -706,7 +706,7 @@ infoAction config "help" = do
       putStrLn "                      Each line of the file should follow the format"
       putStrLn "                         PUBLIC: ARGS"
       putStrLn "                      (other lines will be ignored)"
-      putStrLn "                      A line with the keyword \"!all\" as PUBLIC will apply"
+      putStrLn "                      A line with the keyword \"+all\" as PUBLIC will apply"
       putStrLn "                      to all public keys."
       putStrLn "                      When using configuration files, the PUBLIC key needs"
       putStrLn "                      to be specified inline as a command line argument."
@@ -852,7 +852,7 @@ getConfigFromContents publicStrM contents = process specs
           ("{Remove}" ++ " the configuration files.") :=> []
         ]
       Just publicStr ->
-        if publicStr == publicStr' || publicStr' == "!all"
+        if publicStr == publicStr' || publicStr' == "+all"
         then case parseArgs' (True, True, True) (words argStr) of
           Error tr -> return . Error $ "Trace while reading options from configuration file:" :=> [tr]
           Content args -> getConfig (insertWith const "pure" "" args)
@@ -901,7 +901,7 @@ insert' = insertWith (const id)
 
 parseArgs :: (Bool, Bool, Bool) -> [String] -> Handle (Map String String)
 parseArgs _ [] = Content empty
-parseArgs trp (('!':_) : rest) = parseArgs trp rest
+parseArgs trp (('+':_) : rest) = parseArgs trp rest
 parseArgs trp (['-', opt] : s : rest) = case opt of
   'd' -> insert' "keyword" s <$> parseArgs trp rest
   'n' -> insert' "select" s <$> parseArgs trp rest
@@ -1014,8 +1014,8 @@ formatTrace False (msg :=> trs) = formatWithoutColor msg False :=> map (formatTr
 toIO :: [String] -> IO (Handle ()) -> IO ()
 toIO rawArgs action = do
   let color
-        | "!no-color" `elem` rawArgs = False
-        | "!color" `elem` rawArgs = True
+        | "+no-color" `elem` rawArgs = False
+        | "+color" `elem` rawArgs = True
         | os == "linux" || os == "linux-android" = True
         | otherwise = False
       errorWord = if color then "\ESC[1;31mError:\ESC[0m" else "ERROR:"

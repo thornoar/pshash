@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.13.2
+
+* Changed `!` to `+` in low-level options, as `!` is used as shell syntax.
+
 ## 0.1.13.1
 
 * Minor adjustments for Windows
