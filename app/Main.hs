@@ -10,7 +10,7 @@ import System.Directory (getHomeDirectory)
 import System.Info (os)
 import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
-import Control.Exception
+import Control.Exception (IOException, catch)
 
 currentVersion :: String
 currentVersion = "0.1.13.2"
