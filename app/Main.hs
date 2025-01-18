@@ -290,7 +290,7 @@ mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Handle Inte
 mergeTwoListsI ([], src) hash
   | src == hash = Content 0
   | otherwise = Error $
-      "<Invald hash: element mismatch.>" :=>
+      "<Invalid hash: element mismatch.>" :=>
       [
         ("Reversing hash: {" ++ show hash ++ "}") :=> [],
         ("Using source: {" ++ show src ++ "}") :=> []
@@ -298,7 +298,7 @@ mergeTwoListsI ([], src) hash
 mergeTwoListsI (src, []) hash
   | src == hash = Content 0
   | otherwise = Error $
-      "<Invald hash: elament mismatch.>" :=>
+      "<Invalid hash: element mismatch.>" :=>
       [
         ("Reversing hash: {" ++ show hash ++ "}") :=> [],
         ("Using source: {" ++ show src ++ "}") :=> []
@@ -657,7 +657,7 @@ infoAction config "help" = do
         : "  --version           Print the current version of pshash"
         : ""
         : "  --list              Print the list of (choice,shuffle) pairs that would"
-        : "                      produce the given hash. accepts three arguments:"
+        : "                      produce the given hash. Accepts three arguments:"
         : "                       - the PUBLIC key,"
         : "                       - the NUMBER of pairs to compute, and"
         : "                       - the final HASH."
