@@ -15,7 +15,7 @@ import Control.Applicative (liftA2)
 import Control.Exception (IOException, catch)
 
 currentVersion :: String
-currentVersion = "0.1.13.3"
+currentVersion = "0.1.13.4"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │

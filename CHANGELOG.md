@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.13.4
+
+* More compile-time optimizations.
+
 ## 0.1.13.3
 
 * Simlified the `factorial` and `factorial'` implementations.
