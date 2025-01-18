@@ -31,5 +31,5 @@ run "$cmd -c () pub 0 0" 30
 run "$cmd -" 30
 run "$cmd -rts haha" 30
 run "$cmd -p 3" 30
-run "$cmd -p 3 @no-color" 30
-run "$cmd asd asd asd @no-color" 30
+run "$cmd -p 3 +no-color" 30
+run "$cmd asd asd asd +no-color" 30
