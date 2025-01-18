@@ -15,19 +15,17 @@ import Control.Applicative (liftA2)
 import Control.Exception (IOException, catch)
 
 currentVersion :: String
-currentVersion = "0.1.13.2"
+currentVersion = "0.1.13.3"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
 -- └───────────────────────────┘
 
 factorial :: Integer -> Integer
-factorial 0 = 1
-factorial n = n * factorial (n - 1)
+factorial n = product [1..n]
 
 factorial' :: Integer -> Integer -> Integer
-factorial' _ 0 = 1
-factorial' n m = (n - (m - 1)) * factorial' n (m - 1)
+factorial' n m = product [(n-m+1)..n]
 
 cnk :: Integer -> Integer -> Integer
 cnk n k = div (factorial' n k) (factorial k)

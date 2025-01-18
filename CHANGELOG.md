@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.13.3
+
+* Simlified the `factorial` and `factorial'` implementations.
+
 ## 0.1.13.2
 
 * Changed `!` to `+` in low-level options, as `!` is used as shell syntax.
