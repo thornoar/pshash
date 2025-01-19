@@ -12,6 +12,7 @@ import System.Directory (getHomeDirectory)
 import System.Info (os)
 import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
+import Control.Monad (liftM)
 import Control.Exception (IOException, catch)
 
 currentVersion :: String
@@ -175,9 +176,7 @@ fmapE _ (Content a) = Content a
 fmapE f (Error tr) = Error (f tr)
 
 instance Functor Handle where
-  fmap f ma = case ma of
-    Error tr -> Error tr
-    Content a -> Content (f a)
+  fmap = liftM
 instance Applicative Handle where
   pure = Content
   mf <*> ma = case mf of
@@ -733,7 +732,7 @@ infoAction config "help" = do
         : show' config
         : []
       return (Content ())
-infoAction _ "version" = putStrLn currentVersion >> return (Content ())
+infoAction _ "version" = putStrLn ("The pshash pseudo-hash password manager, version " ++ currentVersion) >> return (Content ())
 infoAction config "numbers" =
   let amts = map dropElementInfo config
       numHashes = numberOfHashes amts
