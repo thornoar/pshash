@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.13.5
+
+* Option map optimization, better error handling.
+
 ## 0.1.13.4
 
 * More compile-time optimizations.

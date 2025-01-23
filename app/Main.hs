@@ -16,7 +16,7 @@ import Control.Monad (liftM)
 import Control.Exception (IOException, catch)
 
 currentVersion :: String
-currentVersion = "0.1.13.4"
+currentVersion = "0.1.13.5"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -193,14 +193,14 @@ instance Monad Handle where
 fmap2 :: (Monad m) => (a -> b -> c) -> (m a -> b -> m c)
 fmap2 f ma b = fmap (`f` b) ma
 
-fmap2' :: (Monad m) => (a -> b -> m c) -> (m a -> b -> m c)
-fmap2' f ma b = ma >>= (`f` b)
-
 raise :: (Monad m) => (a -> m b) -> (m a -> m b)
 raise f ma = ma >>= f
 
-raise2 :: (Monad m) => (a -> b -> m c) -> (a -> m b -> m c)
-raise2 f a mb = mb >>= f a
+raise2 :: (Monad m) => (a -> b -> m c) -> (m a -> b -> m c)
+raise2 f ma b = ma >>= (`f` b)
+
+raise2' :: (Monad m) => (a -> b -> m c) -> (a -> m b -> m c)
+raise2' f a mb = mb >>= f a
 
 readHandle :: (Read a) => String -> String -> Handle a
 readHandle msg str = case readMaybe str of
@@ -225,9 +225,9 @@ mapHashingI fI spr (a:as) (b:bs) =
       curKeyH = fI a b
       restPreKeyH = mapHashingI fI spr as bs -- - shift b
    in case (curKeyH, restPreKeyH) of
-        (Error tr1, Error (msg :=> [])) -> Error ("Double trace in call of `mapHashingI`:" :=> [tr1, msg :=> []])
-        (Error tr1, Error (_ :=> trss)) -> Error ("Branching trace in call of `mapHashingI`:" :=> (tr1 : trss))
-        (Error tr, _) -> Error ("Trace in call of `mapHashingI`:" :=> [tr])
+        (Error tr1, Error (msg :=> [])) -> Error ("Double trace while mapping hash reversal:" :=> [tr1, msg :=> []])
+        (Error tr1, Error (_ :=> trss)) -> Error ("Branching trace while mapping hash reversal:" :=> (tr1 : trss))
+        (Error tr, _) -> Error ("Trace while mapping hash reversal:" :=> [tr])
         (_, Error tr) -> Error tr
         (Content curKey, Content nextPreKey) -> Content $ curKey + curSpr * mod (nextPreKey - shift b) restSpr
 
@@ -243,9 +243,9 @@ composeHashingI fI sprF gI sprG getB a c =
       keyModH = fI a b
       nextKeyH = gI b c
    in case (keyModH, nextKeyH) of
-        (Error tr1, Error tr2) -> Error ("Double trace in call of `composeHashingI`:" :=> [tr1, tr2])
-        (Error tr, _) -> Error ("Trace in call of `composeHashingI`, in first function:" :=> [tr])
-        (_, Error tr) -> Error ("Trace in call of `composeHashingI`, in second function:" :=> [tr])
+        (Error tr1, Error tr2) -> Error ("Double trace while composing hashing reversal:" :=> [tr1, tr2])
+        (Error tr, _) -> Error ("Trace while composing hashing reversal, in first function:" :=> [tr])
+        (_, Error tr) -> Error ("Trace while composing hashing reversal, in second function:" :=> [tr])
         (Content keyMod, Content nextKey) -> Content $ keyMod + sprF a * mod (nextKey - shift b) (sprG b)
 
 chooseOrderedI :: (Shifting a, Eq a, Show a) => ([a], Integer) -> [a] -> Handle Integer
@@ -341,9 +341,9 @@ mergeListsI (l:ls) res =
       keyModH = mergeListsI ls resWithoutL
       nextKeyH = mergeTwoListsI (l, resWithoutL) res
    in case (keyModH, nextKeyH) of
-        (Error tr1, Error tr2) -> Error ("Double trace in call of `mergeListsI`:" :=> [tr1, tr2])
-        (_, Error tr) -> Error ("Trace in call of `mergeListsI`:" :=> [tr])
-        (Error tr, _) -> Error ("Trace in call of `mergeListsI`:" :=> [tr])
+        (Error tr1, Error tr2) -> Error ("Double trace while un-merging lists:" :=> [tr1, tr2])
+        (_, Error tr) -> Error ("Trace while un-merging lists:" :=> [tr])
+        (Error tr, _) -> Error ("Trace while un-merging lists:" :=> [tr])
         (Content keyMod, Content nextKey) -> Content $ keyMod + curSpr * mod (nextKey - shift l) nextSpr
 
 distribute :: (Eq a) => [[a]] -> [[a]] -> a -> [[a]]
@@ -575,8 +575,8 @@ getPrivateKey s = liftA2 (^) base pow where
 getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Handle [Char]
 getFinalHash config publicStr choiceStr shuffleStr =
   liftH2
-    ("Trace in `getFinalHash`, getting the " ++ "{choice}" ++ " key:")
-    ("Trace in `getFinalHash`, getting the " ++ "{shuffle}" ++ " key:")
+    ("Trace while computing hash, getting the " ++ "{choice}" ++ " key:")
+    ("Trace while computing hash, getting the " ++ "{shuffle}" ++ " key:")
     (getHash config) choiceKey shuffleKey
   where
     publicKey = getPublicKey publicStr
@@ -610,7 +610,7 @@ retrievePublicKey config choiceStr shuffleStr hashStr =
   let shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = getPrivateKey choiceStr
       choiceKey = shuffleKey >>= getHashI' config hashStr
-   in addTrace "Trace in call of `retrievePublicKey`:" $
+   in addTrace "Trace while retrieving public key:" $
       getPublicStr <$> fmap2 mod (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
 
 retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle Integer
@@ -619,7 +619,7 @@ retrieveChoiceKey config publicStr shuffleStr hashStr =
       shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = shuffleKey >>= getHashI' config hashStr
       choiceMergeSpr = chooseAndMergeSpread' config
-   in addTrace "Trace in call of `retrieveChoiceKey`:" $
+   in addTrace "Trace while retrieving choice key:" $
       fmap2 mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
 
 retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle Integer
@@ -628,12 +628,15 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
       preChoiceKey = getPrivateKey choiceStr
       choiceKey = fmap2 mod (fmap (+ publicKey) preChoiceKey) (numberOfChoiceKeys' config)
       preHash = fmap (chooseAndMerge config) choiceKey
-   in addTrace "Trace in call of `retrieveShuffleKey`:" $
-      fmap2' shuffleListI preHash hashStr
+   in addTrace "Trace while retrieving shuffle key:" $
+      raise2 shuffleListI preHash hashStr
 
 -- ┌────────────────┐
 -- │ USER INTERFACE │
 -- └────────────────┘
+
+data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | PATCH | PURE | LIST | HELP | VERSION | FIRST | SECOND | THIRD
+  deriving (Eq, Ord)
 
 handleWith :: (a -> IO ()) -> Handle a -> IO (Handle ())
 handleWith f ma = case ma of
@@ -818,7 +821,7 @@ listPairsAction config publicStr limitStr hashStr =
           Error tr -> return (Error tr)
           Content () -> sequence' rest
    in case mlimit of
-        Error tr -> return (Error $ "Trace in `listPairsAction`:" :=> [tr])
+        Error tr -> return (Error $ "Trace while reading number of pairs to print:" :=> [tr])
         Content limit -> sequence' $ take' limit $ map (handleWith putStrLn  . getPair) [0 .. numberOfShuffleKeys' config - 1]
 
 hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Handle ())
@@ -851,13 +854,13 @@ getConfigFromContents publicStrM contents = process specs
       Just publicStr ->
         if publicStr == publicStr' || publicStr' == "+all"
         then case parseArgs' (True, True, True) (words argStr) of
-          Error tr -> return . Error $ "Trace while reading options from configuration file:" :=> [tr]
-          Content args -> getConfig (insertWith const "pure" "" args)
+          Error tr -> return . Error $ ("Trace while parsing options for {" ++ publicStr' ++ "}:") :=> [tr]
+          Content args -> getConfig (insertWith const PURE "" args)
         else process rest
 
-getConfig :: Map String String -> IO (Handle [([Char], Integer)])
+getConfig :: Map OptionName String -> IO (Handle [([Char], Integer)])
 getConfig args
-  | member "keyword" args = return $ case args ! "keyword" of
+  | member KEYWORD args = return $ case args ! KEYWORD of
       "long" -> Content defaultConfiguration
       "medium" -> Content mediumConfiguration
       "short" -> Content shortConfiguration
@@ -867,18 +870,18 @@ getConfig args
       "mediumpin" -> Content mediumPinCodeConfiguration
       "longpin" -> Content longPinCodeConfiguration
       str -> Error $ ("<Unrecognized configuration keyword: {{" ++ str ++ "}}.>") :=> []
-  | member "select" args =
-      return $ readHandle "(Int,Int,Int,Int)" (args ! "select")
+  | member SELECT args =
+      return $ readHandle "(Int,Int,Int,Int)" (args ! SELECT)
       >>= (checkConfigValidity . getConfigFromSpec)
-  | member "config" args =
-      return $ readHandle "source configuration" (args ! "config")
+  | member CONFIG args =
+      return $ readHandle "source configuration" (args ! CONFIG)
       >>= checkConfigValidity
-  | any (`member` args) ["pure", "info", "query", "list"] = return (Content defaultConfiguration)
-  | member "config-file" args = do
-      fileContentsH <- readFileHandle (args ! "config-file")
+  | any (`member` args) [PURE, INFO, QUERY, LIST] = return (Content defaultConfiguration)
+  | member CONFIGFILE args = do
+      fileContentsH <- readFileHandle (args ! CONFIGFILE)
       case fileContentsH of
-        Error tr -> return (Error $ "Trace in `getConfig`:" :=> [tr])
-        Content contents -> getConfigFromContents (DM.lookup "first" args) contents
+        Error tr -> return (Error $ ("Trace while reading contents from {" ++ args ! CONFIGFILE ++ "}:") :=> [tr])
+        Content contents -> getConfigFromContents (DM.lookup FIRST args) contents
   | otherwise = do
       let replaceChar :: Char -> String -> String -> String
           replaceChar _ _ "" = ""
@@ -890,30 +893,30 @@ getConfig args
       let findContents :: [Maybe String] -> IO (Handle [([Char], Integer)])
           findContents [] = return (Content defaultConfiguration)
           findContents (Nothing : rest) = findContents rest
-          findContents (Just contents : _) = getConfigFromContents (DM.lookup "first" args) contents
+          findContents (Just contents : _) = getConfigFromContents (DM.lookup FIRST args) contents
       findContents fileContentsM
 
 insert' :: (Ord k) => k -> a -> Map k a -> Map k a
 insert' = insertWith (const id)
 
-parseArgs :: (Bool, Bool, Bool) -> [String] -> Handle (Map String String)
+parseArgs :: (Bool, Bool, Bool) -> [String] -> Handle (Map OptionName String)
 parseArgs _ [] = Content empty
 parseArgs trp (('+':_) : rest) = parseArgs trp rest
 parseArgs trp (['-', opt] : s : rest) = case opt of
-  'd' -> insert' "keyword" s <$> parseArgs trp rest
-  'n' -> insert' "select" s <$> parseArgs trp rest
-  'c' -> insert' "config" s <$> parseArgs trp rest
-  'i' -> insert' "info" s <$> parseArgs trp rest
-  'q' -> insert' "query" s <$> parseArgs trp rest
-  'f' -> insert' "config-file" s <$> parseArgs trp rest
-  'p' -> insert' "patch" s <$> parseArgs trp rest
+  'd' -> insert' KEYWORD s <$> parseArgs trp rest
+  'n' -> insert' SELECT s <$> parseArgs trp rest
+  'c' -> insert' CONFIG s <$> parseArgs trp rest
+  'i' -> insert' INFO s <$> parseArgs trp rest
+  'q' -> insert' QUERY s <$> parseArgs trp rest
+  'f' -> insert' CONFIGFILE s <$> parseArgs trp rest
+  'p' -> insert' PATCH s <$> parseArgs trp rest
   ch -> Error $ ("<Unsupported option: {{" ++ ['-',ch] ++ "}}.>") :=> []
 parseArgs _ [['-', _]] = Error $ "<All short options require arguments. Use {{--help}} for details.>" :=> []
 parseArgs trp (('-':'-':opt) : rest) = case opt of
-  "pure" -> insert' "pure" "" <$> parseArgs trp rest
-  "list" -> insert' "list" "" <$> parseArgs trp rest
-  "help" -> insert' "info" "help" <$> parseArgs trp rest
-  "version" -> insert' "info" "version" <$> parseArgs trp rest
+  "pure" -> insert' PURE "" <$> parseArgs trp rest
+  "list" -> insert' LIST "" <$> parseArgs trp rest
+  "help" -> insert' INFO "help" <$> parseArgs trp rest
+  "version" -> insert' INFO "version" <$> parseArgs trp rest
   str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
 parseArgs _ (['-'] : _) = Error $ "<All dashes should be followed by command line options.>" :=> []
 parseArgs _ (('-':ch:opt) : _) = Error $ "<Violation of command line option format. Try:>" :=>
@@ -923,20 +926,20 @@ parseArgs _ (('-':ch:opt) : _) = Error $ "<Violation of command line option form
   ]
 parseArgs (b1, b2, b3) (s : rest)
   | b3 = Error $ ("<Excessive argument: {{" ++ s ++ "}}. All three keys were already provided.>") :=> []
-  | b2 = insert' "third" s <$> parseArgs (True, True, True) rest
-  | b1 = insert' "second" s <$> parseArgs (True, True, False) rest
-  | otherwise = insert' "first" s <$> parseArgs (True, False, False) rest
+  | b2 = insert' THIRD s <$> parseArgs (True, True, True) rest
+  | b1 = insert' SECOND s <$> parseArgs (True, True, False) rest
+  | otherwise = insert' FIRST s <$> parseArgs (True, False, False) rest
 
-parseArgs' :: (Bool, Bool, Bool) -> [String] -> Handle (Map String String)
-parseArgs' trp = addTrace "Trace in call of `parseArgs`:" . raise patchFirstArg . parseArgs trp
+parseArgs' :: (Bool, Bool, Bool) -> [String] -> Handle (Map OptionName String)
+parseArgs' trp = addTrace "Trace while parsing arguments:" . raise patchFirstArg . parseArgs trp
 
-patchFirstArg :: Map String String -> Handle (Map String String)
+patchFirstArg :: Map OptionName String -> Handle (Map OptionName String)
 patchFirstArg args
-  | member "patch" args =
-    if member "first" args
+  | member PATCH args =
+    if member FIRST args
     then do
-      patchAmount <- (readHandle "integer" (args ! "patch") :: Handle Integer)
-      Content $ insertWith const "first" (map (chr . fromInteger . (`mod` 128) . (+ patchAmount) . toInteger . ord) (args ! "first")) args
+      patchAmount <- (readHandle "integer" (args ! PATCH) :: Handle Integer)
+      Content $ insertWith const FIRST (map (chr . fromInteger . (`mod` 128) . (+ patchAmount) . toInteger . ord) (args ! FIRST)) args
     else Error $ "<Cannot patch public key that was not pre-supplied. Either:>" :=>
       [
         ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
@@ -944,14 +947,14 @@ patchFirstArg args
       ]
   | otherwise = Content args
 
-getKeyStr :: Map String String -> String -> IO String
+getKeyStr :: Map OptionName String -> OptionName -> IO String
 getKeyStr args str = if member str args then return $ args ! str else getLine
 
-passKeysToAction :: Map String String -> (String -> String -> String -> IO (Handle ())) -> IO (Handle ())
+passKeysToAction :: Map OptionName String -> (String -> String -> String -> IO (Handle ())) -> IO (Handle ())
 passKeysToAction args act = do
-  first <- getKeyStr args "first"
-  second <- getKeyStr args "second"
-  third <- getKeyStr args "third"
+  first <- getKeyStr args FIRST
+  second <- getKeyStr args SECOND
+  third <- getKeyStr args THIRD
   act first second third
 
 removeCodesInString :: Bool -> String -> String
@@ -964,12 +967,12 @@ removeCodesInString True (c:rest) = c : removeCodesInString True rest
 removeCodes :: Trace -> Trace
 removeCodes (msg :=> trs) = removeCodesInString True msg :=> map removeCodes trs
 
-performAction :: Map String String -> Handle [([Char], Integer)] -> IO (Handle ())
-performAction _ (Error tr) = return (Error $ "Trace in `performAction`:" :=> [tr])
+performAction :: Map OptionName String -> Handle [([Char], Integer)] -> IO (Handle ())
+performAction _ (Error tr) = return (Error $ "Trace in configuration argument:" :=> [tr])
 performAction args (Content config)
-  | member "info" args = infoAction config (args ! "info")
-  | member "query" args = passKeysToAction args (queryAction config (args ! "query"))
-  | member "list" args = passKeysToAction args (listPairsAction config)
+  | member INFO args = infoAction config (args ! INFO)
+  | member QUERY args = passKeysToAction args (queryAction config (args ! QUERY))
+  | member LIST args = passKeysToAction args (listPairsAction config)
   | otherwise = passKeysToAction args (hashAction config)
 
 printTraceList :: [Bool] -> [Trace] -> IO ()
@@ -1022,4 +1025,4 @@ toIO rawArgs action = do
     Content () -> return ()
 
 main :: IO ()
-main = getArgs >>= toIO <*> (raiseH' (raise2 performAction <*> getConfig) . parseArgs' (False, False, False))
+main = getArgs >>= toIO <*> (raiseH' (raise2' performAction <*> getConfig) . parseArgs' (False, False, False))
