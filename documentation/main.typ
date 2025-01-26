@@ -1,22 +1,17 @@
 /*
 Author: Roman Maksimovich
-Library files at https://github.com/thornoar/typst-libraries
+Library files at https://github.com/thornoar/nixos-config
 Asymptote libraries at https://github.com/thornoar/smoothmanifold
 */
 
 // Library imports
 #import "@local/common:0.0.0": *
 #import "@local/templates:0.0.0": *
-#show: article()
+#show: article
 #import "@local/theorem:0.0.0": *
 #show: theorem
 
 // Local definitions
-// #show: shorthands.with(
-//   // ($\&$, math.union.plus),
-//   // ($!!$, math.class("binary", [!])),
-//   // ($::$, math.class("binary", [:])),
-// )
 #let concat = math.union.plus
 #let elt = math.class("binary", [:])
 #let excl = math.class("binary", [!])
@@ -50,7 +45,7 @@ The motivation behind the topic lies in the management of personal passwords. No
 
 - *Storing the passwords in a secure location.* Arguably, this is a better method, but there is a natural risk of this location being revealed, or of the passwords being lost, especially if they are stored physically on a piece of paper. Currently, various "password managers" are available, which are software programs that will create and store your passwords for you. It is usually unclear, however, how this software works and whether it can be trusted with one's potentially very sensitive passwords. After all, guessing the password to the password manager is enough to have all the other passwords exposed.
 
-In this paper I suggest a way of doing neither of these things. The user will not know the passwords or have any connection to them whatsoever, and at the same time the passwords will not be stored anywhere, physically or digitally. In this system, every password is a cryptographic hash produced by a fixed hashing algorithm. The algorithm requires two inputs: one public key, i.e. the name of the website or service, and one (or more) private key, which is an arbitrary positive integer known only to the user. Every time when retrieving a password, the user will use the keys to re-create it from scratch. Therefore, in order to be reliable, the algorithm must be ``pure'', i.e. must always return the same output given the same input. Additionally, the algorithm must be robust enough so that, even if a hacker had full access to it and its working, they would still not be able to guess the user's private key or the passwords that it produces. These considerations naturally lead to exploring pure mathematical functions as hashing algorithms and implementing them in a functional programming language such as Haskell.
+In this paper I suggest a way of doing neither of these things. The user will not know the passwords or have any connection to them whatsoever, and at the same time the passwords will not be stored anywhere, physically or digitally. In this system, every password is a cryptographic hash produced by a fixed hashing algorithm. The algorithm requires three inputs: one public key, i.e. the name of the website or service, and two private keys, which are arbitrary positive integers known only to the user (the initial version of the algorithm, described in later sections, will only use one private key). Every time when retrieving a password, the user will invoke the keys to re-create it from scratch. Therefore, in order to be reliable, the algorithm must be "pure", i.e. must always return the same output given the same input. Additionally, the algorithm must be robust enough so that, even if a hacker had full access to it and its mechanics, they would still not be able to guess the user's private key or the passwords that it produces. These considerations naturally lead to exploring pure mathematical functions as hashing algorithms and implementing them in a functional programming language such as Haskell.
 
 = The theory
 
@@ -66,7 +61,7 @@ The symbol "$\# $" will be used to describe the number of ways to make a combina
 
 The expression $[A]$ will denote the set of all ordered lists composed from elements of the set $A$. We assume that all elements in a list are distinct. Every list can therefore be considered a source. The subset $[A]_m subset [A]$ will include only the lists of length $m$. Extending the notation, we will define $[A_0, A_1, ..., A_(N-1)]$ as the set of lists $alpha = [a_0, a_1, ..., a_(N-1)]$ of length $N$ where the first element is from $A_0$, the second from $A_1$, and so on, until the last one from $A_(N-1)$. Finally, if $alpha in [A]$ and $beta in [B]$, the list $alpha concat beta in [A union B]$ will be the concatenation of lists $alpha$ and $beta$.
 
-Let $alpha$ be a list. $|alpha|$ will denote its length, while $alpha elt i$ will represent its $i$-th element, with the enumeration starting from $i = 0$. On the contrary, the expression $alpha excl i$ will denote the list $alpha$ without its $i$-th element. All sources are associated with the ordered list of all their elements, and thus expressions such as $E elt i$ and $|E|$ have meaning for a source $E$.
+Let $alpha$ be a list. $|alpha|$ will denote its length, while $alpha elt i$ will represent its $i$-th element, with the enumeration starting from $i = 0$. By contrast, the expression $alpha excl i$ will denote the list $alpha$ without its $i$-th element. All sources are associated with the ordered list of all their elements, and thus expressions such as $E elt i$ and $|E|$ have meaning for a source $E$.
 
 Let $k in NN_0$, $n in NN$. The numbers $lun k, lln k in NN_0$ are defined to be such that $0 <= lun k < n$ and\ $lln k dot n + lun k = k$. The number $lun k$ is the remainder after division by $n$, and $lln k$ is the result of division.
 
@@ -112,7 +107,7 @@ Trivially, if $#spr (f) >= n$, then $f$ is injective on $(n)$, but the inverse i
     f(lun k_1) &= f(lun k_2),\
     g(lln k_1 + T(lun k_1)) &= g(lln k_2 + T(lun k_2)).
   $
-  Since $f$ is injective on $(n)$, we see that $lun k_1 = lun k_2$. Consequently, it follows from $k_1 != k_2$ that $lln k_1 != lln k_2$ and $lln k_1 + T(lun k_1) != lln k_2 + T(lun k_2)$. We can then proceed to utilize the definition of spread for the function $g$:
+  Since $f$ is injective on $(n)$, we see that $lun k_1 = lun k_2$. Consequently, it follows from $k_1 != k_2$ that $lln k_1 != lln k_2$ and $lln k_1 + T(lun k_1) != lln k_2 + T(lun k_2)$. We then utilize the definition of $spr(g)$:
   $
     abs(lln k_1 + T(lun k_1) - lln k_2 + T(lun k_2)) &>= m,\
     #vphantom(1em)
@@ -163,7 +158,7 @@ The choice function gives us a way to enumerate all possible ways to select a su
 
 #align(center)[
   #table(
-    columns: (20%, 20%),
+    columns: (15%, 20%),
     table.header([*input*], [*output*]),
     align: horizon,
     inset: 7pt,
@@ -182,7 +177,7 @@ There is, however, a serious problem. This selection method does not guarantee t
 == Elevating the choice function
 
 #def[
-  Let $conf$ be be the list of pairs $(E_i, m_i)$, where $E_i$ are sources, $|E_i| = n_i$, $m_i <= n_i$, for $i in (N)$. The _elevated choice function_ corresponding to these data is defined for a key $k in NN_0$ by means of the following recursion:
+  Let $conf$ be be a list of pairs $(E_i, m_i)$, where $E_i$ are sources, $|E_i| = n_i$,\ $m_i <= n_i$, for $i in (N)$. The _elevated choice function_ corresponding to these data is defined for a key $k in NN_0$ by means of the following recursion:
   $
     ech (conf, k) = [ ch^(m_0)(E_0, lui(n_0) k) ] concat ech (conf excl 0, #h(5pt) lli(n_0) k + T(lui(n_0) k)),
   $
