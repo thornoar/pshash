@@ -1,8 +1,8 @@
-{-# OPTIONS_GHC -Wno-unused-imports #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use list literal" #-}
 module Main where
 
+import System.IO (hFlush, stdin, stdout, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
 import Data.Char (ord, chr, toUpper)
 import Data.Map (Map, empty, insertWith, member, (!))
 import qualified Data.Map as DM
@@ -13,10 +13,11 @@ import System.Info (os)
 import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
 import Control.Monad (liftM)
-import Control.Exception (IOException, catch)
+import Control.Exception (IOException, catch, bracket_)
+import System.Exit (exitWith, ExitCode (ExitFailure))
 
 currentVersion :: String
-currentVersion = "0.1.13.5"
+currentVersion = "0.1.14.0"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -452,7 +453,8 @@ defaultConfigFiles =
     "./pshash.conf",
     "~/.config/pshash/pshash.conf",
     "~/.pshash.conf",
-    "/etc/pshash/pshash.conf"
+    "/etc/pshash/pshash.conf",
+    "C:\\pshash.conf"
   ]
 
 -- ┌──────────────────┐
@@ -635,8 +637,8 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- │ USER INTERFACE │
 -- └────────────────┘
 
-data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | PATCH | PURE | LIST | HELP | VERSION | FIRST | SECOND | THIRD
-  deriving (Eq, Ord)
+data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | PATCH | PURE | LIST | NOPROMPTS | HELP | VERSION | FIRST | SECOND | THIRD | E1 | E2 | E3 | P1 | P2 | P3
+  deriving (Eq, Ord, Show)
 
 handleWith :: (a -> IO ()) -> Handle a -> IO (Handle ())
 handleWith f ma = case ma of
@@ -663,6 +665,10 @@ infoAction config "help" = do
         : "                       - the PUBLIC key,"
         : "                       - the NUMBER of pairs to compute, and"
         : "                       - the final HASH."
+        : ""
+        : "  --pure              Ignore all configuration files."
+        : ""
+        : "  --no-prompts        Omit prompts."
         : ""
         : "  --pure              Ignore all configuration files."
         : ""
@@ -915,6 +921,7 @@ parseArgs _ [['-', _]] = Error $ "<All short options require arguments. Use {{--
 parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE "" <$> parseArgs trp rest
   "list" -> insert' LIST "" <$> parseArgs trp rest
+  "no-prompts" -> insert' NOPROMPTS "" <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
   str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
@@ -947,14 +954,32 @@ patchFirstArg args
       ]
   | otherwise = Content args
 
-getKeyStr :: Map OptionName String -> OptionName -> IO String
-getKeyStr args str = if member str args then return $ args ! str else getLine
+withEcho :: Bool -> IO a -> IO a
+withEcho echo action = do
+  old <- hGetEcho stdin
+  bracket_ (hSetEcho stdin echo) (hSetEcho stdin old) action
 
-passKeysToAction :: Map OptionName String -> (String -> String -> String -> IO (Handle ())) -> IO (Handle ())
+getInput :: Bool -> String -> IO String
+getInput echo prompt = do
+  hPutStr stderr prompt
+  hFlush stdout
+  input <- withEcho echo getLine
+  if echo then return () else hPutChar stderr '\n'
+  return input
+
+getKeyStr :: Map OptionName String -> OptionName -> OptionName -> OptionName -> IO String
+getKeyStr args opt echoOpt promptOpt
+  | member opt args = return $ args ! opt
+  | otherwise = getInput (null (args ! echoOpt)) (args ! promptOpt)
+
+passKeysToAction ::
+  Map OptionName String ->
+  (String -> String -> String -> IO (Handle ())) ->
+  IO (Handle ())
 passKeysToAction args act = do
-  first <- getKeyStr args FIRST
-  second <- getKeyStr args SECOND
-  third <- getKeyStr args THIRD
+  first <- getKeyStr args FIRST E1 P1
+  second <- getKeyStr args SECOND E2 P2
+  third <- getKeyStr args THIRD E3 P3
   act first second third
 
 removeCodesInString :: Bool -> String -> String
@@ -967,6 +992,31 @@ removeCodesInString True (c:rest) = c : removeCodesInString True rest
 removeCodes :: Trace -> Trace
 removeCodes (msg :=> trs) = removeCodesInString True msg :=> map removeCodes trs
 
+setEchoesAndPrompts :: Map OptionName String -> Map OptionName String
+setEchoesAndPrompts args
+  | member INFO args = args
+  | member QUERY args =
+      insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
+        if member NOPROMPTS args
+        then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
+        else case args ! QUERY of
+            "public" -> insert' P1 "CHOICE KEY: " . insert' P2 "SHUFFLE KEY: "
+            "choice" -> insert' P1 "PUBLIC KEY: " . insert' P2 "SHUFFLE KEY: "
+            "shuffle" -> insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: "
+            _ -> insert' P1 "INPUT: " . insert' P2 "INPUT: "
+          $ insert' P3 "FINAL HASH: " args
+  | member LIST args =
+      insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
+      if member NOPROMPTS args
+      then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
+      else insert' P1 "PUBLIC KEY: " $ insert' P2 "NUMBER OF PAIRS: " $ insert' P3 "FINAL HASH: " args
+  | otherwise =
+      insert' E1 "" $ insert' E2 ['\0'] $ insert' E3 ['\0'] $
+      if member NOPROMPTS args
+      then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
+      else insert' P1 "PUBLIC KEY: " $ insert' P2 "CHOICE KEY: " $ insert' P3 "SHUFFLE KEY: " args
+
+-- ((False, "Public key: "), (False, "Number of pairs: "), (False, "Final hash: "))
 performAction :: Map OptionName String -> Handle [([Char], Integer)] -> IO (Handle ())
 performAction _ (Error tr) = return (Error $ "Trace in configuration argument:" :=> [tr])
 performAction args (Content config)
@@ -983,7 +1033,7 @@ printTraceList places (tr:rest) = printTrace places [True, False] tr >> printTra
 printTrace :: [Bool] -> [Bool] -> Trace -> IO ()
 printTrace places pass (msg :=> lst) = do
   let prefix = map (\b -> if b then '|' else ' ') places ++ "|_"
-  putStrLn $ prefix ++ msg
+  hPutStrLn stderr $ prefix ++ msg
   printTraceList (places ++ pass) lst
 
 formatWithColor :: String -> String
@@ -1021,8 +1071,11 @@ toIO rawArgs action = do
       errorWord = if color then "\ESC[1;31mError:\ESC[0m" else "ERROR:"
   res <- action
   case res of
-    Error tr -> putStrLn errorWord >> printTrace [] [False,False] (formatTrace color tr)
+    Error tr -> do
+      hPutStrLn stderr errorWord
+      printTrace [] [False,False] (formatTrace color tr)
+      exitWith (ExitFailure 1)
     Content () -> return ()
 
 main :: IO ()
-main = getArgs >>= toIO <*> (raiseH' (raise2' performAction <*> getConfig) . parseArgs' (False, False, False))
+main = getArgs >>= toIO <*> (raiseH' (raise2' performAction <*> getConfig) . fmap setEchoesAndPrompts . parseArgs' (False, False, False))
