@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.14.1
+
+* Added repeat functionality to ensure correct keys.
+
 ## 0.1.14.0
 
 * Added private key concealment, added prompts. Implemented exit codes and redirected errors to `stderr`.

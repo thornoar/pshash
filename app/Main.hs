@@ -17,7 +17,7 @@ import Control.Exception (IOException, catch, bracket_)
 import System.Exit (exitWith, ExitCode (ExitFailure))
 
 currentVersion :: String
-currentVersion = "0.1.14.0"
+currentVersion = "0.1.14.1"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -962,10 +962,17 @@ withEcho echo action = do
 getInput :: Bool -> String -> IO String
 getInput echo prompt = do
   hPutStr stderr prompt
-  hFlush stdout
   input <- withEcho echo getLine
   if echo then return () else hPutChar stderr '\n'
-  return input
+  if not echo then do
+    hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
+    inputRepeat <- withEcho echo getLine
+    hPutChar stderr '\n'
+    if input == inputRepeat then return input
+    else do
+      hPutStrLn stderr "Keys do not match. Try again."
+      getInput echo prompt
+  else return input
 
 getKeyStr :: Map OptionName String -> OptionName -> OptionName -> OptionName -> IO String
 getKeyStr args opt echoOpt promptOpt
