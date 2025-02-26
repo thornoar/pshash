@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.14.2
+
+* Fixed minor bugs, added `--no-repeat` and `--show` options.
+
 ## 0.1.14.1
 
 * Added repeat functionality to ensure correct keys.

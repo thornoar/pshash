@@ -4,7 +4,7 @@ module Main where
 
 import System.IO (hFlush, stdin, stdout, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
 import Data.Char (ord, chr, toUpper)
-import Data.Map (Map, empty, insertWith, member, (!))
+import Data.Map (Map, empty, insertWith, member, notMember, (!))
 import qualified Data.Map as DM
 import Data.List (elemIndex)
 import System.Environment (getArgs)
@@ -12,12 +12,12 @@ import System.Directory (getHomeDirectory)
 import System.Info (os)
 import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
-import Control.Monad (liftM)
+import Control.Monad (liftM, unless)
 import Control.Exception (IOException, catch, bracket_)
 import System.Exit (exitWith, ExitCode (ExitFailure))
 
 currentVersion :: String
-currentVersion = "0.1.14.1"
+currentVersion = "0.1.14.2"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -637,7 +637,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- │ USER INTERFACE │
 -- └────────────────┘
 
-data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | PATCH | PURE | LIST | NOPROMPTS | HELP | VERSION | FIRST | SECOND | THIRD | E1 | E2 | E3 | P1 | P2 | P3
+data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | PATCH | PURE | LIST | NOPROMPTS | SHOW | NOREPEAT | HELP | VERSION | FIRST | SECOND | THIRD | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
 
 handleWith :: (a -> IO ()) -> Handle a -> IO (Handle ())
@@ -670,7 +670,9 @@ infoAction config "help" = do
         : ""
         : "  --no-prompts        Omit prompts."
         : ""
-        : "  --pure              Ignore all configuration files."
+        : "  --no-repeat         Do not ask the user to repeat keys."
+        : ""
+        : "  --show              Do not conceal typed keys."
         : ""
         : "  +color              Enable colors in error messages."
         : ""
@@ -707,7 +709,7 @@ infoAction config "help" = do
         : "                       - public (followed by CHOICE SHUFFLE HASH as keys)"
         : "                       - choice (followed by PUBLIC SHUFFLE HASH as keys)"
         : "                       - shuffle (followed by PUBLIC CHOICE HASH as keys)"
-        : ""                      
+        : ""
         : "  -f PATH             Read the configuration file from PATH. If neither"
         : "                      this nor the `--pure` option is used, the program"
         : "                      will try to read from the following files:"
@@ -922,6 +924,8 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE "" <$> parseArgs trp rest
   "list" -> insert' LIST "" <$> parseArgs trp rest
   "no-prompts" -> insert' NOPROMPTS "" <$> parseArgs trp rest
+  "no-repeat" -> insert' NOREPEAT "" <$> parseArgs trp rest
+  "show" -> insert' SHOW "" <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
   str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
@@ -959,25 +963,25 @@ withEcho echo action = do
   old <- hGetEcho stdin
   bracket_ (hSetEcho stdin echo) (hSetEcho stdin old) action
 
-getInput :: Bool -> String -> IO String
-getInput echo prompt = do
-  hPutStr stderr prompt
+getInput :: Bool -> Bool -> String -> IO String
+getInput echo repeat prompt = do
+  unless (null prompt) $ hPutStr stderr prompt
   input <- withEcho echo getLine
-  if echo then return () else hPutChar stderr '\n'
-  if not echo then do
-    hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
+  unless echo $ hPutChar stderr '\n'
+  if not echo && repeat then do
+    unless (null prompt) $ hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
     inputRepeat <- withEcho echo getLine
     hPutChar stderr '\n'
     if input == inputRepeat then return input
     else do
       hPutStrLn stderr "Keys do not match. Try again."
-      getInput echo prompt
+      getInput echo repeat prompt
   else return input
 
 getKeyStr :: Map OptionName String -> OptionName -> OptionName -> OptionName -> IO String
 getKeyStr args opt echoOpt promptOpt
   | member opt args = return $ args ! opt
-  | otherwise = getInput (null (args ! echoOpt)) (args ! promptOpt)
+  | otherwise = getInput (member echoOpt args) (notMember NOREPEAT args) (args ! promptOpt)
 
 passKeysToAction ::
   Map OptionName String ->
@@ -1018,7 +1022,7 @@ setEchoesAndPrompts args
       then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
       else insert' P1 "PUBLIC KEY: " $ insert' P2 "NUMBER OF PAIRS: " $ insert' P3 "FINAL HASH: " args
   | otherwise =
-      insert' E1 "" $ insert' E2 ['\0'] $ insert' E3 ['\0'] $
+      insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
       if member NOPROMPTS args
       then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
       else insert' P1 "PUBLIC KEY: " $ insert' P2 "CHOICE KEY: " $ insert' P3 "SHUFFLE KEY: " args
