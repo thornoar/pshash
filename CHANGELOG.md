@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.14.3
+
+* Reversed the repeat functionality, now off by default.
+
 ## 0.1.14.2
 
 * Fixed minor bugs, added `--no-repeat` and `--show` options.

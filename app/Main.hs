@@ -4,7 +4,7 @@ module Main where
 
 import System.IO (hFlush, stdin, stdout, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
 import Data.Char (ord, chr, toUpper)
-import Data.Map (Map, empty, insertWith, member, notMember, (!))
+import Data.Map (Map, empty, insertWith, member, (!))
 import qualified Data.Map as DM
 import Data.List (elemIndex)
 import System.Environment (getArgs)
@@ -17,7 +17,7 @@ import Control.Exception (IOException, catch, bracket_)
 import System.Exit (exitWith, ExitCode (ExitFailure))
 
 currentVersion :: String
-currentVersion = "0.1.14.2"
+currentVersion = "0.1.14.3"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -637,7 +637,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- │ USER INTERFACE │
 -- └────────────────┘
 
-data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | PATCH | PURE | LIST | NOPROMPTS | SHOW | NOREPEAT | HELP | VERSION | FIRST | SECOND | THIRD | E1 | E2 | E3 | P1 | P2 | P3
+data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | PATCH | PURE | LIST | NOPROMPTS | SHOW | REPEAT | HELP | VERSION | FIRST | SECOND | THIRD | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
 
 handleWith :: (a -> IO ()) -> Handle a -> IO (Handle ())
@@ -670,7 +670,7 @@ infoAction config "help" = do
         : ""
         : "  --no-prompts        Omit prompts."
         : ""
-        : "  --no-repeat         Do not ask the user to repeat keys."
+        : "  --repeat            Ask the user to repeat keys."
         : ""
         : "  --show              Do not conceal typed keys."
         : ""
@@ -924,7 +924,7 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE "" <$> parseArgs trp rest
   "list" -> insert' LIST "" <$> parseArgs trp rest
   "no-prompts" -> insert' NOPROMPTS "" <$> parseArgs trp rest
-  "no-repeat" -> insert' NOREPEAT "" <$> parseArgs trp rest
+  "repeat" -> insert' REPEAT "" <$> parseArgs trp rest
   "show" -> insert' SHOW "" <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
@@ -981,7 +981,7 @@ getInput echo repeat prompt = do
 getKeyStr :: Map OptionName String -> OptionName -> OptionName -> OptionName -> IO String
 getKeyStr args opt echoOpt promptOpt
   | member opt args = return $ args ! opt
-  | otherwise = getInput (member echoOpt args) (notMember NOREPEAT args) (args ! promptOpt)
+  | otherwise = getInput (member echoOpt args) (member REPEAT args) (args ! promptOpt)
 
 passKeysToAction ::
   Map OptionName String ->
