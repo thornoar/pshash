@@ -17,7 +17,7 @@ import Control.Exception (IOException, catch, bracket_)
 import System.Exit (exitWith, ExitCode (ExitFailure))
 
 currentVersion :: String
-currentVersion = "0.1.14.3"
+currentVersion = "0.1.14.4"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -967,11 +967,11 @@ getInput :: Bool -> Bool -> String -> IO String
 getInput echo repeat prompt = do
   unless (null prompt) $ hPutStr stderr prompt
   input <- withEcho echo getLine
-  unless echo $ hPutChar stderr '\n'
+  unless (echo || os == "mingw32") $ hPutChar stderr '\n'
   if not echo && repeat then do
     unless (null prompt) $ hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
     inputRepeat <- withEcho echo getLine
-    hPutChar stderr '\n'
+    unless (os == "mingw32") $ hPutChar stderr '\n'
     if input == inputRepeat then return input
     else do
       hPutStrLn stderr "Keys do not match. Try again."

@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.14.4
+
+* Fixed newlines on Windows.
+
 ## 0.1.14.3
 
 * Reversed the repeat functionality, now off by default.
