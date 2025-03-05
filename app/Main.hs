@@ -1,8 +1,9 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 {-# HLINT ignore "Use list literal" #-}
 module Main where
 
-import System.IO (hFlush, stdin, stdout, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
+import System.IO (stdin, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
 import Data.Char (ord, chr, toUpper)
 import Data.Map (Map, empty, insertWith, member, (!))
 import qualified Data.Map as DM
@@ -637,7 +638,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- │ USER INTERFACE │
 -- └────────────────┘
 
-data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | PATCH | PURE | LIST | NOPROMPTS | SHOW | REPEAT | HELP | VERSION | FIRST | SECOND | THIRD | E1 | E2 | E3 | P1 | P2 | P3
+data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | PATCH | PURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | FIRST | SECOND | THIRD | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
 
 handleWith :: (a -> IO ()) -> Handle a -> IO (Handle ())
@@ -670,7 +671,7 @@ infoAction config "help" = do
         : ""
         : "  --no-prompts        Omit prompts."
         : ""
-        : "  --repeat            Ask the user to repeat keys."
+        : "  --askRepeat            Ask the user to askRepeat keys."
         : ""
         : "  --show              Do not conceal typed keys."
         : ""
@@ -924,7 +925,7 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE "" <$> parseArgs trp rest
   "list" -> insert' LIST "" <$> parseArgs trp rest
   "no-prompts" -> insert' NOPROMPTS "" <$> parseArgs trp rest
-  "repeat" -> insert' REPEAT "" <$> parseArgs trp rest
+  "askRepeat" -> insert' ASKREPEAT "" <$> parseArgs trp rest
   "show" -> insert' SHOW "" <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
@@ -964,24 +965,24 @@ withEcho echo action = do
   bracket_ (hSetEcho stdin echo) (hSetEcho stdin old) action
 
 getInput :: Bool -> Bool -> String -> IO String
-getInput echo repeat prompt = do
+getInput echo askRepeat prompt = do
   unless (null prompt) $ hPutStr stderr prompt
   input <- withEcho echo getLine
   unless (echo || os == "mingw32") $ hPutChar stderr '\n'
-  if not echo && repeat then do
+  if not echo && askRepeat then do
     unless (null prompt) $ hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
     inputRepeat <- withEcho echo getLine
     unless (os == "mingw32") $ hPutChar stderr '\n'
     if input == inputRepeat then return input
     else do
       hPutStrLn stderr "Keys do not match. Try again."
-      getInput echo repeat prompt
+      getInput echo askRepeat prompt
   else return input
 
 getKeyStr :: Map OptionName String -> OptionName -> OptionName -> OptionName -> IO String
 getKeyStr args opt echoOpt promptOpt
   | member opt args = return $ args ! opt
-  | otherwise = getInput (member echoOpt args) (member REPEAT args) (args ! promptOpt)
+  | otherwise = getInput (member echoOpt args) (member ASKREPEAT args) (args ! promptOpt)
 
 passKeysToAction ::
   Map OptionName String ->
