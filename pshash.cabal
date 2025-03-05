@@ -9,13 +9,9 @@ maintainer:         r.a.maksimovich@gmail.com
 category:           Math
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
--- configure-option:   -without-xinerama
 
 common warnings
     ghc-options: -Wall
-                 -O5
-                 -fwrite-ide-info
-                 -hiedir=.hie
 
 executable pshash
     import:           warnings
@@ -27,3 +23,7 @@ executable pshash
         directory
     hs-source-dirs:   app
     default-language: Haskell2010
+    ghc-options: 
+                 -O5
+                 -fwrite-ide-info
+                 -hiedir=.hie
