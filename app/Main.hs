@@ -184,7 +184,7 @@ instance Applicative Handle where
   mf <*> ma = case mf of
     Error tr -> case ma of
       Error tr' -> Error ("Double trace:" :=> [tr, tr'])
-      _ -> Error tr
+      Content _ -> Error tr
     Content f -> fmap f ma
 instance Monad Handle where
   return = pure
