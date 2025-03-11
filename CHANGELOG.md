@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.14.5
+
+* Fixed the combination of patching and file reading.
+
 ## 0.1.14.4
 
 * Fixed newlines on Windows.

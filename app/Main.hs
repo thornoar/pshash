@@ -18,7 +18,7 @@ import Control.Exception (IOException, catch, bracket_)
 import System.Exit (exitWith, ExitCode (ExitFailure))
 
 currentVersion :: String
-currentVersion = "0.1.14.4"
+currentVersion = "0.1.14.5"
 
 -- ┌───────────────────────────┐
 -- │ GENERAL-PURPOSE FUNCTIONS │
@@ -54,6 +54,9 @@ break' a (a':rest)
 
 dropElementInfo :: ([a], Integer) -> (Integer, Integer)
 dropElementInfo (src, m) = (length' src, m)
+
+shiftString :: Integer -> String -> String
+shiftString amt = map (chr . fromInteger . (`mod` 128) . (+ amt) . toInteger . ord)
 
 class Shifting a where
   shift :: a -> Integer
@@ -638,7 +641,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- │ USER INTERFACE │
 -- └────────────────┘
 
-data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | PATCH | PURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | FIRST | SECOND | THIRD | E1 | E2 | E3 | P1 | P2 | P3
+data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | CONFIGKEYWORD | PATCH | PURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | FIRST | SECOND | THIRD | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
 
 handleWith :: (a -> IO ()) -> Handle a -> IO (Handle ())
@@ -671,7 +674,7 @@ infoAction config "help" = do
         : ""
         : "  --no-prompts        Omit prompts."
         : ""
-        : "  --ask-repeat            Ask the user to repeat keys."
+        : "  --ask-repeat        Ask the user to repeat keys."
         : ""
         : "  --show              Do not conceal typed keys."
         : ""
@@ -728,7 +731,8 @@ infoAction config "help" = do
         : "  -p SHIFT            Shift all characters in the public key by the"
         : "                      specified amount. This option is generally discouraged,"
         : "                      but sometimes necessary to create multiple passwords"
-        : "                      with one set of keys"
+        : "                      with one set of keys. This option is automatically"
+        : "                      suppressed when the `-q` option is used."
         : ""
         : "main arguments:"
         : "  PUBLIC              Stands for public key, a memorable string indicative"
@@ -847,13 +851,13 @@ readFileHandle = safeReadWithHandler handler
   where handler e = return . Error $ "<Error reading configuration file:>" :=> [ show e :=> [] ]
 
 getConfigFromContents :: Maybe String -> String -> IO (Handle [([Char], Integer)])
-getConfigFromContents publicStrM contents = process specs
+getConfigFromContents keywordM contents = process specs
   where
     specLines = filter (elem ':') (lines contents)
     specs = map (break' ':') specLines
     process :: [(String, String)] -> IO (Handle [([Char], Integer)])
     process [] = return (Content defaultConfiguration)
-    process ((publicStr', argStr) : rest) = case publicStrM of
+    process ((publicStr', argStr) : rest) = case keywordM of
       Nothing -> return . Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
         [
           ("Disable configuration files by passing the " ++ "{--pure}" ++ " option, or") :=> [],
@@ -890,7 +894,7 @@ getConfig args
       fileContentsH <- readFileHandle (args ! CONFIGFILE)
       case fileContentsH of
         Error tr -> return (Error $ ("Trace while reading contents from {" ++ args ! CONFIGFILE ++ "}:") :=> [tr])
-        Content contents -> getConfigFromContents (DM.lookup FIRST args) contents
+        Content contents -> getConfigFromContents (DM.lookup CONFIGKEYWORD args) contents
   | otherwise = do
       let replaceChar :: Char -> String -> String -> String
           replaceChar _ _ "" = ""
@@ -902,7 +906,7 @@ getConfig args
       let findContents :: [Maybe String] -> IO (Handle [([Char], Integer)])
           findContents [] = return (Content defaultConfiguration)
           findContents (Nothing : rest) = findContents rest
-          findContents (Just contents : _) = getConfigFromContents (DM.lookup FIRST args) contents
+          findContents (Just contents : _) = getConfigFromContents (DM.lookup CONFIGKEYWORD args) contents
       findContents fileContentsM
 
 insert' :: (Ord k) => k -> a -> Map k a -> Map k a
@@ -920,7 +924,7 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'f' -> insert' CONFIGFILE s <$> parseArgs trp rest
   'p' -> insert' PATCH s <$> parseArgs trp rest
   ch -> Error $ ("<Unsupported option: {{" ++ ['-',ch] ++ "}}.>") :=> []
-parseArgs _ [['-', _]] = Error $ "<All short options require arguments. Use {{--help}} for details.>" :=> []
+parseArgs _ [['-', ch]] = Error $ ("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []
 parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE "" <$> parseArgs trp rest
   "list" -> insert' LIST "" <$> parseArgs trp rest
@@ -943,20 +947,24 @@ parseArgs (b1, b2, b3) (s : rest)
   | otherwise = insert' FIRST s <$> parseArgs (True, False, False) rest
 
 parseArgs' :: (Bool, Bool, Bool) -> [String] -> Handle (Map OptionName String)
-parseArgs' trp = addTrace "Trace while parsing arguments:" . raise patchFirstArg . parseArgs trp
+parseArgs' trp = addTrace "Trace while parsing arguments:" . raise patchArgs . parseArgs trp
 
-patchFirstArg :: Map OptionName String -> Handle (Map OptionName String)
-patchFirstArg args
+patchArgs :: Map OptionName String -> Handle (Map OptionName String)
+patchArgs args
+  | member QUERY args = Content args
   | member PATCH args =
     if member FIRST args
     then do
       patchAmount <- (readHandle "integer" (args ! PATCH) :: Handle Integer)
-      Content $ insertWith const FIRST (map (chr . fromInteger . (`mod` 128) . (+ patchAmount) . toInteger . ord) (args ! FIRST)) args
+      Content
+        $ insertWith const FIRST (shiftString patchAmount (args ! FIRST))
+        $ insertWith const CONFIGKEYWORD (args ! FIRST) args
     else Error $ "<Cannot patch public key that was not pre-supplied. Either:>" :=>
       [
         ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
         ("{Remove}" ++ " the " ++ "{-p}" ++ " option.") :=> []
       ]
+  | member FIRST args = Content $ insertWith const CONFIGKEYWORD (args ! FIRST) args
   | otherwise = Content args
 
 withEcho :: Bool -> IO a -> IO a
