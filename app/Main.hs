@@ -671,7 +671,7 @@ infoAction config "help" = do
         : ""
         : "  --no-prompts        Omit prompts."
         : ""
-        : "  --askRepeat            Ask the user to askRepeat keys."
+        : "  --ask-repeat            Ask the user to repeat keys."
         : ""
         : "  --show              Do not conceal typed keys."
         : ""
@@ -925,7 +925,7 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE "" <$> parseArgs trp rest
   "list" -> insert' LIST "" <$> parseArgs trp rest
   "no-prompts" -> insert' NOPROMPTS "" <$> parseArgs trp rest
-  "askRepeat" -> insert' ASKREPEAT "" <$> parseArgs trp rest
+  "ask-repeat" -> insert' ASKREPEAT "" <$> parseArgs trp rest
   "show" -> insert' SHOW "" <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
