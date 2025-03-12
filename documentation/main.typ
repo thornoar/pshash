@@ -26,10 +26,11 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 #let conf = math.frak([L])
 #let lui(n) = $""^#n #h(-1.5pt)$
 #let lli(n) = [#move(dy:-2pt, $""_#n$) #h(-1pt)]
-#let lun = lui([n])
-#let lln = lli([n])
+#let lun = lui([$n$])
+#let lln = lli([$n$])
 #let cod = math.op("cod")
 #let spr = math.op("spr")
+#let rel(n,m) = $(#n#h(.5mm)|#h(.5mm)#m)!$
 
 // Begin Document
 #let keywords = ("Combinatorics", "Hash", "Security", "Haskell", "Functional programming")
@@ -67,7 +68,7 @@ Let $k in NN_0$, $n in NN$. The numbers $lun k, lln k in NN_0$ are defined to be
 
 For a number $n in NN$, the expression $(n)$ will represent the semi-open integer interval from 0 to $n$: $(n) = \{0, 1, ..., n-1\}$.
 
-Let $n, m in NN$, $m <= n$. The quantity $n!\/(n-m)!$ will be called a _relative factorial_ and denoted by $(n | m)!$#h(3pt).
+Let $n, m in NN$, $m <= n$. The quantity $n!\/(n-m)!$ will be called a _relative factorial_ and denoted by $rel(n,m)$#h(3pt).
 
 Consider a function $f$ of many arguments $a_0$, $a_1$, ..., $a_(n-1)$. Then with the expression $f(a_0, ..., a_(i-1), -, a_(i+1), ..., a_(n-1))$ we will denote the function of one argument $a_i$ where all others are held constant.
 
@@ -130,23 +131,23 @@ With this proposition at hand, we have a natural way of extending the definition
 ]
 
 #prop[
-  Let $E$ be a source with cardinality $n$. Then the choice function $ch^m (E, k)$ of order $m <= n$, as a function of $k$, has a spread of at least $(n | m)!$#h(1pt) .
+  Let $E$ be a source with cardinality $n$. Then the choice function $ch^m (E, k)$ of order $m <= n$, as a function of $k$, has a spread of at least $rel(n,m)$#h(1pt) .
 ]
 #pf[
-  We will conduct a proof by induction over $m$. In the base case, $m = 1$, we notice that $(n | m)! = n$, and the statement trivially follows from the definition of $ch^1 (E,k)$.
+  We will conduct a proof by induction over $m$. In the base case, $m = 1$, we notice that $rel(n,m) = n$, and the statement trivially follows from the definition of $ch^1 (E,k)$.
 
   Let us assume that the statement is proven for all choice functions of order $m - 1$. Under closer inspection it is clear that the definition of $ch^m (E,k)$ follows the scheme given in @map, with $ch^1 (E,k)$ standing for $f$ and $ch^(m-1)(E', k')$ standing for $g$. The application of the proposition is not straightforward, and we encourage the reader to consider the caveats. Thus, we can utilize the statement of the proposition as follows:
   $
-    #spr (ch^m (E,k)) >= #spr (ch^1 (E, -)) dot #spr (ch^(m-1) (E', -)) >=\ >= n dot ((n-1) | (m-1))! = (n | m)!,
+    #spr (ch^m (E,k)) >= #spr (ch^1 (E, -)) dot #spr (ch^(m-1) (E', -)) >=\ >= n dot rel((n-1), (m-1)) = rel(n,m),
   $
   q.e.d.
 ]
 
-The preceding result is especially valuable considering the fact that there are exactly $(n | m)!$ ways to select an ordered sub-list from a list, meaning that $ch^m (E, k)$ is not only injective, but also surjective with respect to $k$ on the interval $((n | m)!)$. This makes it a bijection
+The preceding result is especially valuable considering the fact that there are exactly $rel(n,m)$ ways to select an ordered sub-list from a list, meaning that $ch^m (E, k)$ is not only injective, but also surjective with respect to $k$ on the interval $(rel(n,m))$. This makes it a bijection
 $
-  ch^m (E, -) : ((n | m)!) -> [E]_m,
+  ch^m (E, -) : (rel(n,m)) -> [E]_m,
 $
-and therefore a periodic function with a spread of exactly $(n | m)! =: \#^m (E)$.
+and therefore a periodic function with a spread of exactly $rel(n,m) =: \#^m (E)$.
 
 These properties make the choice function a fine candidate for a hash mapping. Suppose that the source $E$ is composed from lower-case and upper-case Latin characters, as well as special symbols and digits:
 
@@ -190,7 +191,7 @@ There is, however, a serious problem. This selection method does not guarantee t
 
 In other words, the elevated choice function is a "mapping" of the choice function over a list of sources, it selects a sub-list from every source and then composes the results in a list, which we call a _multiselection._ A trivial application of @map shows that the spread of $ech (conf, -)$ is at least
 $
-  product_(i = 0)^(N-1) #spr (ch^(m_i) (E_i, -)) = product_(i = 0)^(N-1) (n_i | m_i)!,
+  product_(i = 0)^(N-1) #spr (ch^(m_i) (E_i, -)) = product_(i = 0)^(N-1) rel(n_i,m_i),
 $ <elspr>
 where $E_i$, $n_i$, and $m_i$ compose the configuration $conf$. In fact, due to the rule of product in combinatorics, we see that the expression in @elspr directly corresponds to the number of possible multiselections from $conf$, or $\#^(ech) (conf)$ for short. Therefore, $ech (conf, -)$ is bijective on the interval $(\#^(ech) (conf))$ and periodic with period $\#^(ech) (conf)$.
 
@@ -305,7 +306,7 @@ In other words, the merged choice function selects $N$ lists from the configurat
 #prop[
   Let $conf$ be a source configuration of length $N$. The following lower bound takes place for the spread of the merged choice function:
   $
-    spr (mc (conf, -)) >= spr (ech (conf, -)) dot spr (mg^N (oval, -)) = product_(i=0)^(N-1) (n_i | m_i)! dot (sum_(i=0)^(N-1) m_i)!/(product_(i=0)^(N-1) m_i !),
+    spr (mc (conf, -)) >= spr (ech (conf, -)) dot spr (mg^N (oval, -)) = product_(i=0)^(N-1) rel(n_i,m_i) dot (sum_(i=0)^(N-1) m_i)!/(product_(i=0)^(N-1) m_i !),
   $ <sprmc>
   where $oval$ is the multiselection arising from the application of $ech$, while $n_i$ are the lengths of sources $E_i$ in the configuration $conf$.
 ]
@@ -336,15 +337,15 @@ Note that the term "hash" is used loosely here, as it may not adhere to the form
 - *Injectivity.*
   $hash$ is injective with respect to the choice key $k_1$ on the interval from zero up to
   $
-    \#^mc (conf) = spr (mc (conf, -)) = product_(i=0)^(N-1) (n_i | m_i)! dot (sum_(i=0)^(N-1) m_i)!/(product_(i=0)^(N-1) m_i !).
+    \#^mc (conf) = spr (mc (conf, -)) = product_(i=0)^(N-1) rel(n_i,m_i) dot (sum_(i=0)^(N-1) m_i)!/(product_(i=0)^(N-1) m_i !).
   $
   This is because $mc (conf, -)$ is injective on this interval, and $shuf (-, k_2)$ is a bijection. With respect to the shuffle key $k_2$, the hash function is injective on the spread of $shuf$, which is
   $
-    \#^shuf (conf) = spr (shuf (alpha, -)) = \#^abs(alpha)(alpha) = (abs(alpha) | abs(alpha))! = abs(alpha)! = (sum_(i=0)^(N-1) m_i)!,
+    \#^shuf (conf) = spr (shuf (alpha, -)) = \#^abs(alpha)(alpha) = rel(abs(alpha), abs(alpha)) = abs(alpha)! = (sum_(i=0)^(N-1) m_i)!,
   $
   where $alpha = mc (conf, k_1)$. Therefore, the number of relevant key pairs for the hash function, denoted by $\#^((k_1,k_2))(conf)$, is:
   $
-    \#^((k_1,k_2)) = \#^shuf (conf) dot \#^mc (conf) = product_(i=0)^(N-1) (n_i | m_i)! dot ((sum_(i=0)^(N-1) m_i)!)^2 dot (product_(i=0)^(N-1) m_i !)^(-1) #h(-13pt).
+    \#^((k_1,k_2)) = \#^shuf (conf) dot \#^mc (conf) = product_(i=0)^(N-1) rel(n_i,m_i) dot ((sum_(i=0)^(N-1) m_i)!)^2 dot (product_(i=0)^(N-1) m_i !)^(-1) #h(-13pt).
   $ <k1k2>
 
 - *Collisions.*
@@ -352,9 +353,9 @@ Note that the term "hash" is used loosely here, as it may not adhere to the form
   $
     \#^hash (conf) = product_(i=0)^(N-1) mat(n_i; m_i) dot (sum_(i=0)^(N-1) m_i)!
   $
-  Now, due to the fact that all resulting hashes are equally likely for $k_1$, $k_2$ within their respective injectivity intervals, we can calculate the number of different $(k_1, k_2)$ pairs that produce the same hash in a fixed configuration, $\#^sect (conf)$:
+  Now, due to the fact that all resulting hashes are equally likely for $k_1$, $k_2$ within their respective injectivity intervals, we can calculate the number of different $(k_1, k_2)$ pairs that produce the same hash in a fixed configuration, $\#^inter (conf)$:
   $
-    \#^sect (conf) = (\#^((k_1,k_2)) (conf))/(\#^hash (conf)) = (product_(i=0)^(N-1) (n_i | m_i)! dot ((sum_(i=0)^(N-1) m_i)!)^2 dot (product_(i=0)^(N-1) m_i !)^(-1) #h(-13pt))/(product_(i=0)^(N-1) mat(n_i; m_i) dot (sum_(i=0)^(N-1) m_i)!) =\
+    \#^inter (conf) = (\#^((k_1,k_2)) (conf))/(\#^hash (conf)) = (product_(i=0)^(N-1) rel(n_i,m_i) dot ((sum_(i=0)^(N-1) m_i)!)^2 dot (product_(i=0)^(N-1) m_i !)^(-1) #h(-13pt))/(product_(i=0)^(N-1) mat(n_i; m_i) dot (sum_(i=0)^(N-1) m_i)!) =\
     #vphantom(25pt)
     = (sum_(i=0)^(N-1) m_i)!
   $
@@ -429,9 +430,9 @@ This one is going to take billions of billions times longer than the previous on
 
 Okay, thinks the hacker, the night is young. They are able to get their hands on one of your 32-symbol passwords because of a security leak on the website you were registered to. They have also dug ears deep into the hash function and understood how it works to the tiniest detail. Now, they want to retrieve your private keys to be able to generate your passwords to all other websites and services you use. They see that your password starts with a `'W'`. They know it was shuffled from some other position by the shuffle function, $shuf (-, k_2)$, but they don't know what the password was before the shuffling. What they do know is that your password is produced by
 $
-  \#^sect (conf) = 263,130,836,933,693,530,167,218,012,160,000,000 approx 2 times 10^35
+  \#^inter (conf) = 263,130,836,933,693,530,167,218,012,160,000,000 approx 2 times 10^35
 $
-different $(k_1, k_2)$ pairs. The hacker can (relatively) easily retrieve any one of these pairs by substituting the intermediary layer $alpha$ (after the application of $mc$, but before $shuf$) of their choosing, and then solve for the two keys. The problem is that if the keys they receive differ from the true keys, they will not produce the correct password given a different public key. Therefore, to get the key to another website, the hacker would need to go through all of $\#^sect (conf)$different combinations, which will take them about $8,338,113,067,333,812 approx 8 times 10^15$ years, or $604,780$ ages of the Universe. It is, of course, almost infinitely better than brute-forcing the password from scratch (after all, the resulting hash does give the hacker a lot of information about the original keys), but it is still pretty much impossible.
+different $(k_1, k_2)$ pairs. The hacker can (relatively) easily retrieve any one of these pairs by substituting the intermediary layer $alpha$ (after the application of $mc$, but before $shuf$) of their choosing, and then solve for the two keys. The problem is that if the keys they receive differ from the true keys, they will not produce the correct password given a different public key. Therefore, to get the key to another website, the hacker would need to go through all of $\#^inter (conf)$different combinations, which will take them about $8,338,113,067,333,812 approx 8 times 10^15$ years, or $604,780$ ages of the Universe. It is, of course, almost infinitely better than brute-forcing the password from scratch (after all, the resulting hash does give the hacker a lot of information about the original keys), but it is still pretty much impossible.
 
 After that, the hacker can go to sleep and forget about cracking your password, because they have nothing left to try. And you can go to sleep knowing that your accounts are safe.
 
