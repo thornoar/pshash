@@ -1,39 +1,40 @@
+// Start of wxWidgets "Hello World" Program
 #include <wx/wx.h>
-
-#include <iostream>
-using namespace std;
-
-#include "FFI_stub.h"
-
-#include <string>
  
-class MyApp : public wxApp {
-    public:
+class MyApp : public wxApp
+{
+public:
     bool OnInit() override;
 };
  
 wxIMPLEMENT_APP(MyApp);
  
-class MyFrame : public wxFrame {
-    public:
+class MyFrame : public wxFrame
+{
+public:
     MyFrame();
  
-    private:
-    void OnCompute(wxCommandEvent& event);
+private:
+    void OnHello(wxCommandEvent& event);
     void OnExit(wxCommandEvent& event);
+    void OnAbout(wxCommandEvent& event);
 };
  
-enum {
+enum
+{
     ID_Hello = 1
 };
  
-bool MyApp::OnInit() {
+bool MyApp::OnInit()
+{
     MyFrame *frame = new MyFrame();
-    frame -> Show(true);
+    frame->Show(true);
     return true;
 }
  
-MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "Hello World") {
+MyFrame::MyFrame()
+    : wxFrame(nullptr, wxID_ANY, "Hello World")
+{
     wxMenu *menuFile = new wxMenu;
     menuFile->Append(ID_Hello, "&Hello...\tCtrl-H",
                      "Help string shown in status bar for this menu item");
@@ -52,16 +53,23 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "Hello World") {
     CreateStatusBar();
     SetStatusText("Welcome to wxWidgets!");
  
-    Bind(wxEVT_MENU, &MyFrame::OnCompute, this, ID_Hello);
+    Bind(wxEVT_MENU, &MyFrame::OnHello, this, ID_Hello);
+    Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
 }
  
-void MyFrame::OnExit(wxCommandEvent& event) {
+void MyFrame::OnExit(wxCommandEvent& event)
+{
     Close(true);
 }
  
-void MyFrame::OnCompute(wxCommandEvent& event) {
-    hs_init(nullptr, nullptr);
-    wxLogMessage(std::to_string(foo(5)).c_str());
-    hs_exit();
+void MyFrame::OnAbout(wxCommandEvent& event)
+{
+    wxMessageBox("This is a wxWidgets Hello World example",
+                 "About Hello World", wxOK | wxICON_INFORMATION);
+}
+ 
+void MyFrame::OnHello(wxCommandEvent& event)
+{
+    wxLogMessage("Hello world from wxWidgets!");
 }

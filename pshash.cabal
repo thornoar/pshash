@@ -13,6 +13,15 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options: -Wall
 
+-- foreign-library pshash
+--     type:             native-shared
+--     other-modules:    FFI
+--     build-depends:
+--         base
+--     hs-source-dirs:   lib
+--     c-sources:        gui/lib.cpp
+--     default-language: Haskell2010
+
 library
     import:           warnings
     exposed-modules:  Algorithm, Inverse, Error, FFI
