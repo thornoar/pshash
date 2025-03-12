@@ -13,15 +13,22 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options: -Wall
 
+library
+    import:           warnings
+    exposed-modules:  Algorithm, Inverse, Error, FFI
+    hs-source-dirs:   lib
+    default-language: Haskell2010
+    build-depends:
+        base
+
 executable pshash
     import:           warnings
     main-is:          Main.hs
-    other-modules:    Algorithm, Inverse, Error
-    exposed-modules:  FFI
     build-depends:
         base,
         containers,
-        directory
+        directory,
+        pshash
     hs-source-dirs:   app
     default-language: Haskell2010
     ghc-options: 
