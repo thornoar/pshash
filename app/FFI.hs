@@ -1,3 +1,3 @@
 module FFI where
 
-import Main
+import Algorithm

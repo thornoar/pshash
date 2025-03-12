@@ -4,462 +4,23 @@
 module Main where
 
 import System.IO (stdin, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
-import Data.Char (ord, chr, toUpper)
 import Data.Map (Map, empty, insertWith, member, (!))
 import qualified Data.Map as DM
-import Data.List (elemIndex)
 import System.Environment (getArgs)
 import System.Directory (getHomeDirectory)
 import System.Info (os)
-import Text.Read (readMaybe)
 import Control.Applicative (liftA2)
-import Control.Monad (liftM, unless)
 import Control.Exception (IOException, catch, bracket_)
 import System.Exit (exitWith, ExitCode (ExitFailure))
+import Data.Char (ord, chr, toUpper)
+import Control.Monad (unless)
+
+import Algorithm
+import Error
+import Inverse
 
 currentVersion :: String
-currentVersion = "0.1.14.5"
-
--- ┌───────────────────────────┐
--- │ GENERAL-PURPOSE FUNCTIONS │
--- └───────────────────────────┘
-
-factorial :: Integer -> Integer
-factorial n = product [1..n]
-
-factorial' :: Integer -> Integer -> Integer
-factorial' n m = product [(n-m+1)..n]
-
-cnk :: Integer -> Integer -> Integer
-cnk n k = div (factorial' n k) (factorial k)
-
-length' :: [a] -> Integer
-length' = toInteger . length
-
-take' :: Integer -> [a] -> [a]
-take' 0 _ = []
-take' _ [] = []
-take' n (a:as) = a : take' (n-1) as
-
-insertAt :: a -> Integer -> [a] -> [a]
-insertAt a 0 lst = a:lst
-insertAt a n (l:lst) = l : insertAt a (n-1) lst
-insertAt _ _ _ = []
-
-break' :: (Eq a) => a -> [a] -> ([a], [a])
-break' _ [] = ([],[])
-break' a (a':rest)
-  | a == a' = ([], rest)
-  | otherwise = let (res1, res2) = break' a rest in (a' : res1, res2)
-
-dropElementInfo :: ([a], Integer) -> (Integer, Integer)
-dropElementInfo (src, m) = (length' src, m)
-
-shiftString :: Integer -> String -> String
-shiftString amt = map (chr . fromInteger . (`mod` 128) . (+ amt) . toInteger . ord)
-
-class Shifting a where
-  shift :: a -> Integer
-
-instance (Shifting a) => Shifting [a] where
-  shift = sum . map shift
-
-instance Shifting Char where
-  shift = toInteger . ord
-
-combineHashing :: (a -> Integer -> b) -> (b -> Integer -> c) -> (a -> Integer -> Integer -> c)
-combineHashing f g a = g . f a
-
-mapHashing :: (Shifting b) => (a -> Integer -> b) -> (a -> Integer) -> ([a] -> Integer -> [b])
-mapHashing _ _ [] _ = []
-mapHashing f spr (a : as) key = b : mapHashing f spr as nextKey
-  where
-    (keyDiv, keyMod) = divMod key $ spr a
-    b = f a keyMod
-    nextKey = keyDiv + shift b
-
-composeHashing :: (Shifting b) => (a -> Integer -> b) -> (a -> Integer) -> (b -> Integer -> c) -> (a -> Integer -> c)
-composeHashing f spr g a key = g b nextKey
-  where
-    (keyDiv, keyMod) = divMod key $ spr a
-    b = f a keyMod
-    nextKey = keyDiv + shift b
-
--- ┌───────────────────────────┐
--- │ HASH GENERATING FUNCTIONS │
--- └───────────────────────────┘
-
-chooseOrdered :: (Eq a, Shifting a) => ([a], Integer) -> Integer -> [a]
-chooseOrdered (_, 0) _ = []
-chooseOrdered ([], _) _ = []
-chooseOrdered (src, m) key = curElt : chooseOrdered (filter (/= curElt) src, m - 1) nextKey
-  where
-    (keyDiv, keyMod) = divMod key $ length' src
-    curElt = src !! fromIntegral keyMod
-    nextKey = keyDiv + shift curElt
-
-shuffleList :: (Eq a, Shifting a) => [a] -> Integer -> [a]
-shuffleList src = chooseOrdered (src, length' src)
-
-chooseOrderedSpread :: (Integer, Integer) -> Integer
-chooseOrderedSpread (n, m) = factorial' n m
-
-chooseOrderedSpread' :: ([a], Integer) -> Integer
-chooseOrderedSpread' = chooseOrderedSpread . dropElementInfo
-
-mergeTwoLists :: (Shifting a) => ([a], [a]) -> Integer -> [a]
-mergeTwoLists ([], lst2) _ = lst2
-mergeTwoLists (lst1, []) _ = lst1
-mergeTwoLists (elt1:rest1, elt2:rest2) key
-  | curKey < spr1 = elt1 : mergeTwoLists (rest1, elt2:rest2) (curKey + shift elt1)
-  | otherwise = elt2 : mergeTwoLists (elt1:rest1, rest2) (curKey - spr1 + shift elt2)
-  where
-    spr1 = mergeTwoListsSpread (length' rest1, length' rest2 + 1)
-    spr2 = mergeTwoListsSpread (length' rest1 + 1, length' rest2)
-    curKey = mod key (spr1 + spr2)
-
-mergeTwoListsSpread :: (Integer, Integer) -> Integer
-mergeTwoListsSpread (m1, m2) = div (factorial (m1 + m2)) (factorial m1 * factorial m2)
-
-mergeTwoListsSpread' :: ([a], [a]) -> Integer
-mergeTwoListsSpread' (lst1, lst2) = mergeTwoListsSpread (length' lst1, length' lst2)
-
-mergeLists :: (Shifting a) => [[a]] -> Integer -> [a]
-mergeLists [] _ = []
-mergeLists [l] _ = l
-mergeLists [l1, l2] key = mergeTwoLists (l1, l2) key
-mergeLists (l:ls) key = mergeTwoLists (l, mergeLists ls keyMod) nextKey
-  where
-    (keyDiv, keyMod) = divMod key $ mergeListsSpread $ map length' ls
-    nextKey = keyDiv + shift l
-
-mergeListsSpread :: [Integer] -> Integer
-mergeListsSpread amts = div (factorial $ sum amts) (product $ map factorial amts)
-
-mergeListsSpread' :: [[a]] -> Integer
-mergeListsSpread' = mergeListsSpread . map length'
-
-chooseAndMerge :: (Eq a, Shifting a) => [([a], Integer)] -> Integer -> [a]
-chooseAndMerge = composeHashing
-  (mapHashing chooseOrdered chooseOrderedSpread')
-  (product . map chooseOrderedSpread')
-  mergeLists
-
-chooseAndMergeSpread :: [(Integer, Integer)] -> Integer
-chooseAndMergeSpread amts = (product . map chooseOrderedSpread) amts * (mergeListsSpread . map snd) amts
-
-chooseAndMergeSpread' :: [([a], Integer)] -> Integer
-chooseAndMergeSpread' = chooseAndMergeSpread . map dropElementInfo
-
-getHash :: (Eq a, Shifting a) => [([a], Integer)] -> Integer -> Integer -> [a]
-getHash = combineHashing chooseAndMerge shuffleList
-
--- ┌────────────────┐
--- │ ERROR HANDLING │
--- └────────────────┘
-
-data Trace = String :=> [Trace] deriving (Read, Show)
-
-data Handle a = Content a | Error Trace deriving (Read, Show)
-
-liftH2 :: String -> String -> (a -> b -> c) -> (Handle a -> Handle b -> Handle c)
-liftH2 _ _ f (Content a) (Content b) = Content (f a b)
-liftH2 msg1 msg2 _ (Error tr1) (Error tr2) = Error $ "Double trace:" :=>
-  [
-    msg1 :=> [tr1],
-    msg2 :=> [tr2]
-  ]
-liftH2 msg1 _ _ (Error tr) _ = Error (msg1 :=> [tr])
-liftH2 _ msg2 _ _ (Error tr) = Error (msg2 :=> [tr])
-
-raiseH' :: (Monad m) => (a -> m (Handle b)) -> (Handle a -> m (Handle b))
-raiseH' f (Content a) = f a
-raiseH' _ (Error tr) = return (Error tr)
-
-fmapE :: (Trace -> Trace) -> Handle a -> Handle a
-fmapE _ (Content a) = Content a
-fmapE f (Error tr) = Error (f tr)
-
-instance Functor Handle where
-  fmap = liftM
-instance Applicative Handle where
-  pure = Content
-  mf <*> ma = case mf of
-    Error tr -> case ma of
-      Error tr' -> Error ("Double trace:" :=> [tr, tr'])
-      Content _ -> Error tr
-    Content f -> fmap f ma
-instance Monad Handle where
-  return = pure
-  mval >>= f = case mval of
-    Error tr -> Error tr
-    Content a -> f a
-
-fmap2 :: (Monad m) => (a -> b -> c) -> (m a -> b -> m c)
-fmap2 f ma b = fmap (`f` b) ma
-
-raise :: (Monad m) => (a -> m b) -> (m a -> m b)
-raise f ma = ma >>= f
-
-raise2 :: (Monad m) => (a -> b -> m c) -> (m a -> b -> m c)
-raise2 f ma b = ma >>= (`f` b)
-
-raise2' :: (Monad m) => (a -> b -> m c) -> (a -> m b -> m c)
-raise2' f a mb = mb >>= f a
-
-readHandle :: (Read a) => String -> String -> Handle a
-readHandle msg str = case readMaybe str of
-  Nothing -> Error $ ("<Failed to read {{" ++ str ++ "}} as {{" ++ msg ++ "}}.>") :=> []
-  Just a -> Content a
-
-addTrace :: String -> Handle a -> Handle a
-addTrace _ (Content a) = Content a
-addTrace msg (Error tr) = Error (msg :=> [tr])
-
--- ┌───────────────────┐
--- │ INVERSE FUNCTIONS │
--- └───────────────────┘
-
-mapHashingI :: (Shifting b) => (a -> b -> Handle Integer) -> (a -> Integer) -> ([a] -> [b] -> Handle Integer)
-mapHashingI _ _ [] [] = Content 0
-mapHashingI _ _ _ [] = Error $ "<A bug in the Matrix, calling `mapHashingI`.>" :=> []
-mapHashingI _ _ [] _ = Error $ "<A bug in the Matrix, calling `mapHashingI`.>" :=> []
-mapHashingI fI spr (a:as) (b:bs) =
-  let curSpr = spr a
-      restSpr = product $ map spr as
-      curKeyH = fI a b
-      restPreKeyH = mapHashingI fI spr as bs -- - shift b
-   in case (curKeyH, restPreKeyH) of
-        (Error tr1, Error (msg :=> [])) -> Error ("Double trace while mapping hash reversal:" :=> [tr1, msg :=> []])
-        (Error tr1, Error (_ :=> trss)) -> Error ("Branching trace while mapping hash reversal:" :=> (tr1 : trss))
-        (Error tr, _) -> Error ("Trace while mapping hash reversal:" :=> [tr])
-        (_, Error tr) -> Error tr
-        (Content curKey, Content nextPreKey) -> Content $ curKey + curSpr * mod (nextPreKey - shift b) restSpr
-
-combineHashingI :: (a -> Integer -> b) -> (b -> c -> Handle Integer) -> (a -> c -> Integer -> Handle Integer)
-combineHashingI f gI a c key1 = gI (f a key1) c
-
-combineHashingI' :: (a -> b -> Handle Integer) -> (c -> Integer -> b) -> (a -> c -> Integer -> Handle Integer)
-combineHashingI' fI gI' a c key2 = fI a (gI' c key2)
-
-composeHashingI :: (Shifting b) => (a -> b -> Handle Integer) -> (a -> Integer) -> (b -> c -> Handle Integer) -> (b -> Integer) -> (a -> c -> b) -> (a -> c -> Handle Integer)
-composeHashingI fI sprF gI sprG getB a c =
-  let b = getB a c
-      keyModH = fI a b
-      nextKeyH = gI b c
-   in case (keyModH, nextKeyH) of
-        (Error tr1, Error tr2) -> Error ("Double trace while composing hashing reversal:" :=> [tr1, tr2])
-        (Error tr, _) -> Error ("Trace while composing hashing reversal, in first function:" :=> [tr])
-        (_, Error tr) -> Error ("Trace while composing hashing reversal, in second function:" :=> [tr])
-        (Content keyMod, Content nextKey) -> Content $ keyMod + sprF a * mod (nextKey - shift b) (sprG b)
-
-chooseOrderedI :: (Shifting a, Eq a, Show a) => ([a], Integer) -> [a] -> Handle Integer
-chooseOrderedI (_,0) [] = Content 0
-chooseOrderedI (src,num) hash
-  | num /= length' hash = Error $
-      "<Invalid hash: length should match source configuration.>" :=>
-      [
-        ("Reversing hash: {" ++ show hash ++ "} with length {" ++ show (length hash) ++ "}") :=> [],
-        ("With source: {" ++ show (src,num) ++ "}") :=> []
-      ]
-chooseOrderedI (src, num) (a:as) =
-  let srcLen = length' src
-      keyModM = toInteger <$> elemIndex a src
-      prevSpread = chooseOrderedSpread (srcLen-1, length' as)
-      keyDivH = chooseOrderedI (filter (/= a) src, num-1) as
-   in case keyModM of
-        Nothing -> Error $
-          ("<Invalid hash: element {{" ++ show a ++ "}} could not be found in source.>") :=>
-          [
-            ("Maybe the element {" ++ show a ++ "} is " ++ "{repeated}" ++ " in the hash,") :=> [],
-            ("Or the hash " ++ "{is incompatible}" ++ " with the choice key?") :=> []
-          ]
-        Just keyMod -> case keyDivH of
-          Error tr -> Error tr
-          Content keyDiv -> Content $ keyMod + srcLen * mod (keyDiv - shift a) prevSpread
-chooseOrderedI (_,_) _ = Error $ "<A bug in the Matrix, calling `chooseOrderedI`.>" :=> []
-
-shuffleListI :: (Shifting a, Eq a, Show a) => [a] -> [a] -> Handle Integer
-shuffleListI lst = chooseOrderedI (lst, length' lst)
-
-shuffleListI' :: (Shifting a, Eq a) => [a] -> Integer -> [a]
-shuffleListI' [] _ = []
-shuffleListI' (r:rest) key =
-  let nextLen = length' rest
-      (keyDiv, keyMod) = divMod key (nextLen + 1)
-      nextKey = keyDiv + shift r
-   in insertAt r keyMod (shuffleListI' rest nextKey)
-
-mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Handle Integer
-mergeTwoListsI ([], src) hash
-  | src == hash = Content 0
-  | otherwise = Error $
-      "<Invalid hash: element mismatch.>" :=>
-      [
-        ("Reversing hash: {" ++ show hash ++ "}") :=> [],
-        ("Using source: {" ++ show src ++ "}") :=> []
-      ]
-mergeTwoListsI (src, []) hash
-  | src == hash = Content 0
-  | otherwise = Error $
-      "<Invalid hash: element mismatch.>" :=>
-      [
-        ("Reversing hash: {" ++ show hash ++ "}") :=> [],
-        ("Using source: {" ++ show src ++ "}") :=> []
-      ]
-mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
-  | m == e1 = case mergeTwoListsI (rest1, e2:rest2) ms of
-      Error tr -> Error tr
-      Content prevKey -> Content $ mod (prevKey - shift m) spr1
-  | m == e2 = case mergeTwoListsI (e1:rest1, rest2) ms of
-      Error tr -> Error tr
-      Content prevKey -> Content $ spr1 + mod (prevKey - shift m) spr2
-  | otherwise = Error $
-      ("<Invalid hash: element {" ++ show m ++ "< does not match either source." ++ "}") :=>
-      [
-        ("Reversing hash: {" ++ show (m:ms) ++ "}") :=> [],
-        ("First source list: {" ++ show (e1:rest1) ++ "}") :=> [],
-        ("Second source list: {" ++ show (e2:rest2) ++ "}") :=> [],
-        ("The head of the hash should be either {" ++ show e1 ++ "} or {" ++ show e2 ++ "}") :=> []
-      ]
-  where
-    spr1 = mergeTwoListsSpread (length' rest1, 1 + length' rest2)
-    spr2 = mergeTwoListsSpread (1 + length' rest1, length' rest2)
-mergeTwoListsI (_, _) [] = Error $ "<Invalid hash: too few elements.>" :=> []
-
-mergeListsI :: (Shifting a, Eq a, Show a) => [[a]] -> [a] -> Handle Integer
-mergeListsI [] [] = Content 0
-mergeListsI [] _  = Error $ "<A bug in the Matrix, calling `mergeListsI`.>" :=> []
-mergeListsI [src] lst
-  | lst == src = Content 0
-  | otherwise = Error $
-    "<Invalid hash: element mismatch.>" :=>
-      [
-        ("Reversing hash: {" ++ show lst ++ "}") :=> [],
-        ("Current source: {" ++ show src ++ "}") :=> []
-      ]
-mergeListsI [l1, l2] res = mergeTwoListsI (l1,l2) res
-mergeListsI (l:ls) res =
-  let curSpr = mergeListsSpread' ls
-      nextSpr = mergeTwoListsSpread (length' l, sum $ map length' ls)
-      resWithoutL = filter (`notElem` l) res
-      keyModH = mergeListsI ls resWithoutL
-      nextKeyH = mergeTwoListsI (l, resWithoutL) res
-   in case (keyModH, nextKeyH) of
-        (Error tr1, Error tr2) -> Error ("Double trace while un-merging lists:" :=> [tr1, tr2])
-        (_, Error tr) -> Error ("Trace while un-merging lists:" :=> [tr])
-        (Error tr, _) -> Error ("Trace while un-merging lists:" :=> [tr])
-        (Content keyMod, Content nextKey) -> Content $ keyMod + curSpr * mod (nextKey - shift l) nextSpr
-
-distribute :: (Eq a) => [[a]] -> [[a]] -> a -> [[a]]
-distribute [] _ _ = []
-distribute _ [] _ = []
-distribute (src:srcRest) (res:resRest) a
-  | a `elem` src = (a:res) : resRest
-  | otherwise = res : distribute srcRest resRest a
-
-invertMergeLists :: (Eq a) => [[a]] -> [a] -> [[a]]
-invertMergeLists srcs [] = [[] | _ <- srcs]
-invertMergeLists srcs (a:as) = distribute srcs (invertMergeLists srcs as) a
-
-chooseAndMergeI :: (Shifting a, Eq a, Show a) => [([a], Integer)] -> [a] -> Handle Integer
-chooseAndMergeI = composeHashingI
-  (mapHashingI chooseOrderedI chooseOrderedSpread')
-  (product . map chooseOrderedSpread')
-  mergeListsI
-  mergeListsSpread'
-  (invertMergeLists . map fst)
-
-getHashI :: (Shifting a, Eq a, Show a) => [([a], Integer)] -> [a] -> Integer -> Handle Integer
-getHashI = combineHashingI chooseAndMerge shuffleListI
-
-getHashI' :: (Shifting a, Eq a, Show a) => [([a], Integer)] -> [a] -> Integer -> Handle Integer
-getHashI' = combineHashingI' chooseAndMergeI shuffleListI'
-
--- ┌────────────────────┐
--- │ INVERSE VALIDATION │
--- └────────────────────┘
-
-isInverseOnRange :: (a -> Integer -> b) -> (a -> b -> Integer) -> a -> [Integer] -> Integer -> IO ()
-isInverseOnRange _ _ _ [] _ = putStrLn "| All tests passed. |"
-isInverseOnRange f fI a (key:rest) lim =
-  if key == fI a (f a key)
-  then putStrLn (show key ++ ": Passed. " ++ show (lim - 1) ++ " left.") >> isInverseOnRange f fI a rest (lim - 1)
-  else do
-    putStrLn ("| Failed on number " ++ show key ++ " with:")
-    putStrLn ("|   key = " ++ show key)
-    putStrLn ("|   output = " ++ show (fI a (f a key)))
-
-isInverseOnRange2 :: (a -> Integer -> Integer -> b) -> (a -> b -> Integer -> Integer) -> a -> Integer -> [Integer] -> Integer -> IO ()
-isInverseOnRange2 f2 f2I a key1 key2s lim =
-  let f a' = f2 a' key1
-      fI a' b = f2I a' b key1
-   in isInverseOnRange f fI a key2s lim
-
-isInverseOnRange2' :: (a -> Integer -> Integer -> b) -> (a -> b -> Integer -> Integer) -> a -> Integer -> [Integer] -> Integer -> IO ()
-isInverseOnRange2' f2 f2I a key2 key1s lim =
-  let f a' key1 = f2 a' key1 key2
-      fI a' b = f2I a' b key2
-   in isInverseOnRange f fI a key1s lim
-
-isInverse :: (a -> Integer -> b) -> (a -> Integer) -> (a -> b -> Integer) -> a -> IO ()
-isInverse f sprF fI a = isInverseOnRange f fI a [0 .. sprF a - 1] (sprF a)
-
-isInverse2 :: (a -> Integer -> Integer -> b) -> (a -> Integer) -> (a -> b -> Integer -> Integer) -> a -> Integer -> IO ()
-isInverse2 f2 sprF f2I a key1 = isInverseOnRange2 f2 f2I a key1 [0 .. sprF a - 1] (sprF a)
-
-isInverse2' :: (a -> Integer -> Integer -> b) -> (a -> Integer) -> (a -> b -> Integer -> Integer) -> a -> Integer -> IO ()
-isInverse2' f2 sprF f2I a key2 = isInverseOnRange2' f2 f2I a key2 [0 .. sprF a - 1] (sprF a)
-
--- ┌─────────────────────────────────────────────────────┐
--- │ PRE-DEFINED STRINGS FROM WHICH HASHES WILL BE DRAWN │
--- └─────────────────────────────────────────────────────┘
-
-sourceLower :: [Char]
-sourceLower = "ckapzfitqdxnwehrolmbyvsujg"
-
-sourceUpper :: [Char]
-sourceUpper = "RQLIANBKJYVWPTEMCZSFDOGUHX"
-
-sourceSpecial :: [Char]
-sourceSpecial = "=!*@?$%#&-+^"
-
-sourceNumbers :: [Char]
-sourceNumbers = "1952074386"
-
-defaultConfiguration :: [([Char], Integer)]
-defaultConfiguration = [(sourceLower, 8), (sourceUpper, 8), (sourceSpecial, 5), (sourceNumbers, 4)]
-
-mediumConfiguration :: [([Char], Integer)]
-mediumConfiguration = [(sourceLower, 5), (sourceUpper, 5), (sourceSpecial, 5), (sourceNumbers, 5)]
-
-shortConfiguration :: [([Char], Integer)]
-shortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceSpecial, 4), (sourceNumbers, 4)]
-
-anlongConfiguration :: [([Char], Integer)]
-anlongConfiguration = [(sourceLower, 7), (sourceUpper, 7), (sourceNumbers, 7)]
-
-anshortConfiguration :: [([Char], Integer)]
-anshortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceNumbers, 4)]
-
-pinCodeConfiguration :: [([Char], Integer)]
-pinCodeConfiguration = [(sourceNumbers, 4)]
-
-mediumPinCodeConfiguration :: [([Char], Integer)]
-mediumPinCodeConfiguration = [(sourceNumbers, 6)]
-
-longPinCodeConfiguration :: [([Char], Integer)]
-longPinCodeConfiguration = [(sourceNumbers, 8)]
-
-defaultConfigFiles :: [String]
-defaultConfigFiles =
-  [
-    "./pshash.conf",
-    "~/.config/pshash/pshash.conf",
-    "~/.pshash.conf",
-    "/etc/pshash/pshash.conf",
-    "C:\\pshash.conf"
-  ]
+currentVersion = "0.1.15.0"
 
 -- ┌──────────────────┐
 -- │ COUNTING NUMBERS │
@@ -543,37 +104,6 @@ formatDouble (digit:rest) places
 numberOfPlaces :: Int
 numberOfPlaces = 4
 
--- ┌──────────────┐
--- │ READING KEYS │
--- └──────────────┘
-
-getPublicKey' :: String -> Integer
-getPublicKey' "" = 0
-getPublicKey' (c:cs) = toInteger (ord c) + 128 * getPublicKey' cs
-
-getPublicKey :: String -> Integer
-getPublicKey = getPublicKey' . reverse
-
-getPublicStr' :: Integer -> String
-getPublicStr' 0 = ""
-getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128)
-
-getPublicStr :: Integer -> String
-getPublicStr = reverse . getPublicStr'
-
-getPrivateKey :: String -> Handle Integer
-getPrivateKey s = liftA2 (^) base pow where
-  (baseStr, powStr) = break' '-' s
-  base :: Handle Integer
-  base = readHandle "base in private key" baseStr
-  pow :: Handle Integer
-  pow = if null powStr then Content 1 else case readHandle "exponent in private key" powStr of
-    Error tr -> Error tr
-    Content n ->
-      if n < 0
-      then Error $ ("<Cannot have negative exponent in private key: {{" ++ powStr ++ "}}.>") :=> []
-      else Content n
-
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
 -- └─────────────────────┘
@@ -643,6 +173,16 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 
 data OptionName = KEYWORD | SELECT | CONFIG | INFO | QUERY | CONFIGFILE | CONFIGKEYWORD | PATCH | PURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | FIRST | SECOND | THIRD | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
+
+defaultConfigFiles :: [String]
+defaultConfigFiles =
+  [
+    "./pshash.conf",
+    "~/.config/pshash/pshash.conf",
+    "~/.pshash.conf",
+    "/etc/pshash/pshash.conf",
+    "C:\\pshash.conf"
+  ]
 
 handleWith :: (a -> IO ()) -> Handle a -> IO (Handle ())
 handleWith f ma = case ma of
@@ -967,6 +507,33 @@ patchArgs args
   | member FIRST args = Content $ insertWith const CONFIGKEYWORD (args ! FIRST) args
   | otherwise = Content args
 
+getPublicKey' :: String -> Integer
+getPublicKey' "" = 0
+getPublicKey' (c:cs) = toInteger (ord c) + 128 * getPublicKey' cs
+
+getPublicKey :: String -> Integer
+getPublicKey = getPublicKey' . reverse
+
+getPublicStr' :: Integer -> String
+getPublicStr' 0 = ""
+getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128)
+
+getPublicStr :: Integer -> String
+getPublicStr = reverse . getPublicStr'
+
+getPrivateKey :: String -> Handle Integer
+getPrivateKey s = liftA2 (^) base pow where
+  (baseStr, powStr) = break' '-' s
+  base :: Handle Integer
+  base = readHandle "base in private key" baseStr
+  pow :: Handle Integer
+  pow = if null powStr then Content 1 else case readHandle "exponent in private key" powStr of
+    Error tr -> Error tr
+    Content n ->
+      if n < 0
+      then Error $ ("<Cannot have negative exponent in private key: {{" ++ powStr ++ "}}.>") :=> []
+      else Content n
+
 withEcho :: Bool -> IO a -> IO a
 withEcho echo action = do
   old <- hGetEcho stdin
@@ -1036,7 +603,6 @@ setEchoesAndPrompts args
       then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
       else insert' P1 "PUBLIC KEY: " $ insert' P2 "CHOICE KEY: " $ insert' P3 "SHUFFLE KEY: " args
 
--- ((False, "Public key: "), (False, "Number of pairs: "), (False, "Final hash: "))
 performAction :: Map OptionName String -> Handle [([Char], Integer)] -> IO (Handle ())
 performAction _ (Error tr) = return (Error $ "Trace in configuration argument:" :=> [tr])
 performAction args (Content config)

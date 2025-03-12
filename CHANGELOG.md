@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.15.0
+
+* Split the program into modules, added GUI application support.
+
 ## 0.1.14.5
 
 * Fixed the combination of patching and file reading.
