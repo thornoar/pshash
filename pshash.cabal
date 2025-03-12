@@ -16,12 +16,12 @@ common warnings
 executable pshash
     import:           warnings
     main-is:          Main.hs
-    other-modules:
+    exposed-modules:  FFI
     build-depends:
         base,
         containers,
         directory
-    hs-source-dirs:   app
+    hs-source-dirs:   app, gui
     default-language: Haskell2010
     ghc-options: 
                  -O5
