@@ -34,7 +34,7 @@ setup win = void $ do
   -- define UI controls
   outputBox <- UI.input
                 # set (attr "readonly") "true"
-                # set (attr "style") "text-align: right; min-width: 324px"
+                # set (attr "style") "text-align: center; min-width: 1000px"
   -- define the button grid
   buttons   <- mapM (mapM mkButton) buttonDefinitions
 
@@ -69,7 +69,7 @@ setup win = void $ do
       in  UI.button #. ("ui " ++ color clr ++ " button")
                     # set text btnLabel # set value btnLabel
                     # set (attr "type")  "button"
-                    # set (attr "style") "min-width: 60px"
+                    # set (attr "style") "min-width: 100px"
 
     color :: Color -> String
     color = map toLower . show

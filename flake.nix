@@ -1,5 +1,5 @@
 {
-  inputs = { nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11"; };
+  inputs = { nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05"; };
 
   outputs = { self, nixpkgs }:
     let
@@ -24,7 +24,7 @@
       };
       devShells.${system}.default = pkgs.mkShell {
         nativeBuildInputs = with pkgs; [
-          haskellPackages.zlib
+          zlib
         ];
       };
     };

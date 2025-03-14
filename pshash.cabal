@@ -52,6 +52,23 @@ executable pshash
 executable pshash-gui
     import:           warnings
     main-is:          Main.hs
+    -- other-modules:    UI, Calc
+    build-depends:
+        base,
+        zlib,
+        threepenny-gui,
+        filepath,
+        process
+    hs-source-dirs:   gui
+    default-language: Haskell2010
+    ghc-options: 
+        -O5
+        -fwrite-ide-info
+        -hiedir=.hie
+
+executable example
+    import:           warnings
+    main-is:          MainCalc.hs
     other-modules:    UI, Calc
     build-depends:
         base,
