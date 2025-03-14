@@ -1,20 +1,15 @@
 module Main where
 
-{-----------------------------------------------------------------------------
-    Threepenny
-
-    Hello world!
-------------------------------------------------------------------------------}
-
--- imports
-import qualified Graphics.UI.Threepenny      as UI
-import           Graphics.UI.Threepenny.Core
+import qualified Graphics.UI.Threepenny as UI
+import Graphics.UI.Threepenny.Core
+import System.Environment (getArgs)
 
 
--- start a Threepenny server that listens on port 8023 (this is the default)
-main = startGUI (defaultConfig { jsPort = Just 8080 }) setup
+main :: IO ()
+main = do
+  [port] <- getArgs
+  startGUI (defaultConfig { jsPort = Just (read port) }) setup
 
--- build a user interface whenver a browser connects to the server
 setup :: Window -> UI ()
 setup window = do
     -- set window title

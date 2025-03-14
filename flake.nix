@@ -25,6 +25,21 @@
       devShells.${system}.default = pkgs.mkShell {
         nativeBuildInputs = with pkgs; [
           zlib
+          electron
+          (haskellPackages.ghcWithPackages (p: with p; [
+            threepenny-gui
+            filepath
+            process
+            zlib
+            directory
+            containers
+          ]))
+          # haskellPackages.threepenny-gui
+          # haskellPackages.filepath
+          # haskellPackages.process
+          # haskellPackages.zlib
+          # haskellPackages.directory
+          # haskellPackages.containers
         ];
       };
     };
