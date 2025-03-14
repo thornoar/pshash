@@ -18,8 +18,11 @@ main = startGUI (defaultConfig { jsPort = Just 8080 }) setup
 setup :: Window -> UI ()
 setup window = do
     -- set window title
-    return window # set UI.title "pshash gui"
+    return window # set UI.title "Hello World!"
     -- create a button element
-    input <- UI.input
-    button <- UI.button
-
+    button <- UI.button # set UI.text "Click me!"
+    -- attach button to the HTML body, so that it is displayed
+    getBody window #+ [element button]
+    -- register an event handler for clicking the button
+    on UI.click button $ \_ -> do
+        element button # set UI.text "I have been clicked!"

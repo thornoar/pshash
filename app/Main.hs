@@ -27,7 +27,7 @@ currentVersion = "0.1.15.0"
 -- │ FINAL HASH FUNCTION │
 -- └─────────────────────┘
 
-getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Handle [Char]
+getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Result [Char]
 getFinalHash config publicStr choiceStr shuffleStr =
   liftH2
     ("Trace while computing hash, getting the " ++ "{choice}" ++ " key:")
@@ -42,7 +42,7 @@ getFinalHash config publicStr choiceStr shuffleStr =
 -- │ QUERY FUNCTIONS │
 -- └─────────────────┘
 
-checkConfigValidity :: [([Char], Integer)] -> Handle [([Char], Integer)]
+checkConfigValidity :: [([Char], Integer)] -> Result [([Char], Integer)]
 checkConfigValidity [] = Error $ "<Cannot have empty configuration.>" :=> []
 checkConfigValidity [(lst, num)]
   | num < 0 = Error $ ("<Invalid configuration: number {{" ++ show num ++ "}} must be non-negative.>") :=> []
@@ -60,7 +60,7 @@ checkConfigValidity (src : rest) = case checkConfigValidity [src] of
 getConfigFromSpec :: (Integer, Integer, Integer, Integer) -> [([Char], Integer)]
 getConfigFromSpec (a,b,c,d) = [(sourceLower, a), (sourceUpper, b), (sourceSpecial, c), (sourceNumbers, d)]
 
-retrievePublicKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle String
+retrievePublicKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result String
 retrievePublicKey config choiceStr shuffleStr hashStr =
   let shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = getPrivateKey choiceStr
@@ -68,7 +68,7 @@ retrievePublicKey config choiceStr shuffleStr hashStr =
    in addTrace "Trace while retrieving public key:" $
       getPublicStr <$> fmap2 mod (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
 
-retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle Integer
+retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =
   let publicKey = getPublicKey publicStr
       shuffleKey = getPrivateKey shuffleStr
@@ -77,7 +77,7 @@ retrieveChoiceKey config publicStr shuffleStr hashStr =
    in addTrace "Trace while retrieving choice key:" $
       fmap2 mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
 
-retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Handle Integer
+retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveShuffleKey config publicStr choiceStr hashStr =
   let publicKey = getPublicKey publicStr
       preChoiceKey = getPrivateKey choiceStr
@@ -103,12 +103,12 @@ defaultConfigFiles =
     "C:\\pshash.conf"
   ]
 
-handleWith :: (a -> IO ()) -> Handle a -> IO (Handle ())
+handleWith :: (a -> IO ()) -> Result a -> IO (Result ())
 handleWith f ma = case ma of
   Error tr -> return (Error tr)
   Content a -> f a >> return (Content ())
 
-infoAction :: [([Char], Integer)] -> String -> IO (Handle ())
+infoAction :: [([Char], Integer)] -> String -> IO (Result ())
 infoAction config "help" = do
       let show' :: [([Char],Integer)] -> String
           show' config' = "[\n" ++ concatMap (("  " ++) . (++ "\n") . show) config' ++ "]"
@@ -271,21 +271,21 @@ infoAction config "times" = let amts = map dropElementInfo config in do
   return (Content ())
 infoAction _ cmd = return . Error $ ("Info command not recognized: " ++ cmd ++ ".") :=> []
 
-queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Handle ())
+queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Result ())
 queryAction config "public" choiceStr shuffleStr hashStr = handleWith print $ retrievePublicKey config choiceStr shuffleStr hashStr
 queryAction config "choice" publicStr shuffleStr hashStr = handleWith print $ retrieveChoiceKey config publicStr shuffleStr hashStr
 queryAction config "shuffle" publicStr choiceStr hashStr = handleWith print $ retrieveShuffleKey config publicStr choiceStr hashStr
 queryAction _ kw _ _ _ = return . Error $ ("<Query keyword not recognized: {{" ++ kw ++ "}}.>") :=> []
 
-listPairsAction :: [([Char], Integer)] -> String -> String -> [Char] -> IO (Handle ())
+listPairsAction :: [([Char], Integer)] -> String -> String -> [Char] -> IO (Result ())
 listPairsAction config publicStr limitStr hashStr =
   let publicKey = getPublicKey publicStr
-      mlimit = readHandle "integer" limitStr :: Handle Integer
+      mlimit = readResult "integer" limitStr :: Result Integer
       format :: Integer -> Integer -> String
       format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show shuffleKey
-      getPair :: Integer -> Handle String
+      getPair :: Integer -> Result String
       getPair shuffleKey = fmap (format shuffleKey) (getHashI' config hashStr shuffleKey)
-      sequence' :: [IO (Handle ())] -> IO (Handle ())
+      sequence' :: [IO (Result ())] -> IO (Result ())
       sequence' [] = return (Content ())
       sequence' (io : rest) = do
         res <- io
@@ -296,20 +296,20 @@ listPairsAction config publicStr limitStr hashStr =
         Error tr -> return (Error $ "Trace while reading number of pairs to print:" :=> [tr])
         Content limit -> sequence' $ take' limit $ map (handleWith putStrLn  . getPair) [0 .. numberOfShuffleKeys' config - 1]
 
-hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Handle ())
+hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Result ())
 hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr
 
-safeReadWithHandler :: (Monad m) => (IOException -> IO (m String)) -> FilePath -> IO (m String)
-safeReadWithHandler handler path = (return <$> readFile path) `catch` handler
+safeReadWithResultr :: (Monad m) => (IOException -> IO (m String)) -> FilePath -> IO (m String)
+safeReadWithResultr handler path = (return <$> readFile path) `catch` handler
 
 readFileMaybe :: FilePath -> IO (Maybe String)
-readFileMaybe = safeReadWithHandler (const $ return Nothing)
+readFileMaybe = safeReadWithResultr (const $ return Nothing)
 
-readFileHandle :: FilePath -> IO (Handle String)
-readFileHandle = safeReadWithHandler handler
+readFileResult :: FilePath -> IO (Result String)
+readFileResult = safeReadWithResultr handler
   where handler e = return . Error $ "<Error reading configuration file:>" :=> [ show e :=> [] ]
 
-getConfigFromContents :: Maybe String -> String -> IO (Handle [([Char], Integer)])
+getConfigFromContents :: Maybe String -> String -> IO (Result [([Char], Integer)])
 getConfigFromContents keywordM contents = case keywordM of
   Nothing -> return . Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
     [
@@ -321,7 +321,7 @@ getConfigFromContents keywordM contents = case keywordM of
     where
       specLines = filter (elem ':') (lines contents)
       specs = map (break' ':') specLines
-      process :: [(String, String)] -> IO (Handle [([Char], Integer)])
+      process :: [(String, String)] -> IO (Result [([Char], Integer)])
       process [] = return (Content defaultConfiguration)
       process ((publicStr', argStr) : rest) =
         if publicStr == publicStr' || publicStr' == "+all"
@@ -330,7 +330,7 @@ getConfigFromContents keywordM contents = case keywordM of
           Content args -> getConfig (insertWith const PURE "" args)
         else process rest
 
-getConfig :: Map OptionName String -> IO (Handle [([Char], Integer)])
+getConfig :: Map OptionName String -> IO (Result [([Char], Integer)])
 getConfig args
   | member KEYWORD args = return $ case args ! KEYWORD of
       "long" -> Content defaultConfiguration
@@ -343,14 +343,14 @@ getConfig args
       "longpin" -> Content longPinCodeConfiguration
       str -> Error $ ("<Unrecognized configuration keyword: {{" ++ str ++ "}}.>") :=> []
   | member SELECT args =
-      return $ readHandle "(Int,Int,Int,Int)" (args ! SELECT)
+      return $ readResult "(Int,Int,Int,Int)" (args ! SELECT)
       >>= (checkConfigValidity . getConfigFromSpec)
   | member CONFIG args =
-      return $ readHandle "source configuration" (args ! CONFIG)
+      return $ readResult "source configuration" (args ! CONFIG)
       >>= checkConfigValidity
   | any (`member` args) [PURE, INFO, QUERY, LIST] = return (Content defaultConfiguration)
   | member CONFIGFILE args = do
-      fileContentsH <- readFileHandle (args ! CONFIGFILE)
+      fileContentsH <- readFileResult (args ! CONFIGFILE)
       case fileContentsH of
         Error tr -> return (Error $ ("Trace while reading contents from {" ++ args ! CONFIGFILE ++ "}:") :=> [tr])
         Content contents -> getConfigFromContents (DM.lookup CONFIGKEYWORD args) contents
@@ -362,7 +362,7 @@ getConfig args
             | otherwise = ch : replaceChar old new rest
       homeDir <- getHomeDirectory
       fileContentsM <- mapM (readFileMaybe . replaceChar '~' homeDir) defaultConfigFiles
-      let findContents :: [Maybe String] -> IO (Handle [([Char], Integer)])
+      let findContents :: [Maybe String] -> IO (Result [([Char], Integer)])
           findContents [] = return (Content defaultConfiguration)
           findContents (Nothing : rest) = findContents rest
           findContents (Just contents : _) = getConfigFromContents (DM.lookup CONFIGKEYWORD args) contents
@@ -371,7 +371,7 @@ getConfig args
 insert' :: (Ord k) => k -> a -> Map k a -> Map k a
 insert' = insertWith (const id)
 
-parseArgs :: (Bool, Bool, Bool) -> [String] -> Handle (Map OptionName String)
+parseArgs :: (Bool, Bool, Bool) -> [String] -> Result (Map OptionName String)
 parseArgs _ [] = Content empty
 parseArgs trp (('+':_) : rest) = parseArgs trp rest
 parseArgs trp (['-', opt] : s : rest) = case opt of
@@ -405,16 +405,16 @@ parseArgs (b1, b2, b3) (s : rest)
   | b1 = insert' SECOND s <$> parseArgs (True, True, False) rest
   | otherwise = insert' FIRST s <$> parseArgs (True, False, False) rest
 
-parseArgs' :: (Bool, Bool, Bool) -> [String] -> Handle (Map OptionName String)
+parseArgs' :: (Bool, Bool, Bool) -> [String] -> Result (Map OptionName String)
 parseArgs' trp = addTrace "Trace while parsing arguments:" . raise patchArgs . parseArgs trp
 
-patchArgs :: Map OptionName String -> Handle (Map OptionName String)
+patchArgs :: Map OptionName String -> Result (Map OptionName String)
 patchArgs args
   | member QUERY args = Content args
   | member PATCH args =
     if member FIRST args
     then do
-      patchAmount <- (readHandle "integer" (args ! PATCH) :: Handle Integer)
+      patchAmount <- (readResult "integer" (args ! PATCH) :: Result Integer)
       Content
         $ insertWith const FIRST (shiftString patchAmount (args ! FIRST))
         $ insertWith const CONFIGKEYWORD (args ! FIRST) args
@@ -440,13 +440,13 @@ getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128
 getPublicStr :: Integer -> String
 getPublicStr = reverse . getPublicStr'
 
-getPrivateKey :: String -> Handle Integer
+getPrivateKey :: String -> Result Integer
 getPrivateKey s = liftA2 (^) base pow where
   (baseStr, powStr) = break' '-' s
-  base :: Handle Integer
-  base = readHandle "base in private key" baseStr
-  pow :: Handle Integer
-  pow = if null powStr then Content 1 else case readHandle "exponent in private key" powStr of
+  base :: Result Integer
+  base = readResult "base in private key" baseStr
+  pow :: Result Integer
+  pow = if null powStr then Content 1 else case readResult "exponent in private key" powStr of
     Error tr -> Error tr
     Content n ->
       if n < 0
@@ -480,8 +480,8 @@ getKeyStr args opt echoOpt promptOpt
 
 passKeysToAction ::
   Map OptionName String ->
-  (String -> String -> String -> IO (Handle ())) ->
-  IO (Handle ())
+  (String -> String -> String -> IO (Result ())) ->
+  IO (Result ())
 passKeysToAction args act = do
   first <- getKeyStr args FIRST E1 P1
   second <- getKeyStr args SECOND E2 P2
@@ -522,7 +522,7 @@ setEchoesAndPrompts args
       then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
       else insert' P1 "PUBLIC KEY: " $ insert' P2 "CHOICE KEY: " $ insert' P3 "SHUFFLE KEY: " args
 
-performAction :: Map OptionName String -> Handle [([Char], Integer)] -> IO (Handle ())
+performAction :: Map OptionName String -> Result [([Char], Integer)] -> IO (Result ())
 performAction _ (Error tr) = return (Error $ "Trace in configuration argument:" :=> [tr])
 performAction args (Content config)
   | member INFO args = infoAction config (args ! INFO)
@@ -566,7 +566,7 @@ formatTrace :: Bool -> Trace -> Trace
 formatTrace True (msg :=> trs) = formatWithColor msg :=> map (formatTrace True) trs
 formatTrace False (msg :=> trs) = formatWithoutColor msg False :=> map (formatTrace False) trs
 
-toIO :: [String] -> IO (Handle ()) -> IO ()
+toIO :: [String] -> IO (Result ()) -> IO ()
 toIO rawArgs action = do
   let color
         | "+no-color" `elem` rawArgs = False

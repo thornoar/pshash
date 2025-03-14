@@ -3,6 +3,7 @@ module UI where
 import GHC.IO.Handle.Types (Handle)
 import System.FilePath (dropFileName)
 import System.Environment (getExecutablePath)
+import System.Directory (getHomeDirectory)
 
 import System.Info (os)
 import System.Process (ProcessHandle, createProcess, shell)
@@ -18,18 +19,34 @@ import Data.Char (toLower)
 -- | main entry point from main.js launch script
 start :: Int -> IO ()
 start port = do
-  execPath <- dropFileName <$> getExecutablePath
+  -- execPath <- getExecutablePath
+  homeDir <- getHomeDirectory
+  putStrLn ""
+  putStrLn homeDir
+  putStrLn ""
   startGUI defaultConfig
     { jsPort = Just port
-    , jsStatic = Just $ execPath ++ "/static"
+    , jsStatic = Just $ homeDir ++ "/.config/calc"
     } setup
+
+addRemoteStyleSheet
+    :: Window
+    -> String
+    -> UI ()
+addRemoteStyleSheet w url = void $ do
+  el <- mkElement "link"
+          # set (attr "rel" ) "stylesheet"
+          # set (attr "type") "text/css"
+          # set (attr "href") url
+  getHead w #+ [element el]
 
 -- | setup window layout and event handling
 setup :: Window -> UI ()
 setup win = void $ do
   -- define page
   return win # set title "3PennyCalc"
-  UI.addStyleSheet win "semantic.min.css"
+  -- UI.addStyleSheet win "semantic.min.css"
+  addRemoteStyleSheet win "https://cdn.simplecss.org/simple-v1.min.css"
   
   -- define UI controls
   outputBox <- UI.input
@@ -41,8 +58,9 @@ setup win = void $ do
   -- define page DOM with 3penny html combinators
   UI.getBody win # set (attr "style") "overflow: hidden" #+
     [ UI.div #. "ui raised very padded text container segment" #+
-      [UI.table #+ [UI.row [UI.div #. "ui input" #+ [element outputBox]]] #+ 
-                    map (UI.row . map element) buttons]
+      [UI.table #+
+        [UI.row [UI.div #. "ui input" #+ [element outputBox]]] #+ 
+          map (UI.row . map element) buttons]
     ]
 
   let  

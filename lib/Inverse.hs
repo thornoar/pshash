@@ -8,7 +8,7 @@ import Error
 -- │ INVERSE FUNCTIONS │
 -- └───────────────────┘
 
-mapHashingI :: (Shifting b) => (a -> b -> Handle Integer) -> (a -> Integer) -> ([a] -> [b] -> Handle Integer)
+mapHashingI :: (Shifting b) => (a -> b -> Result Integer) -> (a -> Integer) -> ([a] -> [b] -> Result Integer)
 mapHashingI _ _ [] [] = Content 0
 mapHashingI _ _ _ [] = Error $ "<A bug in the Matrix, calling `mapHashingI`.>" :=> []
 mapHashingI _ _ [] _ = Error $ "<A bug in the Matrix, calling `mapHashingI`.>" :=> []
@@ -24,13 +24,13 @@ mapHashingI fI spr (a:as) (b:bs) =
         (_, Error tr) -> Error tr
         (Content curKey, Content nextPreKey) -> Content $ curKey + curSpr * mod (nextPreKey - shift b) restSpr
 
-combineHashingI :: (a -> Integer -> b) -> (b -> c -> Handle Integer) -> (a -> c -> Integer -> Handle Integer)
+combineHashingI :: (a -> Integer -> b) -> (b -> c -> Result Integer) -> (a -> c -> Integer -> Result Integer)
 combineHashingI f gI a c key1 = gI (f a key1) c
 
-combineHashingI' :: (a -> b -> Handle Integer) -> (c -> Integer -> b) -> (a -> c -> Integer -> Handle Integer)
+combineHashingI' :: (a -> b -> Result Integer) -> (c -> Integer -> b) -> (a -> c -> Integer -> Result Integer)
 combineHashingI' fI gI' a c key2 = fI a (gI' c key2)
 
-composeHashingI :: (Shifting b) => (a -> b -> Handle Integer) -> (a -> Integer) -> (b -> c -> Handle Integer) -> (b -> Integer) -> (a -> c -> b) -> (a -> c -> Handle Integer)
+composeHashingI :: (Shifting b) => (a -> b -> Result Integer) -> (a -> Integer) -> (b -> c -> Result Integer) -> (b -> Integer) -> (a -> c -> b) -> (a -> c -> Result Integer)
 composeHashingI fI sprF gI sprG getB a c =
   let b = getB a c
       keyModH = fI a b
@@ -41,7 +41,7 @@ composeHashingI fI sprF gI sprG getB a c =
         (_, Error tr) -> Error ("Trace while composing hashing reversal, in second function:" :=> [tr])
         (Content keyMod, Content nextKey) -> Content $ keyMod + sprF a * mod (nextKey - shift b) (sprG b)
 
-chooseOrderedI :: (Shifting a, Eq a, Show a) => ([a], Integer) -> [a] -> Handle Integer
+chooseOrderedI :: (Shifting a, Eq a, Show a) => ([a], Integer) -> [a] -> Result Integer
 chooseOrderedI (_,0) [] = Content 0
 chooseOrderedI (src,num) hash
   | num /= length' hash = Error $
@@ -67,7 +67,7 @@ chooseOrderedI (src, num) (a:as) =
           Content keyDiv -> Content $ keyMod + srcLen * mod (keyDiv - shift a) prevSpread
 chooseOrderedI (_,_) _ = Error $ "<A bug in the Matrix, calling `chooseOrderedI`.>" :=> []
 
-shuffleListI :: (Shifting a, Eq a, Show a) => [a] -> [a] -> Handle Integer
+shuffleListI :: (Shifting a, Eq a, Show a) => [a] -> [a] -> Result Integer
 shuffleListI lst = chooseOrderedI (lst, length' lst)
 
 shuffleListI' :: (Shifting a, Eq a) => [a] -> Integer -> [a]
@@ -78,7 +78,7 @@ shuffleListI' (r:rest) key =
       nextKey = keyDiv + shift r
    in insertAt r keyMod (shuffleListI' rest nextKey)
 
-mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Handle Integer
+mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Result Integer
 mergeTwoListsI ([], src) hash
   | src == hash = Content 0
   | otherwise = Error $
@@ -115,7 +115,7 @@ mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
     spr2 = mergeTwoListsSpread (1 + length' rest1, length' rest2)
 mergeTwoListsI (_, _) [] = Error $ "<Invalid hash: too few elements.>" :=> []
 
-mergeListsI :: (Shifting a, Eq a, Show a) => [[a]] -> [a] -> Handle Integer
+mergeListsI :: (Shifting a, Eq a, Show a) => [[a]] -> [a] -> Result Integer
 mergeListsI [] [] = Content 0
 mergeListsI [] _  = Error $ "<A bug in the Matrix, calling `mergeListsI`.>" :=> []
 mergeListsI [src] lst
@@ -150,7 +150,7 @@ invertMergeLists :: (Eq a) => [[a]] -> [a] -> [[a]]
 invertMergeLists srcs [] = [[] | _ <- srcs]
 invertMergeLists srcs (a:as) = distribute srcs (invertMergeLists srcs as) a
 
-chooseAndMergeI :: (Shifting a, Eq a, Show a) => [([a], Integer)] -> [a] -> Handle Integer
+chooseAndMergeI :: (Shifting a, Eq a, Show a) => [([a], Integer)] -> [a] -> Result Integer
 chooseAndMergeI = composeHashingI
   (mapHashingI chooseOrderedI chooseOrderedSpread')
   (product . map chooseOrderedSpread')
@@ -158,10 +158,10 @@ chooseAndMergeI = composeHashingI
   mergeListsSpread'
   (invertMergeLists . map fst)
 
-getHashI :: (Shifting a, Eq a, Show a) => [([a], Integer)] -> [a] -> Integer -> Handle Integer
+getHashI :: (Shifting a, Eq a, Show a) => [([a], Integer)] -> [a] -> Integer -> Result Integer
 getHashI = combineHashingI chooseAndMerge shuffleListI
 
-getHashI' :: (Shifting a, Eq a, Show a) => [([a], Integer)] -> [a] -> Integer -> Handle Integer
+getHashI' :: (Shifting a, Eq a, Show a) => [([a], Integer)] -> [a] -> Integer -> Result Integer
 getHashI' = combineHashingI' chooseAndMergeI shuffleListI'
 
 -- ┌────────────────────┐
