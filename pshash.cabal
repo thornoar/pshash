@@ -13,18 +13,18 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options: -Wall
 
-foreign-library pshashapi
-    -- options:          standalone
-    type:             native-shared
-    other-modules:    FFI, Algorithm
-    install-includes: FFI_stub.h
-    build-depends:
-        base
-    hs-source-dirs:   lib
-    c-sources:        gui/lib.cpp
-    default-language: Haskell2010
-    if os(Windows)
-        options:      standalone
+-- foreign-library pshashapi
+--     -- options:          standalone
+--     type:             native-shared
+--     other-modules:    FFI, Algorithm
+--     install-includes: FFI_stub.h
+--     build-depends:
+--         base
+--     hs-source-dirs:   lib
+--     c-sources:        gui/lib.cpp
+--     default-language: Haskell2010
+--     if os(Windows)
+--         options:      standalone
 
 library
     import:           warnings
@@ -43,6 +43,23 @@ executable pshash
         directory,
         pshash
     hs-source-dirs:   app
+    default-language: Haskell2010
+    ghc-options: 
+        -O5
+        -fwrite-ide-info
+        -hiedir=.hie
+
+executable pshash-gui
+    import:           warnings
+    main-is:          Main.hs
+    other-modules:    UI, Calc
+    build-depends:
+        base,
+        zlib,
+        threepenny-gui,
+        filepath,
+        process
+    hs-source-dirs:   gui
     default-language: Haskell2010
     ghc-options: 
         -O5
