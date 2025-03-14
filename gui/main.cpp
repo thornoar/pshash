@@ -61,7 +61,11 @@ void MyFrame::OnExit(wxCommandEvent& event) {
 }
  
 void MyFrame::OnCompute(wxCommandEvent& event) {
-    hs_init(nullptr, nullptr);
-    wxLogMessage(std::to_string(foo(5)).c_str());
+    int argc = 2;
+    const char *argv[] = { "+RTS", "-A32m", NULL };
+    // argv[0] = "+RTS";
+    char **pargv = (char**) argv;
+    hs_init(&argc, &pargv);
+    wxLogMessage(std::to_string(fac(5)).c_str());
     hs_exit();
 }

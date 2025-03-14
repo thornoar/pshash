@@ -13,18 +13,22 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options: -Wall
 
--- foreign-library pshash
---     type:             native-shared
---     other-modules:    FFI
---     build-depends:
---         base
---     hs-source-dirs:   lib
---     c-sources:        gui/lib.cpp
---     default-language: Haskell2010
+foreign-library pshashapi
+    -- options:          standalone
+    type:             native-shared
+    other-modules:    FFI, Algorithm
+    install-includes: FFI_stub.h
+    build-depends:
+        base
+    hs-source-dirs:   lib
+    c-sources:        gui/lib.cpp
+    default-language: Haskell2010
+    if os(Windows)
+        options:      standalone
 
 library
     import:           warnings
-    exposed-modules:  Algorithm, Inverse, Error, FFI
+    exposed-modules:  Algorithm, Inverse, Error, FFI, Info
     hs-source-dirs:   lib
     default-language: Haskell2010
     build-depends:

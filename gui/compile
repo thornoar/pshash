@@ -1,18 +1,16 @@
 #!/usr/bin/env bash
 
 printf "\e[1;33m#\e[0m Compiling FFI.hs...\n"
-ghc -no-keep-hi-files --make ../lib/FFI.hs -c -i../lib -v
+ghc -no-keep-hi-files --make ../lib/FFI.hs -c -i../lib
 
 mv ../lib/FFI.o ../lib/Algorithm.o ../lib/FFI_stub.h ./
 
 printf "\e[1;33m#\e[0m Compiling main.cpp...\n"
-g++ -v -std=c++11 "./main.cpp" -c $(wx-config --cxxflags --libs) -I"$(find "$(ghc --print-libdir)" -name "HsFFI.h" -print0 | xargs -0 dirname)"
-
-exit 0
+g++ -std=c++11 "./main.cpp" -c $(wx-config --cxxflags --libs) -I"$(find "$(ghc --print-libdir)" -name "HsFFI.h" -print0 | xargs -0 dirname)"
 
 printf "\e[1;33m#\e[0m Linking...\n"
-g++ -o main ./FFI.o ./Algorithm.o ./main.o $(wx-config --cxxflags --libs)
-# ghc -no-hs-main ./FFI.o ./Algorithm.o ./main.o -o main -lstdc++ $(wx-config --cxxflags)
+# g++ -o main ./FFI.o ./Algorithm.o ./main.o $(wx-config --cxxflags --libs)
+ghc -no-hs-main ./FFI.o ./Algorithm.o ./main.o -o main -lstdc++ -optl"$(wx-config --cxxflags --libs)"
 
 # printf "\e[1;33m#\e[0m Linking...\n"
 # ghc -no-hs-main ./FFI.o ./main.cpp -o main
