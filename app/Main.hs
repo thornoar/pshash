@@ -310,20 +310,20 @@ readFileHandle = safeReadWithHandler handler
   where handler e = return . Error $ "<Error reading configuration file:>" :=> [ show e :=> [] ]
 
 getConfigFromContents :: Maybe String -> String -> IO (Handle [([Char], Integer)])
-getConfigFromContents keywordM contents = process specs
-  where
-    specLines = filter (elem ':') (lines contents)
-    specs = map (break' ':') specLines
-    process :: [(String, String)] -> IO (Handle [([Char], Integer)])
-    process [] = return (Content defaultConfiguration)
-    process ((publicStr', argStr) : rest) = case keywordM of
-      Nothing -> return . Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
-        [
-          ("Disable configuration files by passing the " ++ "{--pure}" ++ " option, or") :=> [],
-          ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
-          ("{Remove}" ++ " the configuration files.") :=> []
-        ]
-      Just publicStr ->
+getConfigFromContents keywordM contents = case keywordM of
+  Nothing -> return . Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
+    [
+      ("Disable configuration files by passing the " ++ "{--pure}" ++ " option, or") :=> [],
+      ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
+      ("{Remove}" ++ " the configuration files.") :=> []
+    ]
+  Just publicStr -> process specs
+    where
+      specLines = filter (elem ':') (lines contents)
+      specs = map (break' ':') specLines
+      process :: [(String, String)] -> IO (Handle [([Char], Integer)])
+      process [] = return (Content defaultConfiguration)
+      process ((publicStr', argStr) : rest) =
         if publicStr == publicStr' || publicStr' == "+all"
         then case parseArgs' (True, True, True) (words argStr) of
           Error tr -> return . Error $ ("Trace while parsing options for {" ++ publicStr' ++ "}:") :=> [tr]
