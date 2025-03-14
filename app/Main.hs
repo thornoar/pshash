@@ -23,7 +23,6 @@ import Info
 currentVersion :: String
 currentVersion = "0.1.15.0"
 
-
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
 -- └─────────────────────┘
