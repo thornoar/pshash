@@ -1,5 +1,5 @@
 {
-  inputs = { nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05"; };
+  inputs = { nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable"; };
 
   outputs = { self, nixpkgs }:
     let
@@ -26,10 +26,6 @@
         nativeBuildInputs = with pkgs; [
           zlib
           (haskellPackages.ghcWithPackages (p: with p; [
-            threepenny-gui
-            filepath
-            process
-            zlib
             directory
             containers
           ]))
