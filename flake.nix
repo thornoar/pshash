@@ -23,15 +23,16 @@
         program = "${self.packages.${system}.default}/bin/${pname}";
       };
       devShells.${system}.default = pkgs.mkShell {
-        nativeBuildInputs = [
-          (pkgs.haskellPackages.callCabal2nix "stan" (pkgs.fetchFromGitHub {
-            owner = "kowainik";
-            repo = "stan";
-            rev = "dc0a3a5";
-            hash = "sha256-5tBpDLzaNe2cT/z2lh4T6V/aAPcXWUQkuE7DSgZKY6A=";
-          }) { })
-          pkgs.cabal-install
-          pkgs.ghc
+        nativeBuildInputs = with pkgs; [
+          zlib
+          (haskellPackages.ghcWithPackages (p: with p; [
+            threepenny-gui
+            filepath
+            process
+            zlib
+            directory
+            containers
+          ]))
         ];
       };
     };

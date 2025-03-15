@@ -15,10 +15,14 @@ Strictly speaking, a hash algorithm represents a mathematical function that is i
 First of all, you can use the algorithm online at https://thornoar.github.io/pshash/web/app/. Moreover, `pshash` adopts a wide range of local deployment options:
 - You can install `pshash` from the AUR.
 - You can build `pshash` with Nix flakes by invoking `nix build github:thornoar/pshash`, there are two outputs: `#dynamic` for dynamic linking, and `#static` for static linking (will take a lot longer to build).
-- You can build `pshash` with `cabal-install` by cloning this repo and running `cabal update && cabal install`.
-- You can simply compile the Haskell file `app/Main.hs` with `ghc`, hoping that it finds the necessary libraries.
-- You can directly download the relevant pre-compiled executables from the `pshash-bin` repo: https://github.com/thornoar/pshash-bin
+- You can build `pshash` with `cabal-install` by cloning this repo and running `cabal update && cabal install pshash`.
+- You can simply download all the source code (the `app` and `lib` directories) and compile with
+  ```Haskell
+    ghc --make -i./src ./app/Main -o pshash
+  ```
+  Here you will have to make sure that the necessary libraries (i.e. `containers` and `directory`) are installed on your system.
+- Finally, you can directly download the relevant pre-compiled executables from the `pshash-bin` repo: https://github.com/thornoar/pshash-bin
 
 ## Contact
 
-You can contact me via email: `r.a.maksimovich@gmail.com`, or on Telegram/Instagram: `@thornoar`.
+Please contact me via email: `r.a.maksimovich@gmail.com`, or on Telegram/Instagram: `@thornoar`.
