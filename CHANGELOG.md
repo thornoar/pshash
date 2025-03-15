@@ -2,7 +2,7 @@
 
 ## 0.1.14.6
 
-* Split the program into modules.
+* Split the program into modules, changed help messages.
 
 ## 0.1.14.5
 
