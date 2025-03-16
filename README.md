@@ -16,7 +16,7 @@ Strictly speaking, a cryptographic hash is a function that has a uniform distrib
 
 ### Web implementation
 
-First of all, you can use the algorithm online at https://thornoar.github.io/pshash/web/app/, or at https://thornoar.github.io/pshash/web/get/, if you like browser prompts better than input fields.
+First of all, you can use the algorithm online at https://thornoar.github.io/pshash/web/app/.
 
 ### CLI tool
 
@@ -29,7 +29,7 @@ The `pshash` CLI tool adopts a wide range of local deployment options:
     ghc --make -i./src ./app/Main -o pshash
   ```
   Here you will have to make sure that the necessary libraries (i.e. `containers` and `directory`) are installed on your system.
-- Finally, you can directly download the relevant pre-compiled executables from the `pshash-bin` repo: https://github.com/thornoar/pshash-bin
+- Finally, you can directly download the relevant pre-compiled executables from the `pshash-bin` repo: https://github.com/thornoar/pshash-bin. Binaries are also available at https://thornoar.github.io/pshash/web/app/.
 
 ### GUI application
 
