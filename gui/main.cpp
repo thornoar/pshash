@@ -22,13 +22,13 @@ class MyFrame : public wxFrame {
     MyFrame();
 
     private:
-    void OnHello(wxCommandEvent& event);
+    void OnGetHash(wxCommandEvent& event);
     void OnExit(wxCommandEvent& event);
     void OnAbout(wxCommandEvent& event);
 };
  
 enum {
-    ID_Hello = 1
+    ID_GetHash = 1
 };
  
 bool MyApp::OnInit() {
@@ -37,10 +37,9 @@ bool MyApp::OnInit() {
     return true;
 }
  
-MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "Hello World") {
+MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     wxMenu *menuFile = new wxMenu;
-    menuFile->Append(ID_Hello, "&Hello...\tCtrl-H",
-                     "Help string shown in status bar for this menu item");
+    menuFile->Append(ID_GetHash, "&Get sample hash\tCtrl-H", "Sample hash computation for testing");
     menuFile->AppendSeparator();
     menuFile->Append(wxID_EXIT);
 
@@ -54,9 +53,9 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "Hello World") {
     SetMenuBar( menuBar );
 
     CreateStatusBar();
-    SetStatusText("Welcome to wxWidgets!");
+    SetStatusText(L"\u00E0 The pshash pseudo-hash algorithm, version 1.0");
 
-    Bind(wxEVT_MENU, &MyFrame::OnHello, this, ID_Hello);
+    Bind(wxEVT_MENU, &MyFrame::OnGetHash, this, ID_GetHash);
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
 }
@@ -69,6 +68,10 @@ void MyFrame::OnAbout(wxCommandEvent& event) {
     wxMessageBox("This is a wxWidgets Hello World example", "About Hello World", wxOK | wxICON_INFORMATION);
 }
  
-void MyFrame::OnHello(wxCommandEvent& event) {
-    wxLogMessage("Hello world from wxWidgets!");
+void MyFrame::OnGetHash(wxCommandEvent& event) {
+    char hash[MAXSIZE_BIG];
+    mpz_t key1; mpz_init_set_str(key1, "12345", 10);
+    mpz_t key2; mpz_init_set_str(key2, "6789", 10);
+    get_hash(hash, defaultConfiguration, 4, key1, key2);
+    wxLogMessage(hash);
 }
