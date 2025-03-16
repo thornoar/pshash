@@ -1,6 +1,8 @@
 ## Synopsis
 
-`pshash` is a pseudo-hash algorithm implemented in Haskell, that serves as a password manager by accepting three keys (one public and two private) and returning a pseudo-hash that can be used as a password. The program does not store the passwords anywhere, instead it generates them on the fly every time, which ensures a significant degree of security.
+`pshash` is a pseudo-hash algorithm implemented in Haskell, JavaScript, and C++. It serves as a password manager by accepting three keys (one public and two private) and returning a pseudo-hash that can be used as a password. The program does not store the passwords anywhere, instead it generates them on the fly every time, which ensures a significant degree of security.
+
+This repository contains the CLI version of the `pshash` algorithm, implemented in Haskell, as well as the web version, written in JavaScript. A local Graphical User Interface will also be available soon.
 
 Various password templates are supported, and the user is free to define their own. These templates can then be stored in a configuration file, one template per public key. This way, the user can produce different types of passwords for different public keys, and does not have to keep all the templates inn their head.
 

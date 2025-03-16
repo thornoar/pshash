@@ -4,32 +4,47 @@
   outputs = { self, nixpkgs }:
     let
       system = "x86_64-linux";
-      pname = "pshash";
       pkgs = nixpkgs.legacyPackages.${system};
     in {
       packages.${system} = rec {
-        static = import ./build/static.nix {
+        pshash-static = import ./build/static.nix {
           pkgs = pkgs.pkgsMusl;
-          inherit pname;
+          pname = "pshash";
         };
-        dynamic = import ./build/dynamic.nix {
+        pshash-dynamic = import ./build/dynamic.nix {
           inherit pkgs;
-          inherit pname;
+          pname = "pshash";
         };
-        default = dynamic;
+        pshash-gui = import ./build/pshash-gui.nix {
+          inherit pkgs;
+          pname = "pshash-gui";
+          version = "1.0";
+        };
+        default = pshash-dynamic;
       };
       apps.${system}.default = {
         type = "app";
-        program = "${self.packages.${system}.default}/bin/${pname}";
+        program = "${self.packages.${system}.default}/bin/pshash";
       };
-      devShells.${system}.default = pkgs.mkShell {
-        nativeBuildInputs = with pkgs; [
-          zlib
-          (haskellPackages.ghcWithPackages (p: with p; [
-            directory
-            containers
-          ]))
-        ];
+      devShells.${system} = {
+        pshash = pkgs.mkShell {
+          nativeBuildInputs = with pkgs; [
+            zlib
+            (haskellPackages.ghcWithPackages (p: with p; [
+              directory
+              containers
+            ]))
+          ];
+        };
+        pshash-gui = pkgs.mkShell {
+          nativeBuildInputs = with pkgs; [
+            bear
+            coccinelle
+            valgrind
+            gcc
+            wxGTK32
+          ];
+        };
       };
     };
 }

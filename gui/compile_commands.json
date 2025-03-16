@@ -1,0 +1,20 @@
+[
+  {
+    "arguments": [
+      "/nix/store/gj9lra51hwhxnhz05jqk5lh03wipamv0-gcc-wrapper-14-20241116/bin/g++",
+      "-c",
+      "-I/nix/store/9qnach9x0yrlyw8rv97lkyjzsw6skinf-wxwidgets-3.2.6/lib/wx/include/gtk3-unicode-3.2",
+      "-I/nix/store/9qnach9x0yrlyw8rv97lkyjzsw6skinf-wxwidgets-3.2.6/include/wx-3.2",
+      "-D_FILE_OFFSET_BITS=64",
+      "-DWXUSINGDLL",
+      "-D__WXGTK__",
+      "-pthread",
+      "-pthread",
+      "-o",
+      "main",
+      "./main.cpp"
+    ],
+    "directory": "/home/ramak/projects/pshash-gui/app",
+    "file": "/home/ramak/projects/pshash-gui/app/main.cpp"
+  }
+]
