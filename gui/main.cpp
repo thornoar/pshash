@@ -4,7 +4,16 @@
 #include <cstring>
 #include "algorithm.h"
 
-#include <wx/wx.h>
+// For compilers that support precompilation, includes "wx/wx.h".
+#include "wx/wxprec.h"
+
+// for all others, include the necessary headers (this file is usually all you
+// need because it includes almost all "standard" wxWidgets headers)
+#ifndef WX_PRECOMP
+    #include "wx/wx.h"
+#endif
+
+#include "wx/clipbrd.h"
 
 using namespace std;
  
@@ -32,6 +41,9 @@ enum {
 };
  
 bool MyApp::OnInit() {
+    if ( !wxApp::OnInit() )
+        return false;
+
     MyFrame *frame = new MyFrame();
     frame->Show(true);
     return true;
@@ -53,7 +65,7 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     SetMenuBar( menuBar );
 
     CreateStatusBar();
-    SetStatusText(L"\u00E0 The pshash pseudo-hash algorithm, version 1.0");
+    SetStatusText("The pshash pseudo-hash algorithm, version 1.0");
 
     Bind(wxEVT_MENU, &MyFrame::OnGetHash, this, ID_GetHash);
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);

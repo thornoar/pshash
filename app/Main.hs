@@ -181,7 +181,7 @@ infoAction config "help" = do
         : "  -f PATH             Read the configuration file from PATH. If neither"
         : "                      this nor the `--pure` option is used, the program"
         : "                      will try to read from the following files:"
-        : map ("                       - " ++) defaultConfigFiles ++
+        : map ("                       * " ++) defaultConfigFiles ++
           "                      Each line of the file should follow the format"
         : "                         PUBLIC: ARGS"
         : "                      (other lines will be ignored)"
@@ -304,14 +304,14 @@ listPairsAction config publicStr limitStr hashStr =
 hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Result ())
 hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr
 
-safeReadWithResultr :: (Monad m) => (IOException -> IO (m String)) -> FilePath -> IO (m String)
-safeReadWithResultr handler path = (return <$> readFile path) `catch` handler
+safeReadWithHandler :: (Monad m) => (IOException -> IO (m String)) -> FilePath -> IO (m String)
+safeReadWithHandler handler path = (return <$> readFile path) `catch` handler
 
 readFileMaybe :: FilePath -> IO (Maybe String)
-readFileMaybe = safeReadWithResultr (const $ return Nothing)
+readFileMaybe = safeReadWithHandler (const $ return Nothing)
 
 readFileResult :: FilePath -> IO (Result String)
-readFileResult = safeReadWithResultr handler
+readFileResult = safeReadWithHandler handler
   where handler e = return . Error $ "<Error reading configuration file:>" :=> [ show e :=> [] ]
 
 getConfigFromContents :: Maybe String -> String -> IO (Result [([Char], Integer)])
