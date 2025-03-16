@@ -7,11 +7,11 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in {
       packages.${system} = rec {
-        pshash-static = import ./build/static.nix {
+        pshash-static = import ./build/pshash-static.nix {
           pkgs = pkgs.pkgsMusl;
           pname = "pshash";
         };
-        pshash-dynamic = import ./build/dynamic.nix {
+        pshash-dynamic = import ./build/pshash-dynamic.nix {
           inherit pkgs;
           pname = "pshash";
         };
@@ -28,6 +28,9 @@
       };
       devShells.${system} = {
         pshash = pkgs.mkShell {
+          shellHook = ''
+            export ZDOTDIR="$XDG_CONFIG_HOME/nix-develop"
+          '';
           nativeBuildInputs = with pkgs; [
             zlib
             (haskellPackages.ghcWithPackages (p: with p; [
@@ -37,6 +40,9 @@
           ];
         };
         pshash-gui = pkgs.mkShell {
+          shellHook = ''
+            export ZDOTDIR="$XDG_CONFIG_HOME/nix-develop"
+          '';
           nativeBuildInputs = with pkgs; [
             bear
             coccinelle

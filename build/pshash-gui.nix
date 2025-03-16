@@ -3,7 +3,7 @@
 pkgs.stdenv.mkDerivation {
     inherit pname;
     inherit version;
-    src = ./app;
+    src = ../gui;
     buildInputs = with pkgs; [
         gcc
         wxGTK32

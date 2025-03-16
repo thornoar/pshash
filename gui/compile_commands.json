@@ -14,7 +14,7 @@
       "main",
       "./main.cpp"
     ],
-    "directory": "/home/ramak/projects/pshash-gui/app",
-    "file": "/home/ramak/projects/pshash-gui/app/main.cpp"
+    "directory": "/home/ramak/projects/pshash/gui",
+    "file": "/home/ramak/projects/pshash/gui/main.cpp"
   }
 ]
