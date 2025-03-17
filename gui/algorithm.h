@@ -13,14 +13,28 @@ struct source {
     const unsigned long amount;
 };
 
-const struct source defaultConfiguration[] = { {sourceLower, 8}, {sourceUpper, 8}, {sourceSpecial, 5}, {sourceNumbers, 4} };
-const struct source mediumConfiguration[] = { {sourceLower, 5}, {sourceUpper, 5}, {sourceSpecial, 5}, {sourceNumbers, 5} };
-const struct source shortConfiguration[] = { {sourceLower, 4}, {sourceUpper, 4}, {sourceSpecial, 4}, {sourceNumbers, 4} };
-const struct source anlongConfiguration[] = { {sourceLower, 7}, {sourceUpper, 7}, {sourceNumbers, 7} };
-const struct source anshortConfiguration[] = { {sourceLower, 4}, {sourceUpper, 4}, {sourceNumbers, 4} };
-const struct source pinCodeConfiguration[] = { {sourceNumbers, 4} };
-const struct source mediumPinCodeConfiguration[] = { {sourceNumbers, 6} };
-const struct source longPinCodeConfiguration[] = { {sourceNumbers, 8} };
+struct configuration {
+    const unsigned long size;
+    const struct source srcs[];
+};
+
+// const struct source defaultConfiguration[] = { {sourceLower, 8}, {sourceUpper, 8}, {sourceSpecial, 5}, {sourceNumbers, 4} };
+// const struct source mediumConfiguration[] = { {sourceLower, 5}, {sourceUpper, 5}, {sourceSpecial, 5}, {sourceNumbers, 5} };
+// const struct source shortConfiguration[] = { {sourceLower, 4}, {sourceUpper, 4}, {sourceSpecial, 4}, {sourceNumbers, 4} };
+// const struct source anlongConfiguration[] = { {sourceLower, 7}, {sourceUpper, 7}, {sourceNumbers, 7} };
+// const struct source anshortConfiguration[] = { {sourceLower, 4}, {sourceUpper, 4}, {sourceNumbers, 4} };
+// const struct source pinCodeConfiguration[] = { {sourceNumbers, 4} };
+// const struct source mediumPinCodeConfiguration[] = { {sourceNumbers, 6} };
+// const struct source longPinCodeConfiguration[] = { {sourceNumbers, 8} };
+
+const struct configuration defaultConfiguration = { .size = 4, .srcs = { {sourceLower, 8}, {sourceUpper, 8}, {sourceSpecial, 5}, {sourceNumbers, 4} } };
+const struct configuration mediumConfiguration = { .size = 4, .srcs = { {sourceLower, 5}, {sourceUpper, 5}, {sourceSpecial, 5}, {sourceNumbers, 5} } };
+const struct configuration shortConfiguration = { .size = 4, .srcs = { {sourceLower, 4}, {sourceUpper, 4}, {sourceSpecial, 4}, {sourceNumbers, 4} } };
+const struct configuration anlongConfiguration = { .size = 3, .srcs = { {sourceLower, 7}, {sourceUpper, 7}, {sourceNumbers, 7} } };
+const struct configuration anshortConfiguration = { .size = 3, .srcs = { {sourceLower, 4}, {sourceUpper, 4}, {sourceNumbers, 4} } };
+const struct configuration pinCodeConfiguration = { .size = 1, .srcs = { {sourceNumbers, 4} } };
+const struct configuration mediumPinCodeConfiguration = { .size = 1, .srcs = { {sourceNumbers, 6} } };
+const struct configuration longPinCodeConfiguration = { .size = 1, .srcs = { {sourceNumbers, 8} } };
 
 void mpz_rel_fac_ui (mpz_t, unsigned long, unsigned long);
 void mpz_cnk_ui (mpz_t, unsigned long, unsigned long);
@@ -29,4 +43,6 @@ void multi_choose_ordered (char**, const struct source*, unsigned long, mpz_t);
 void shuffleList (char*, const char*, mpz_t);
 void merge_two_lists (char*, const char*, const char*, mpz_t);
 void merge_lists (char*, char**, unsigned long, mpz_t);
-void get_hash (char*, const struct source*, unsigned long, mpz_t, mpz_t);
+void get_hash (char*, const struct configuration*, mpz_t, mpz_t);
+void parse_key (mpz_t, const char*);
+void get_public_key (mpz_t, const char*);

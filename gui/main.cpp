@@ -26,11 +26,6 @@ using namespace std;
 // CONSTANTS
 // ========================================================
 
-const int VERTICAL_OFFSET = 100;
-const int BORDER_WIDTH = 10;
-const int SUPER_BORDER_WIDTH = 30;
-const int BOX_HEIGHT = 28;
-const int BOX_WIDTH = 115;
 const string currentVersion = "1.0";
 
 class MyApp : public wxApp {
@@ -58,9 +53,21 @@ public:
     void OnTextChange (wxCommandEvent& event) {
         // wxTextCtrl* textCtrl = dynamic_cast<wxTextCtrl*>(event.GetEventObject());
         // if (textCtrl) {
-        //     cout << "Text changed: " << textCtrl->GetValue() << endl;
         //     AdjustTextCtrlSize(textCtrl);
         // }
+        for (int i = 0; i < NUM_INPUTS; i++) {
+            AdjustTextCtrlSize(inputs[i]);
+            // if (inputs[i] == event.GetEventObject()) {
+            //     return;
+            // }
+        }
+        for (int i = 0; i < NUM_OUTPUTS; i++) {
+            AdjustTextCtrlSize(outputs[i]);
+            // outputs[i]->GetParent()->Layout();
+            // if (outputs[i] == event.GetEventObject()) {
+            //     return;
+            // }
+        }
         Refresh();
     }
 
@@ -68,8 +75,12 @@ private:
     wxTextCtrl* inputs[NUM_INPUTS] = {};
     wxTextCtrl* outputs[NUM_OUTPUTS] = {};
 
-    void GetPenColor(wxPaintDC* dc, wxTextCtrl* textCtrl, int textCtrlID) {
-        if (validKey(textCtrl, textCtrlID))
+    bool validInput (int id) {
+        return validKey(inputs[id], id);
+    }
+
+    void GetPenColor(wxPaintDC* dc, bool valid) {
+        if (valid)
             dc->SetPen(wxPen(*wxGREEN, 2));
         else
             dc->SetPen(wxPen(*wxRED, 2));
@@ -96,22 +107,32 @@ private:
         wxPoint points2[] = { inputPos[CHOICE_KEY], choiceKeyControl, outputControl, outputPos[HASH] };
         wxPoint points3[] = { inputPos[SHUFFLE_KEY], shuffleKeyControl, outputControl, outputPos[HASH] };
 
-        GetPenColor(&dc, inputs[PUBLIC_KEY], PUBLIC_KEY);
-        dc.DrawSpline(4, points1);
-        GetPenColor(&dc, inputs[CHOICE_KEY], CHOICE_KEY);
-        dc.DrawSpline(4, points2);
-        GetPenColor(&dc, inputs[SHUFFLE_KEY], SHUFFLE_KEY);
-        dc.DrawSpline(4, points3);
-    }
+        bool validInputs[NUM_INPUTS];
+        for (int i = 0; i < NUM_INPUTS; i++) {
+            validInputs[i] = validInput(i);
+        }
 
-    wxPoint GetTextCtrlPosition(wxTextCtrl* textCtrl, wxWindow* relativeTo) {
-        // Get the position of the text control in screen coordinates
-        wxPoint screenPos = textCtrl->ClientToScreen(wxPoint(0, 0));
-        // Convert the screen position to the coordinate system of the relative window
-        wxPoint relativePos = relativeTo->ScreenToClient(screenPos);
-        wxSize size = textCtrl->GetSize();
-        // Return the center point of the text control
-        return wxPoint(relativePos.x + size.x / 2, relativePos.y + size.y / 2);
+        GetPenColor(&dc, validInputs[PUBLIC_KEY]);
+        dc.DrawSpline(4, points1);
+        GetPenColor(&dc, validInputs[CHOICE_KEY]);
+        dc.DrawSpline(4, points2);
+        GetPenColor(&dc, validInputs[SHUFFLE_KEY]);
+        dc.DrawSpline(4, points3);
+
+        if (validInputs[PUBLIC_KEY] && validInputs[PATCH_KEY] && validInputs[CHOICE_KEY] && validInputs[SHUFFLE_KEY]) {  
+            wxString hash = getHash(
+                &defaultConfiguration,
+                inputs[PUBLIC_KEY]->GetValue(),
+                inputs[PATCH_KEY]->GetValue(),
+                inputs[CHOICE_KEY]->GetValue(),
+                inputs[SHUFFLE_KEY]->GetValue()
+            );
+            outputs[HASH]->SetValue(hash);
+        } else {
+            outputs[HASH]->SetValue("");
+        }
+        AdjustTextCtrlSize(outputs[HASH]);
+        Refresh();
     }
 };
  
@@ -119,15 +140,14 @@ class MyFrame : public wxFrame {
     public:
     MyFrame();
 
-    void OnTextChange(wxCommandEvent& event) {
-        wxTextCtrl* textCtrl = dynamic_cast<wxTextCtrl*>(event.GetEventObject());
-        if (textCtrl) {
-            cout << "Text changed: " << textCtrl->GetValue() << endl;
-            AdjustTextCtrlSize(textCtrl);
-        }
-        // Refresh the panel if needed
-        textCtrl->GetParent()->Refresh();
-    }
+    // void OnTextChange(wxCommandEvent& event) {
+    //     wxTextCtrl* textCtrl = dynamic_cast<wxTextCtrl*>(event.GetEventObject());
+    //     if (textCtrl) {
+    //         AdjustTextCtrlSize(textCtrl);
+    //     }
+    //     // Refresh the panel if needed
+    //     textCtrl->GetParent()->Refresh();
+    // }
 
     private:
     void OnExit(wxCommandEvent& event) {
@@ -162,6 +182,8 @@ bool MyApp::OnInit() {
 }
  
 MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
+    // Menu bar
+
     wxMenu *menuSettings = new wxMenu;
     menuSettings->Append(ID_Preferences, "&Preferences\tCtrl-P", "Open the configuration menu");
     menuSettings->AppendSeparator();
@@ -179,45 +201,92 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
 
     SetMenuBar(menuBar);
 
+    // Status bar
+
     CreateStatusBar();
     SetStatusText("The pshash pseudo-hash algorithm, version 1.0");
 
-    // Create a custom panel for drawing lines
+    // Custom panel
+
     GetHashPanel* getHashPanel = new GetHashPanel(this);
+
     wxTextCtrl* inputs[NUM_INPUTS];
-    wxTextCtrl* outputs[NUM_OUTPUTS];
-
     wxPanel* inputPanel = new wxPanel(getHashPanel);
+    inputs[PUBLIC_KEY] = new wxTextCtrl(inputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+    inputs[CHOICE_KEY] = new wxTextCtrl(inputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+    inputs[SHUFFLE_KEY] = new wxTextCtrl(inputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+
+    wxBoxSizer* primaryInputSizer = new wxBoxSizer(wxHORIZONTAL);
+    // primaryInputSizer->AddStretchSpacer();
+    primaryInputSizer->Add(inputs[PUBLIC_KEY], wxSizerFlags().Border(wxLEFT|wxTOP, BORDER_WIDTH));
+    primaryInputSizer->AddStretchSpacer();
+    primaryInputSizer->Add(inputs[CHOICE_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, BORDER_WIDTH));
+    primaryInputSizer->AddStretchSpacer();
+    primaryInputSizer->Add(inputs[SHUFFLE_KEY], wxSizerFlags().Border(wxRIGHT|wxTOP, BORDER_WIDTH));
+    // primaryInputSizer->AddStretchSpacer();
+    inputPanel->SetSizer(primaryInputSizer);
+
+    wxPanel* patchPanel = new wxPanel(getHashPanel);
+    inputs[PATCH_KEY] = new wxTextCtrl(patchPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+    wxBoxSizer* patchSizer = new wxBoxSizer(wxHORIZONTAL);
+    patchSizer->Add(inputs[PATCH_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT, BORDER_WIDTH));
+    // patchSizer->AddStretchSpacer();
+    patchPanel->SetSizer(patchSizer);
+
+    wxPanel* configPanel = new wxPanel(getHashPanel);
+    inputs[CONFIG_KEYWORD_KEY] = new wxTextCtrl(configPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+    inputs[CONFIG_NUMBERS_KEY] = new wxTextCtrl(configPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+    inputs[CONFIG_RAW_KEY] = new wxTextCtrl(configPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+    wxBoxSizer* configSizer = new wxBoxSizer(wxHORIZONTAL);
+    configSizer->AddStretchSpacer();
+    configSizer->AddStretchSpacer();
+    configSizer->Add(inputs[CONFIG_KEYWORD_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT, BORDER_WIDTH));
+    configSizer->AddStretchSpacer();
+    configSizer->Add(inputs[CONFIG_NUMBERS_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT, BORDER_WIDTH));
+    configSizer->AddStretchSpacer();
+    configSizer->Add(inputs[CONFIG_RAW_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT, BORDER_WIDTH));
+    configSizer->AddStretchSpacer();
+    configPanel->SetSizer(configSizer);
+
+    // wxPanel* configKeywordPanel = new wxPanel(getHashPanel);
+    // inputs[CONFIG_KEYWORD_KEY] = new wxTextCtrl(configKeywordPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+    // wxBoxSizer* configKeywordSizer = new wxBoxSizer(wxHORIZONTAL);
+    // configKeywordSizer->AddStretchSpacer();
+    // configKeywordSizer->AddStretchSpacer();
+    // configKeywordSizer->Add(inputs[CONFIG_KEYWORD_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT, BORDER_WIDTH));
+    // configKeywordSizer->AddStretchSpacer();
+    // configKeywordSizer->AddStretchSpacer();
+    // configKeywordSizer->AddStretchSpacer();
+    // configKeywordPanel->SetSizer(configKeywordSizer);
+    //
+    // wxPanel* configNumbersPanel = new wxPanel(getHashPanel);
+    // inputs[CONFIG_NUMBERS_KEY] = new wxTextCtrl(configNumbersPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+    // wxBoxSizer* configNumbersSizer = new wxBoxSizer(wxHORIZONTAL);
+    // configNumbersSizer->AddStretchSpacer();
+    // configNumbersSizer->AddStretchSpacer();
+    // configNumbersSizer->Add(inputs[CONFIG_NUMBERS_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT, BORDER_WIDTH));
+    // configNumbersSizer->AddStretchSpacer();
+    // configNumbersSizer->AddStretchSpacer();
+    // configNumbersPanel->SetSizer(configNumbersSizer);
+    //
+    // wxPanel* configRawPanel = new wxPanel(getHashPanel);
+    // inputs[CONFIG_RAW_KEY] = new wxTextCtrl(configRawPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+    // wxBoxSizer* configRawSizer = new wxBoxSizer(wxHORIZONTAL);
+    // configRawSizer->AddStretchSpacer();
+    // configRawSizer->AddStretchSpacer();
+    // configRawSizer->AddStretchSpacer();
+    // configRawSizer->AddStretchSpacer();
+    // configRawSizer->Add(inputs[CONFIG_RAW_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT, BORDER_WIDTH));
+    // configRawPanel->SetSizer(configRawSizer);
+
     for (int i = 0; i < NUM_INPUTS; i++) {
-        inputs[i] = new wxTextCtrl(inputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
         inputs[i]->SetMinSize(wxSize(BOX_HEIGHT, BOX_HEIGHT));
-        // AdjustTextCtrlSize(inputs[i]);
     }
-    inputs[PUBLIC_KEY]->SetMinSize(wxSize(BOX_WIDTH, BOX_HEIGHT));
-    inputs[PATCH_KEY]->SetMinSize(wxSize(BOX_WIDTH/2, BOX_HEIGHT));
-    inputs[CHOICE_KEY]->SetMinSize(wxSize(BOX_WIDTH, BOX_HEIGHT));
-    inputs[SHUFFLE_KEY]->SetMinSize(wxSize(BOX_WIDTH, BOX_HEIGHT));
 
-    wxBoxSizer* inputSizer = new wxBoxSizer(wxHORIZONTAL);
-    inputSizer->AddStretchSpacer();
-    inputSizer->Add(inputs[PUBLIC_KEY], wxSizerFlags().Border(wxLEFT|wxTOP, BORDER_WIDTH));
-    inputSizer->Add(inputs[PATCH_KEY], wxSizerFlags().Border(wxLEFT|wxTOP|wxRIGHT, BORDER_WIDTH));
-    inputSizer->AddStretchSpacer();
-    inputSizer->Add(inputs[CHOICE_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, BORDER_WIDTH));
-    inputSizer->AddStretchSpacer();
-    inputSizer->Add(inputs[SHUFFLE_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, BORDER_WIDTH));
-
-    // for (int i = 0; i < 4; i++) {
-    //     inputSizer->Add(inputs[i], wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, 30));
-    // }
-
-    inputSizer->AddStretchSpacer();
-    inputPanel->SetSizer(inputSizer);
-
+    wxTextCtrl* outputs[NUM_OUTPUTS];
     wxPanel* outputPanel = new wxPanel(getHashPanel);
-
     for (int i = 0; i < NUM_OUTPUTS; i++) {
-        outputs[i] = new wxTextCtrl(outputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_READONLY);
+        outputs[i] = new wxTextCtrl(outputPanel, wxID_ANY, "", outputPositions[i], wxDefaultSize, wxTE_READONLY | wxTE_CENTER);
         // AdjustTextCtrlSize(outputs[i]);
     }
 
@@ -230,13 +299,19 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
 
     outputSizer->AddStretchSpacer();
     outputPanel->SetSizer(outputSizer);
-
     getHashPanel->SetTextCtrls(inputs, outputs);
 
     // Arrange panels in the custom panel
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-    mainSizer->Add(inputPanel, 1, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
-    mainSizer->Add(outputPanel, 0, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
+    mainSizer->Add(inputPanel, 2, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
+    mainSizer->Add(patchPanel, 2, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
+    // mainSizer->AddStretchSpacer(1);
+    mainSizer->Add(configPanel, 2, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
+    // mainSizer->Add(configKeywordPanel, 1, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
+    // mainSizer->Add(configNumbersPanel, 1, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
+    // mainSizer->Add(configRawPanel, 1, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
+    // mainSizer->AddStretchSpacer();
+    mainSizer->Add(outputPanel, 2, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
     getHashPanel->SetSizer(mainSizer);
 
     // Set the custom panel as the main sizer for the frame
@@ -250,7 +325,5 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
 
     for (int i = 0; i < NUM_INPUTS; i++) {
         inputs[i]->Bind(wxEVT_TEXT, &GetHashPanel::OnTextChange, getHashPanel);
-        // inputs[i]->Bind(wxEVT_TEXT, &MyFrame::OnTextChange, this);
-        // inputs[i]->Bind(wxEVT_TEXT, &([](wxCommandEvent& evt) {  }), getHashPanel);
     }
 }

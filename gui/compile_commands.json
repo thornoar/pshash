@@ -10,11 +10,9 @@
       "-D__WXGTK__",
       "-pthread",
       "-pthread",
-      "-o",
-      "main",
-      "./main.cpp"
+      "./console.cpp"
     ],
     "directory": "/home/ramak/projects/pshash/gui",
-    "file": "/home/ramak/projects/pshash/gui/main.cpp"
+    "file": "/home/ramak/projects/pshash/gui/console.cpp"
   }
 ]

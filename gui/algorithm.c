@@ -201,31 +201,59 @@ void merge_lists (char* to, char** lsts, unsigned long size, mpz_t key) {
 }
 
 // Tested
-void choose_and_merge (char* to, const struct source* srcs, unsigned long size, mpz_t key) {
-    char* selections[size];
-    for (int i = 0; i < size; i++) {
+void choose_and_merge (char* to, const struct configuration* config, mpz_t key) {
+    char* selections[config->size];
+    for (int i = 0; i < config->size; i++) {
         selections[i] = (char*) malloc(sizeof(char) * MAXSIZE_SMALL);
     }
     mpz_t spr; mpz_init(spr); mpz_set_ui(spr, 1);
     mpz_t curprod; mpz_init(curprod);
-    for (int i = 0; i < size; i++) {
-        mpz_rel_fac_ui(curprod, strlen(srcs[0].elts), srcs[0].amount);
+    for (int i = 0; i < config->size; i++) {
+        mpz_rel_fac_ui(curprod, strlen(config->srcs[0].elts), config->srcs[0].amount);
         mpz_mul(spr, spr, curprod);
     }
     mpz_t key_mod; mpz_init(key_mod);
     mpz_fdiv_qr(key, key_mod, key, spr);
-    multi_choose_ordered(selections, srcs, size, key_mod);
-    mpz_add_ui(key, key, shift2(selections, size));
-    merge_lists(to, selections, size, key);
-    for (int i = 0; i < size; i++) {
+    multi_choose_ordered(selections, config->srcs, config->size, key_mod);
+    mpz_add_ui(key, key, shift2(selections, config->size));
+    merge_lists(to, selections, config->size, key);
+    for (int i = 0; i < config->size; i++) {
         free(selections[i]);
     }
     mpz_clear(spr); mpz_clear(curprod); mpz_clear(key_mod);
 }
 
 // Tested
-void get_hash (char* to, const struct source* srcs, unsigned long size, mpz_t key1, mpz_t key2) {
+void get_hash (char* to, const struct configuration *config, mpz_t key1, mpz_t key2) {
     char temp[MAXSIZE_SMALL] = {};
-    choose_and_merge(temp, srcs, size, key1);
+    choose_and_merge(temp, config, key1);
     shuffle_list(to, temp, key2);
+}
+
+// Tested
+void parse_key (mpz_t to, const char* key) {
+    char base[MAXSIZE_SMALL] = {};
+    int i = 0;
+    for (i = 0; *key != '-' && *key != '\0'; i++) {
+        base[i] = *key;
+        key++;
+    }
+    base[i] = '\0';
+    mpz_set_str(to, base, 10);
+    if (*key == '\0')
+        return;
+    char exp[MAXSIZE_SMALL] = {};
+    strcpy(exp, key+1);
+    unsigned long exp_int = atoi(exp);
+    mpz_pow_ui(to, to, exp_int);
+}
+
+// Tested
+void get_public_key (mpz_t to, const char* from) {
+    mpz_set_ui(to, 0);
+    while (*from != '\0') {
+        mpz_mul_ui(to, to, 128);
+        mpz_add_ui(to, to, *from);
+        from++;
+    }
 }
