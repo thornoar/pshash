@@ -6,3 +6,4 @@
 /app/Main.o
 /.hie
 /gui/main
+/gui/.cache
