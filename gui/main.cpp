@@ -20,8 +20,6 @@
 #include <wx/dcclient.h>
 #include "inputs.h"
 
-#define VAR 1
-
 using namespace std;
 
 // ========================================================
@@ -29,6 +27,10 @@ using namespace std;
 // ========================================================
 
 const int VERTICAL_OFFSET = 100;
+const int BORDER_WIDTH = 10;
+const int SUPER_BORDER_WIDTH = 30;
+const int BOX_HEIGHT = 28;
+const int BOX_WIDTH = 115;
 const string currentVersion = "1.0";
 
 class MyApp : public wxApp {
@@ -43,56 +45,28 @@ public:
         Bind(wxEVT_PAINT, &GetHashPanel::OnPaint, this);
     }
     void SetTextCtrls (
-#if VAR
         wxTextCtrl** newInputs,
         wxTextCtrl** newOutputs
-#else
-        wxTextCtrl* newPublicKey,
-        wxTextCtrl* newChoiceKey,
-        wxTextCtrl* newShuffleKey,
-        wxTextCtrl* newPatchKey,
-        wxTextCtrl* newConfigKeywordKey,
-        wxTextCtrl* newConfigNumbersKey,
-        wxTextCtrl* newConfigRawKey,
-        wxTextCtrl* newHashOutput
-#endif
     ) {
-#if VAR
         for (int i = 0; i < NUM_INPUTS; i++) {
             inputs[i] = newInputs[i];
         }
         for (int i = 0; i < NUM_OUTPUTS; i++) {
             outputs[i] = newOutputs[i];
         }
-#else
-        publicKey = newPublicKey;
-        choiceKey = newChoiceKey;
-        shuffleKey = newShuffleKey;
-        patchKey = newPatchKey;
-        configKeywordKey = newConfigKeywordKey;
-        configNumbersKey = newConfigNumbersKey;
-        configRawKey = newConfigRawKey;
-        hashOutput = newHashOutput;
-#endif
     }
     void OnTextChange (wxCommandEvent& event) {
+        // wxTextCtrl* textCtrl = dynamic_cast<wxTextCtrl*>(event.GetEventObject());
+        // if (textCtrl) {
+        //     cout << "Text changed: " << textCtrl->GetValue() << endl;
+        //     AdjustTextCtrlSize(textCtrl);
+        // }
         Refresh();
     }
 
 private:
-#if VAR
     wxTextCtrl* inputs[NUM_INPUTS] = {};
     wxTextCtrl* outputs[NUM_OUTPUTS] = {};
-#else
-    wxTextCtrl* publicKey;
-    wxTextCtrl* choiceKey;
-    wxTextCtrl* shuffleKey;
-    wxTextCtrl* patchKey;
-    wxTextCtrl* configKeywordKey;
-    wxTextCtrl* configNumbersKey;
-    wxTextCtrl* configRawKey;
-    wxTextCtrl* hashOutput;
-#endif
 
     void GetPenColor(wxPaintDC* dc, wxTextCtrl* textCtrl, int textCtrlID) {
         if (validKey(textCtrl, textCtrlID))
@@ -104,7 +78,6 @@ private:
     void OnPaint(wxPaintEvent& event) {
         wxPaintDC dc(this);
 
-#if VAR
         wxPoint inputPos[NUM_INPUTS];
         for (int i = 0; i < NUM_INPUTS; i++) {
             inputPos[i] = GetTextCtrlPosition(inputs[i], this);
@@ -129,30 +102,6 @@ private:
         dc.DrawSpline(4, points2);
         GetPenColor(&dc, inputs[SHUFFLE_KEY], SHUFFLE_KEY);
         dc.DrawSpline(4, points3);
-#else
-        wxPoint publicKeyPos = GetTextCtrlPosition(publicKey, this);
-        wxPoint choiceKeyPos = GetTextCtrlPosition(choiceKey, this);
-        wxPoint shuffleKeyPos = GetTextCtrlPosition(shuffleKey, this);
-        wxPoint outputBoxPos = GetTextCtrlPosition(hashOutput, this);
-
-        wxPoint publicKeyControl = wxPoint(publicKeyPos.x, publicKeyPos.y + VERTICAL_OFFSET);
-        wxPoint choiceKeyControl = wxPoint(choiceKeyPos.x, choiceKeyPos.y + VERTICAL_OFFSET);
-        wxPoint shuffleKeyControl = wxPoint(shuffleKeyPos.x, shuffleKeyPos.y + VERTICAL_OFFSET);
-        wxPoint outputControl1 = wxPoint(outputBoxPos.x, outputBoxPos.y - VERTICAL_OFFSET);
-        wxPoint outputControl2 = wxPoint(outputBoxPos.x, outputBoxPos.y - VERTICAL_OFFSET);
-        wxPoint outputControl3 = wxPoint(outputBoxPos.x, outputBoxPos.y - VERTICAL_OFFSET);
-
-        wxPoint points1[] = { publicKeyPos, publicKeyControl, outputControl1, outputBoxPos };
-        wxPoint points2[] = { choiceKeyPos, choiceKeyControl, outputControl2, outputBoxPos };
-        wxPoint points3[] = { shuffleKeyPos, shuffleKeyControl, outputControl3, outputBoxPos };
-
-        GetPenColor(&dc, publicKey, PUBLIC_KEY);
-        dc.DrawSpline(4, points1);
-        GetPenColor(&dc, choiceKey, CHOICE_KEY);
-        dc.DrawSpline(4, points2);
-        GetPenColor(&dc, shuffleKey, SHUFFLE_KEY);
-        dc.DrawSpline(4, points3);
-#endif
     }
 
     wxPoint GetTextCtrlPosition(wxTextCtrl* textCtrl, wxWindow* relativeTo) {
@@ -170,15 +119,14 @@ class MyFrame : public wxFrame {
     public:
     MyFrame();
 
-    void AdjustTextCtrlSize(wxTextCtrl* textCtrl) {
-        // Get the best size for the text control based on its content
-        wxSize bestSize = textCtrl->GetBestSize();
-        // Set the minimum size to ensure it can grow but not shrink below this size
-        textCtrl->SetMinSize(bestSize);
-        // Optionally, set the size directly if you want immediate resizing
-        textCtrl->SetSize(bestSize);
-        // Layout the parent to apply the new size
-        textCtrl->GetParent()->Layout();
+    void OnTextChange(wxCommandEvent& event) {
+        wxTextCtrl* textCtrl = dynamic_cast<wxTextCtrl*>(event.GetEventObject());
+        if (textCtrl) {
+            cout << "Text changed: " << textCtrl->GetValue() << endl;
+            AdjustTextCtrlSize(textCtrl);
+        }
+        // Refresh the panel if needed
+        textCtrl->GetParent()->Refresh();
     }
 
     private:
@@ -240,72 +188,55 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     wxTextCtrl* outputs[NUM_OUTPUTS];
 
     wxPanel* inputPanel = new wxPanel(getHashPanel);
-#if VAR
     for (int i = 0; i < NUM_INPUTS; i++) {
-        inputs[i] = new wxTextCtrl(inputPanel, wxID_ANY);
+        inputs[i] = new wxTextCtrl(inputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
+        inputs[i]->SetMinSize(wxSize(BOX_HEIGHT, BOX_HEIGHT));
         // AdjustTextCtrlSize(inputs[i]);
     }
-#else
-    wxTextCtrl* publicKey = new wxTextCtrl(inputPanel, wxID_ANY);
-    wxTextCtrl* choiceKey = new wxTextCtrl(inputPanel, wxID_ANY);
-    wxTextCtrl* shuffleKey = new wxTextCtrl(inputPanel, wxID_ANY);
-    wxTextCtrl* patchKey = new wxTextCtrl(inputPanel, wxID_ANY);
-    wxTextCtrl* configKeywordKey = new wxTextCtrl(inputPanel, wxID_ANY);
-    wxTextCtrl* configNumbersKey = new wxTextCtrl(inputPanel, wxID_ANY);
-    wxTextCtrl* configRawKey = new wxTextCtrl(inputPanel, wxID_ANY);
-#endif
+    inputs[PUBLIC_KEY]->SetMinSize(wxSize(BOX_WIDTH, BOX_HEIGHT));
+    inputs[PATCH_KEY]->SetMinSize(wxSize(BOX_WIDTH/2, BOX_HEIGHT));
+    inputs[CHOICE_KEY]->SetMinSize(wxSize(BOX_WIDTH, BOX_HEIGHT));
+    inputs[SHUFFLE_KEY]->SetMinSize(wxSize(BOX_WIDTH, BOX_HEIGHT));
 
     wxBoxSizer* inputSizer = new wxBoxSizer(wxHORIZONTAL);
     inputSizer->AddStretchSpacer();
+    inputSizer->Add(inputs[PUBLIC_KEY], wxSizerFlags().Border(wxLEFT|wxTOP, BORDER_WIDTH));
+    inputSizer->Add(inputs[PATCH_KEY], wxSizerFlags().Border(wxLEFT|wxTOP|wxRIGHT, BORDER_WIDTH));
+    inputSizer->AddStretchSpacer();
+    inputSizer->Add(inputs[CHOICE_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, BORDER_WIDTH));
+    inputSizer->AddStretchSpacer();
+    inputSizer->Add(inputs[SHUFFLE_KEY], wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, BORDER_WIDTH));
 
-#if VAR
-    for (int i = 0; i < NUM_INPUTS; i++) {
-        inputSizer->Add(inputs[i], wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, 30));
-    }
-#else
-    inputSizer->Add(publicKey, wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, 30));
-    inputSizer->Add(choiceKey, wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, 30));
-    inputSizer->Add(shuffleKey, wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, 30));
-#endif
+    // for (int i = 0; i < 4; i++) {
+    //     inputSizer->Add(inputs[i], wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, 30));
+    // }
 
     inputSizer->AddStretchSpacer();
     inputPanel->SetSizer(inputSizer);
 
     wxPanel* outputPanel = new wxPanel(getHashPanel);
 
-#if VAR
     for (int i = 0; i < NUM_OUTPUTS; i++) {
         outputs[i] = new wxTextCtrl(outputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_READONLY);
         // AdjustTextCtrlSize(outputs[i]);
     }
-#else
-    wxTextCtrl* hashOutput = new wxTextCtrl(outputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_READONLY);
-#endif
 
     wxBoxSizer* outputSizer = new wxBoxSizer(wxHORIZONTAL);
     outputSizer->AddStretchSpacer();
 
-#if VAR
     for (int i = 0; i < NUM_OUTPUTS; i++) {
         outputSizer->Add(outputs[i], wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, 30));
     }
-#else
-    outputSizer->Add(hashOutput, wxSizerFlags().Border(wxRIGHT|wxLEFT|wxBOTTOM, 30));
-#endif
 
     outputSizer->AddStretchSpacer();
     outputPanel->SetSizer(outputSizer);
 
-#if VAR
     getHashPanel->SetTextCtrls(inputs, outputs);
-#else
-    getHashPanel->SetTextCtrls(publicKey, choiceKey, shuffleKey, patchKey, configKeywordKey, configNumbersKey, configRawKey, hashOutput);
-#endif
 
     // Arrange panels in the custom panel
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-    mainSizer->Add(inputPanel, 1, wxEXPAND | wxALL, 10);
-    mainSizer->Add(outputPanel, 0, wxEXPAND | wxALL, 10);
+    mainSizer->Add(inputPanel, 1, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
+    mainSizer->Add(outputPanel, 0, wxEXPAND | wxALL, SUPER_BORDER_WIDTH);
     getHashPanel->SetSizer(mainSizer);
 
     // Set the custom panel as the main sizer for the frame
@@ -317,13 +248,9 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     Bind(wxEVT_MENU, &MyFrame::OnVersion, this, ID_Version);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
 
-#if VAR
     for (int i = 0; i < NUM_INPUTS; i++) {
         inputs[i]->Bind(wxEVT_TEXT, &GetHashPanel::OnTextChange, getHashPanel);
+        // inputs[i]->Bind(wxEVT_TEXT, &MyFrame::OnTextChange, this);
+        // inputs[i]->Bind(wxEVT_TEXT, &([](wxCommandEvent& evt) {  }), getHashPanel);
     }
-#else
-    publicKey->Bind(wxEVT_TEXT, &GetHashPanel::OnTextChange, getHashPanel);
-    choiceKey->Bind(wxEVT_TEXT, &GetHashPanel::OnTextChange, getHashPanel);
-    shuffleKey->Bind(wxEVT_TEXT, &GetHashPanel::OnTextChange, getHashPanel);
-#endif
 }
