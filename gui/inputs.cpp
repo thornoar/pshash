@@ -70,10 +70,6 @@ void setConfigWithNumbers (struct configuration* config, unsigned long* numbers)
     copySource(&config->srcs[3], sourceNumbers, numbers[3]);
 }
 
-// void setConfigWithRaw (struct configuration* config, const char* raw) {
-//     config->size = 0;
-// }
-
 void AdjustTextCtrlSize(wxTextCtrl* textCtrl, int id) {
     wxWindow* parent = textCtrl->GetParent();
 
@@ -134,15 +130,15 @@ wxPoint GetTextCtrlPosition(wxControl* textCtrl, wxWindow* relativeTo) {
     return wxPoint(relativePos.x + size.x / 2, relativePos.y + size.y / 2);
 }
 
-bool isNumber (const char* str) {
-    if (*str == '\0')
-        return false;
-    if (*str < '0' || *str > '9')
-        return false;
-    if (*(str+1) == '\0')
-        return true;
-    return isNumber(str+1);
-}
+// bool isNumber (const char* str) {
+//     if (*str == '\0')
+//         return false;
+//     if (*str < '0' || *str > '9')
+//         return false;
+//     if (*(str+1) == '\0')
+//         return true;
+//     return isNumber(str+1);
+// }
 
 bool validPrivateKey (const char* key, int count, int dashCount) {
     if (*key == '\0')
@@ -158,15 +154,33 @@ bool validPrivateKey (const char* key, int count, int dashCount) {
     return validPrivateKey(key+1, count+1, dashCount);
 }
 
+bool validNumber (const char* str, int range) {
+    // if (!isNumber(str))
+    //     return false;
+    try {
+        unsigned long num = stoul(str);
+        if (range == -1) return true;
+        return num <= range;
+    } catch (...) {
+        return false;
+    }
+}
+
+// bool validPatch (const char* str) {
+//     return validNumber(str, -1);
+// }
+
 bool validKey (wxTextCtrl* keyCtrl, int id) {
     string stdStr = keyCtrl->GetValue().ToStdString();
     const char* keyStr = stdStr.c_str();
+    if (*keyStr == '(') // )
+        return false;
     switch (id) {
         case PUBLIC_KEY: {
             return keyStr[0] != '\0';
         }
         case PATCH_KEY: {
-            return isNumber(keyStr);
+            return validNumber(keyStr, 128);
         }
         case CHOICE_KEY: {
             return validPrivateKey(keyStr, 0, 0);
@@ -181,28 +195,16 @@ bool validKey (wxTextCtrl* keyCtrl, int id) {
             }
             return false;
         case CONFIG_NUMBERS_1_KEY: {
-            if (!isNumber(keyStr))
-                return false;
-            int num = stoi(keyStr);
-            return num >= 0 && num <= 26;
+            return validNumber(keyStr, 26);
         }
         case CONFIG_NUMBERS_2_KEY: {
-            if (!isNumber(keyStr))
-                return false;
-            int num = stoi(keyStr);
-            return num >= 0 && num <= 26;
+            return validNumber(keyStr, 26);
         }
         case CONFIG_NUMBERS_3_KEY: {
-            if (!isNumber(keyStr))
-                return false;
-            int num = stoi(keyStr);
-            return num >= 0 && num <= 12;
+            return validNumber(keyStr, 12);
         }
         case CONFIG_NUMBERS_4_KEY: {
-            if (!isNumber(keyStr))
-                return false;
-            int num = stoi(keyStr);
-            return num >= 0 && num <= 10;
+            return validNumber(keyStr, 10);
         }
     }
     return false;
