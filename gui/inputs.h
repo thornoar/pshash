@@ -3,8 +3,8 @@
 #include <wx/wx.h>
 
 const int VERTICAL_OFFSET = 60;
-const int BORDER_WIDTH = 20;
-const int SUPER_BORDER_WIDTH = 70;
+const int BORDER_WIDTH = 60;
+const int SUPER_BORDER_WIDTH = 10;
 const int BOX_HEIGHT = 35;
 const int BOX_WIDTH = 115;
 

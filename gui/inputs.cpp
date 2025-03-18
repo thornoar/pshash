@@ -100,12 +100,14 @@ bool validKey (wxTextCtrl* keyCtrl, int id) {
             return validPrivateKey(key.ToStdString().c_str(), 0, 0);
         case SHUFFLE_KEY:
             return validPrivateKey(key.ToStdString().c_str(), 0, 0);
-        case CONFIG_RAW_KEY:
+        case CONFIG_KEYWORD_KEY:
             for (int i = 0; i < NUM_KEYWORDS; i++) {
                 if (CONFIG_KEYWORDS[i] == key.ToStdString().c_str())
                     return true;
             }
             return false;
+        case CONFIG_NUMBERS_KEY:
+            return true;
     }
     return false;
 }
