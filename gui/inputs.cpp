@@ -62,7 +62,7 @@ void setConfigWithKeyword (struct configuration* config, string keyword) {
     }
 }
 
-void setConfigWithNumbers (struct configuration* config, unsigned long* numbers) {
+void setConfigWithNumbers (struct configuration* config, int* numbers) {
     config->size = 4;
     copySource(&config->srcs[0], sourceLower, numbers[0]);
     copySource(&config->srcs[1], sourceUpper, numbers[1]);
@@ -86,7 +86,7 @@ void AdjustTextCtrlSize(wxTextCtrl* textCtrl, int id) {
 
     textCtrl->SetSize(bestSize);
     wxPoint position = textCtrl->GetPosition();
-    if (id != PUBLIC_KEY && id != PATCH_KEY) {
+    if (id != PUBLIC_KEY) {
         if (id == SHUFFLE_KEY)
             textCtrl->Move(position.x - (bestSize.x - oldSize.x), position.y);
         else
@@ -120,12 +120,12 @@ const char* GetTextCtrlValue(wxTextCtrl* textCtrl) {
     return textCtrl->GetValue().ToStdString().c_str();
 }
 
-wxPoint GetTextCtrlPosition(wxControl* textCtrl, wxWindow* relativeTo) {
+wxPoint GetCtrlPosition(wxControl* ctrl, wxWindow* relativeTo) {
     // Get the position of the text control in screen coordinates
-    wxPoint screenPos = textCtrl->ClientToScreen(wxPoint(0, 0));
+    wxPoint screenPos = ctrl->ClientToScreen(wxPoint(0, 0));
     // Convert the screen position to the coordinate system of the relative window
     wxPoint relativePos = relativeTo->ScreenToClient(screenPos);
-    wxSize size = textCtrl->GetSize();
+    wxSize size = ctrl->GetSize();
     // Return the center point of the text control
     return wxPoint(relativePos.x + size.x / 2, relativePos.y + size.y / 2);
 }
@@ -170,48 +170,60 @@ bool validNumber (const char* str, int range) {
 //     return validNumber(str, -1);
 // }
 
-bool validKey (wxTextCtrl* keyCtrl, int id) {
-    string stdStr = keyCtrl->GetValue().ToStdString();
-    const char* keyStr = stdStr.c_str();
+bool validKeyStr (wxString* keyStrStd, int id) {
+    // string stdStr = keyCtrl->GetValue().ToStdString();
+    const char* keyStr = keyStrStd->c_str();
     if (*keyStr == '(') // )
         return false;
     switch (id) {
         case PUBLIC_KEY: {
             return keyStr[0] != '\0';
         }
-        case PATCH_KEY: {
-            return validNumber(keyStr, 128);
-        }
+        // case PATCH_KEY: {
+        //     return validNumber(keyStr, 128);
+        // }
         case CHOICE_KEY: {
             return validPrivateKey(keyStr, 0, 0);
         }
         case SHUFFLE_KEY: {
             return validPrivateKey(keyStr, 0, 0);
         }
-        case CONFIG_KEYWORD_KEY:
-            for (int i = 0; i < NUM_KEYWORDS; i++) {
-                if (CONFIG_KEYWORDS[i] == keyStr)
-                    return true;
-            }
-            return false;
-        case CONFIG_NUMBERS_1_KEY: {
-            return validNumber(keyStr, 26);
-        }
-        case CONFIG_NUMBERS_2_KEY: {
-            return validNumber(keyStr, 26);
-        }
-        case CONFIG_NUMBERS_3_KEY: {
-            return validNumber(keyStr, 12);
-        }
-        case CONFIG_NUMBERS_4_KEY: {
-            return validNumber(keyStr, 10);
-        }
+        // case CONFIG_KEYWORD_KEY:
+        //     for (int i = 0; i < NUM_KEYWORDS; i++) {
+        //         if (CONFIG_KEYWORDS[i] == keyStr)
+        //             return true;
+        //     }
+        //     return false;
+        // case CONFIG_NUMBERS_1_KEY: {
+        //     return validNumber(keyStr, 26);
+        // }
+        // case CONFIG_NUMBERS_2_KEY: {
+        //     return validNumber(keyStr, 26);
+        // }
+        // case CONFIG_NUMBERS_3_KEY: {
+        //     return validNumber(keyStr, 12);
+        // }
+        // case CONFIG_NUMBERS_4_KEY: {
+        //     return validNumber(keyStr, 10);
+        // }
     }
     return false;
 }
 
-wxString getHash(const struct configuration* config, wxString publicStr, wxString patchStr, wxString choiceStr, wxString shuffleStr) {
-    int patch = patchStr.IsEmpty() ? 0 : stoi(patchStr.ToStdString());
+bool validTextCtrl (wxTextCtrl* key, int id) {
+    wxString keyStr = key->GetValue();
+    // cout << keyStr << endl;
+    return validKeyStr(&keyStr, id);
+}
+
+// bool validSpinCtrl (wxSpinCtrl* key, int range) {
+//     int value = key->GetValue();
+//     // cout << keyStr << endl;
+//     return value >= 0 && value <= range;
+// }
+
+wxString getHash(const struct configuration* config, wxString publicStr, int patch, wxString choiceStr, wxString shuffleStr) {
+    // int patch = patchStr.IsEmpty() ? 0 : stoi(patchStr.ToStdString());
     char publicStrChar[MAXSIZE_SMALL];
     string publicStrStd = publicStr.ToStdString();
     strcpy(publicStrChar, publicStrStd.c_str());
