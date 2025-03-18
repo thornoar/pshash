@@ -126,14 +126,9 @@ private:
         for (int i = 0; i < NUM_INPUTS; i++) {
             validInputs[i] = validInput(i);
         }
-        // cout << boolalpha << validInputs[0] << endl;
-        // bool validPatch = validSpinCtrl(patchKey, 128);
         string keyword = configKeyword->GetStringSelection().ToStdString();
         bool validKeyword = keyword != "(none)";
         bool validConfigNumbers[NUM_CONFIG_NUMBERS];
-        // for (int i = 0; i < NUM_CONFIG_NUMBERS; i++) {
-        //     validConfigNumbers[i] = validSpinCtrl(configNumbers[i], i == 0 ? 26 : i == 1 ? 26 : i == 2 ? 12 : 10);
-        // }
 
         bool validConnections[NUM_CONNECTIONS];
         validConnections[PUBLIC_PATCH] = validInputs[PUBLIC_KEY];
@@ -170,14 +165,8 @@ private:
 
         if (
             validInputs[PUBLIC_KEY]
-			// && validInputs[PATCH_KEY]
 			&& validInputs[CHOICE_KEY]
 			&& validInputs[SHUFFLE_KEY]
-			// && (validInputs[CONFIG_KEYWORD_KEY]
-                // || (validInputs[CONFIG_NUMBERS_1_KEY]
-                //     && validInputs[CONFIG_NUMBERS_2_KEY]
-                //     && validInputs[CONFIG_NUMBERS_3_KEY]
-                //     && validInputs[CONFIG_NUMBERS_4_KEY]))
         ) {
             struct configuration config;
             config.size = 4;
@@ -194,16 +183,12 @@ private:
                     free(config.srcs);
                     return;
                 }
-                config.srcs[i].amount = 0; // Initialize amount or set it as needed
+                config.srcs[i].amount = 0;
             }
 
-            // if (validInputs[CONFIG_KEYWORD_KEY]) {
-            //     string keyword = inputs[CONFIG_KEYWORD_KEY]->GetValue().ToStdString();
-            //     setConfigWithKeyword(&config, keyword.c_str());
             if (validKeyword) {
-                // string keyword = inputs[CONFIG_KEYWORD_KEY]->GetValue().ToStdString();
                 setConfigWithKeyword(&config, keyword.c_str());
-            } else { //if (validInputs[CONFIG_NUMBERS_1_KEY] && validInputs[CONFIG_NUMBERS_2_KEY] && validInputs[CONFIG_NUMBERS_3_KEY] && validInputs[CONFIG_NUMBERS_4_KEY]) {
+            } else {
                 int numbers[4] = {
                     configNumbers[CONFIG_NUMBERS_1_KEY]->GetValue(),
                     configNumbers[CONFIG_NUMBERS_2_KEY]->GetValue(),
@@ -229,7 +214,6 @@ private:
         }
         for (int i = 0; i < NUM_INPUTS; i++) { AdjustTextCtrlSize(inputs[i], i); }
         AdjustTextCtrlSize(hashOutput);
-        // for (int i = 0; i < NUM_OUTPUTS; i++) { ; }
         Refresh();
     }
 };
@@ -295,7 +279,6 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     menuBar->Append(menuInfo, "&Info");
     SetMenuBar(menuBar);
 
-    // Status bar
     // CreateStatusBar();
     // SetStatusText("The pshash pseudo-hash algorithm, version 1.0");
 
@@ -327,7 +310,6 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     patchPanel->SetSizer(patchSizer);
 
     wxPanel* configPanel = new wxPanel(getHashPanel);
-    // configPanel->SetBackgroundColour(configBgColor);
     wxArrayString keywords;
     for (int i = 0; i < NUM_KEYWORDS; i++) {
         keywords.Add(CONFIG_KEYWORDS[i]);
@@ -358,24 +340,12 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     configSizer->AddStretchSpacer();
     configPanel->SetSizer(configSizer);
 
-    // wxTextCtrl* outputs[NUM_OUTPUTS];
-
     wxPanel* outputPanel = new wxPanel(getHashPanel);
     hashOutput = new wxTextCtrl(outputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxTE_CENTER);
-    // wxPoint position = GetCtrlPosition(hashOutput, getHashPanel);
-    // wxPoint position = hashOutput->GetPosition();
-    // wxButton* copyButton = new wxButton(outputPanel, ID_CopyToClipboard, "Copy", wxDefaultPosition, wxDefaultSize);
-    // for (int i = 0; i < NUM_OUTPUTS; i++) {
-    //     outputs[i] = new wxTextCtrl(outputPanel, wxID_ANY, "", outputPositions[i], wxDefaultSize, wxTE_READONLY | wxTE_CENTER);
-    // }
 
     wxBoxSizer* outputSizer = new wxBoxSizer(wxHORIZONTAL);
     outputSizer->AddStretchSpacer();
     outputSizer->Add(hashOutput, wxSizerFlags().Border(wxTOP, BORDER_WIDTH/2));
-    // outputSizer->Add(copyButton, wxSizerFlags().Border(wxTOP|wxBOTTOM, BORDER_WIDTH/2));
-    // for (int i = 0; i < NUM_OUTPUTS; i++) {
-    //     outputSizer->Add(outputs[i], wxSizerFlags().Border(wxTOP|wxBOTTOM, BORDER_WIDTH/2));
-    // }
     outputSizer->AddStretchSpacer();
     outputPanel->SetSizer(outputSizer);
     getHashPanel->SetFields(inputs, patchKey, configKeyword, configNumbers, hashOutput);
