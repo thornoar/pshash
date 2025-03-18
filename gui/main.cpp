@@ -127,7 +127,7 @@ private:
             validInputs[i] = validInput(i);
         }
         string keyword = configKeyword->GetStringSelection().ToStdString();
-        bool validKeyword = keyword != "(none)";
+        bool validKeyword = keyword != "(NONE)";
         bool validConfigNumbers[NUM_CONFIG_NUMBERS];
 
         bool validConnections[NUM_CONNECTIONS];
@@ -230,8 +230,7 @@ class MyFrame : public wxFrame {
     void OnAbout(wxCommandEvent& event);
     void OnVersion(wxCommandEvent& event) {
         wxMessageBox(
-            "This is the pshash pseudo-hash algorithm GUI,\n"
-            "version 1.0",
+            "This is the pshash pseudo-hash algorithm GUI, version 1.0",
             "Version",
             wxOK | wxICON_INFORMATION
         );
