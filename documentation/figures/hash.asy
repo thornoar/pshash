@@ -4,7 +4,7 @@ import export;
 
 usepackage("euscript");
 
-smpar(arrowmargin = .3, arrowabsolutemargin = true, gaplength = .4);
+smpar(arrowmargin = .03, arrowabsolutemargin = true, gaplength = .4);
 
 real r = .5;
 pen[] colors  = {red, green, blue, yellow};

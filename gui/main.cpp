@@ -20,6 +20,7 @@
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/dcclient.h>
+#include <wx/aboutdlg.h>
 #include "inputs.h"
 
 using namespace std;
@@ -41,7 +42,7 @@ public:
     GetHashPanel(wxWindow* parent) : wxPanel(parent) {
         Bind(wxEVT_PAINT, &GetHashPanel::OnPaint, this);
     }
-    void SetTextCtrls (
+    void SetFields (
         wxTextCtrl** newInputs,
         wxSpinCtrl* newPatchKey,
         wxChoice* newConfigKeyword,
@@ -59,6 +60,13 @@ public:
         for (int i = 0; i < NUM_OUTPUTS; i++) {
             outputs[i] = newOutputs[i];
         }
+        wxColour baseColor = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
+        float scale = 1;
+        inputColor = wxColor(baseColor.Red()*scale, baseColor.Green()*scale, baseColor.Blue()*scale);
+        scale = 0.8;
+        configColor = wxColor(baseColor.Red()*scale, baseColor.Green()*scale, baseColor.Blue()*scale);
+        scale = 0.6;
+        outputColor = wxColor(baseColor.Red()*scale, baseColor.Green()*scale, baseColor.Blue()*scale);
     }
     void OnTextChange (wxCommandEvent& event) {
         for (int i = 0; i < NUM_INPUTS; i++) {
@@ -78,6 +86,9 @@ private:
     wxSpinCtrl* configNumbers[NUM_CONFIG_NUMBERS];
     wxTextCtrl* outputs[NUM_OUTPUTS];
     // bool validConnections[NUM_CONNECTIONS];
+    wxColor inputColor;
+    wxColor configColor;
+    wxColor outputColor;
 
     bool validInput (int id) {
         return validTextCtrl(inputs[id], id);
@@ -109,6 +120,21 @@ private:
         // for (int i = 0; i < NUM_OUTPUTS; i++) {
         //     outputPos[i] = GetCtrlPosition(outputs[i], this);
         // }
+
+        wxSize size = GetSize();
+
+        int y1 = (positions[PATCH_POS].y + positions[CONFIG_NUM_1_POS].y) / 2;
+        dc.SetBrush(inputColor);
+        dc.SetPen(wxPen(inputColor, 0));
+        dc.DrawRectangle(0, 0, size.x, y1);
+        int y2 = (positions[CONFIG_NUM_4_POS].y + positions[HASH_POS].y) / 2;
+        dc.SetBrush(configColor);
+        dc.SetPen(wxPen(configColor, 0));
+        dc.DrawRectangle(0, y1, size.x, y2 - y1);
+        dc.SetBrush(outputColor);
+        dc.SetPen(wxPen(outputColor, 0));
+        dc.DrawRectangle(0, y2, size.x, size.y - y2);
+        
 
         bool validInputs[NUM_INPUTS];
         for (int i = 0; i < NUM_INPUTS; i++) {
@@ -229,9 +255,7 @@ class MyFrame : public wxFrame {
     void OnExit(wxCommandEvent& event) {
         Close(true);
     }
-    void OnAbout(wxCommandEvent& event) {
-        wxMessageBox("This is a wxWidgets Hello World example", "About Hello World", wxOK | wxICON_INFORMATION);
-    }
+    void OnAbout(wxCommandEvent& event);
     void OnVersion(wxCommandEvent& event) {
         wxMessageBox(
             "This is the pshash pseudo-hash algorithm GUI,\n"
@@ -240,12 +264,15 @@ class MyFrame : public wxFrame {
             wxOK | wxICON_INFORMATION
         );
     }
+    void OnDocumentation(wxCommandEvent& WXUNUSED(event)) {
+        wxLaunchDefaultBrowser("https://thornoar.github.io/pshash/web/help/");
+    }
 };
  
 enum {
     ID_Preferences = 1,
     ID_Version,
-    ID_Developer
+    ID_Documentation
 };
  
 bool MyApp::OnInit() {
@@ -265,17 +292,17 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     menuSettings->Append(wxID_EXIT, "&Quit\tCtrl-Q", "Exit from Pshash-GUI");
     wxMenu *menuInfo = new wxMenu;
     menuInfo->Append(wxID_ABOUT, "&About\tCtrl-I", "Display information about Pshash-GUI");
+    menuInfo->Append(ID_Documentation, "&Algorithm &Description", "Open the algorithm documentation");
     menuInfo->AppendSeparator();
     menuInfo->Append(ID_Version, "&Version\tCtrl-V", "Show current program version");
-    menuInfo->Append(ID_Developer, "&Developer");
     wxMenuBar *menuBar = new wxMenuBar;
     menuBar->Append(menuSettings, "&Settings");
     menuBar->Append(menuInfo, "&Info");
     SetMenuBar(menuBar);
 
     // Status bar
-    CreateStatusBar();
-    SetStatusText("The pshash pseudo-hash algorithm, version 1.0");
+    // CreateStatusBar();
+    // SetStatusText("The pshash pseudo-hash algorithm, version 1.0");
 
     // Custom panel
     GetHashPanel* getHashPanel = new GetHashPanel(this);
@@ -292,7 +319,7 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     wxBoxSizer* primaryInputSizer = new wxBoxSizer(wxHORIZONTAL);
     primaryInputSizer->Add(inputs[PUBLIC_KEY],  wxSizerFlags().Border(wxLEFT|wxTOP, BORDER_WIDTH));
     primaryInputSizer->AddStretchSpacer();
-    primaryInputSizer->Add(inputs[CHOICE_KEY], wxSizerFlags().Border(wxTOP, BORDER_WIDTH/3));
+    primaryInputSizer->Add(inputs[CHOICE_KEY], wxSizerFlags().Border(wxTOP, BORDER_WIDTH+40));
     primaryInputSizer->AddStretchSpacer();
     primaryInputSizer->Add(inputs[SHUFFLE_KEY], wxSizerFlags().Border(wxRIGHT|wxTOP, BORDER_WIDTH));
     inputPanel->SetSizer(primaryInputSizer);
@@ -301,10 +328,11 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     wxSpinCtrl* patchKey = new wxSpinCtrl(patchPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 128);
     patchKey->SetValue(0);
     wxBoxSizer* patchSizer = new wxBoxSizer(wxHORIZONTAL);
-    patchSizer->Add(patchKey, wxSizerFlags().Border(wxLEFT|wxTOP, BORDER_WIDTH));
+    patchSizer->Add(patchKey, wxSizerFlags().Border(wxLEFT, BORDER_WIDTH));
     patchPanel->SetSizer(patchSizer);
 
     wxPanel* configPanel = new wxPanel(getHashPanel);
+    // configPanel->SetBackgroundColour(configBgColor);
     wxArrayString keywords;
     for (int i = 0; i < NUM_KEYWORDS; i++) {
         keywords.Add(CONFIG_KEYWORDS[i]);
@@ -331,11 +359,12 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     configSizer->AddStretchSpacer();
     configSizer->Add(configKeyword, wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP|wxBOTTOM, BORDER_WIDTH));
     configSizer->AddStretchSpacer();
-    configSizer->Add(configNumbersPanel, wxSizerFlags().Border(wxRIGHT|wxLEFT, BORDER_WIDTH));
+    configSizer->Add(configNumbersPanel, wxSizerFlags().Border(wxRIGHT|wxLEFT|wxTOP, BORDER_WIDTH/2));
     configSizer->AddStretchSpacer();
     configPanel->SetSizer(configSizer);
 
     wxTextCtrl* outputs[NUM_OUTPUTS];
+
     wxPanel* outputPanel = new wxPanel(getHashPanel);
     for (int i = 0; i < NUM_OUTPUTS; i++) {
         outputs[i] = new wxTextCtrl(outputPanel, wxID_ANY, "", outputPositions[i], wxDefaultSize, wxTE_READONLY | wxTE_CENTER);
@@ -344,17 +373,17 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     wxBoxSizer* outputSizer = new wxBoxSizer(wxHORIZONTAL);
     outputSizer->AddStretchSpacer();
     for (int i = 0; i < NUM_OUTPUTS; i++) {
-        outputSizer->Add(outputs[i], wxSizerFlags().Border(wxRIGHT|wxLEFT, BORDER_WIDTH));
+        outputSizer->Add(outputs[i], wxSizerFlags().Border(wxTOP|wxBOTTOM, BORDER_WIDTH/2));
     }
     outputSizer->AddStretchSpacer();
     outputPanel->SetSizer(outputSizer);
-    getHashPanel->SetTextCtrls(inputs, patchKey, configKeyword, configNumbers, outputs);
+    getHashPanel->SetFields(inputs, patchKey, configKeyword, configNumbers, outputs);
 
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-    mainSizer->Add(inputPanel, 1, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
+    mainSizer->Add(inputPanel, 3, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
     mainSizer->Add(patchPanel, 2, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
-    mainSizer->Add(configPanel, 2, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
-    mainSizer->Add(outputPanel, 1, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
+    mainSizer->Add(configPanel, 3, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
+    mainSizer->Add(outputPanel, 2, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
     getHashPanel->SetSizer(mainSizer);
 
     SetSizerAndFit(new wxBoxSizer(wxVERTICAL));
@@ -363,9 +392,49 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     // Bind events
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnVersion, this, ID_Version);
+    Bind(wxEVT_MENU, &MyFrame::OnDocumentation, this, ID_Documentation);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
 
     for (int i = 0; i < NUM_INPUTS; i++) {
         inputs[i]->Bind(wxEVT_TEXT, &GetHashPanel::OnTextChange, getHashPanel);
     }
 }
+
+void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
+{
+    wxAboutDialogInfo info;
+    info.SetName("Pshash Pseudo-Hash Algorithm GUI");
+    info.SetVersion(currentVersion);
+    info.SetDescription(
+            "A lightweight GUI password generation tool,\n"
+            "using the pshash pseudo-hash algorithm."
+    );
+    info.SetCopyright("(C) 2024-2025 Roman Maksimovich");
+    info.AddDeveloper("Roman Maksimovich");
+    info.SetWebSite("http://github.com/thornoar/pshash", "pshash GitHub repository");
+    info.SetLicence(wxString::FromAscii(
+        "Copyright (c) 2025 Roman Maksimovich\n"
+        "\n"
+        "Permission is hereby granted, free of charge, to any person obtaining\n"
+        "a copy of this software and associated documentation files (the\n"
+        "\"Software\"), to deal in the Software without restriction, including\n"
+        "without limitation the rights to use, copy, modify, merge, publish,\n"
+        "distribute, sublicense, and/or sell copies of the Software, and to\n"
+        "permit persons to whom the Software is furnished to do so, subject to\n"
+        "the following conditions:\n"
+        "\n"
+        "The above copyright notice and this permission notice shall be included\n"
+        "in all copies or substantial portions of the Software.\n"
+        "\n"
+        "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,\n"
+        "EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF\n"
+        "MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.\n"
+        "IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY\n"
+        "CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,\n"
+        "TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE\n"
+        "SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n"
+    ));
+
+    wxAboutBox(info, this);
+}
+
