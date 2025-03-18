@@ -27,7 +27,7 @@ const unsigned int NUM_BOXES = NUM_INPUTS + 1 + 1 + NUM_CONFIG_NUMBERS + NUM_OUT
 enum positionId { PUBLIC_POS, CHOICE_POS, SHUFFLE_POS, PATCH_POS, CONFIG_KEYWORD_POS, CONFIG_NUM_1_POS, CONFIG_NUM_2_POS, CONFIG_NUM_3_POS, CONFIG_NUM_4_POS, HASH_POS };
 
 const unsigned int NUM_KEYWORDS = 9;
-const std::string CONFIG_KEYWORDS[NUM_KEYWORDS] = { "(none)", "long", "medium", "short", "anlong", "anshort", "pin", "mediumpin", "longpin" };
+const std::string CONFIG_KEYWORDS[NUM_KEYWORDS] = { "(NONE)", "LONG", "MEDIUM", "SHORT", "ANLONG", "ANSHORT", "PIN", "MEDIUMPIN", "LONGPIN" };
 
 void copySource (struct source* dest, const char* src, unsigned long amount);
 void setConfigWithKeyword (struct configuration* config, std::string keyword);

@@ -5,13 +5,9 @@
 #include <cstdlib>
 #include <cstring>
 #include "algorithm.h"
-// #include "wx/gtk/spinctrl.h"
 #include "wx/string.h"
 
-// For compilers that support precompilation, includes "wx/wx.h".
 #include <wx/wxprec.h>
-// for all others, include the necessary headers (this file is usually all you
-// need because it includes almost all "standard" wxWidgets headers)
 #ifndef WX_PRECOMP
     #include "wx/wx.h"
 #endif
@@ -47,7 +43,7 @@ public:
         wxSpinCtrl* newPatchKey,
         wxChoice* newConfigKeyword,
         wxSpinCtrl** newConfigNumbers,
-        wxTextCtrl** newOutputs
+        wxTextCtrl* newHashOutput
     ) {
         for (int i = 0; i < NUM_INPUTS; i++) {
             inputs[i] = newInputs[i];
@@ -57,9 +53,7 @@ public:
         for (int i = 0; i < NUM_CONFIG_NUMBERS; i++) {
             configNumbers[i] = newConfigNumbers[i];
         }
-        for (int i = 0; i < NUM_OUTPUTS; i++) {
-            outputs[i] = newOutputs[i];
-        }
+        hashOutput = newHashOutput;
         wxColour baseColor = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
         float scale = 1;
         inputColor = wxColor(baseColor.Red()*scale, baseColor.Green()*scale, baseColor.Blue()*scale);
@@ -72,20 +66,16 @@ public:
         for (int i = 0; i < NUM_INPUTS; i++) {
             AdjustTextCtrlSize(inputs[i], i);
         }
-        for (int i = 0; i < NUM_OUTPUTS; i++) {
-            AdjustTextCtrlSize(outputs[i]);
-        }
+        AdjustTextCtrlSize(hashOutput);
         Refresh();
     }
 
 private:
     wxTextCtrl* inputs[NUM_INPUTS];
-    // bool validInputs[NUM_INPUTS];
     wxSpinCtrl* patchKey;
     wxChoice* configKeyword;
     wxSpinCtrl* configNumbers[NUM_CONFIG_NUMBERS];
-    wxTextCtrl* outputs[NUM_OUTPUTS];
-    // bool validConnections[NUM_CONNECTIONS];
+    wxTextCtrl* hashOutput;
     wxColor inputColor;
     wxColor configColor;
     wxColor outputColor;
@@ -115,11 +105,7 @@ private:
         for (int i = 0; i < NUM_CONFIG_NUMBERS; i++) {
             positions[NUM_INPUTS + i + 2] = GetCtrlPosition(configNumbers[i], this);
         }
-        positions[NUM_INPUTS + NUM_CONFIG_NUMBERS + 2] = GetCtrlPosition(outputs[HASH], this);
-        // wxPoint outputPos[NUM_OUTPUTS];
-        // for (int i = 0; i < NUM_OUTPUTS; i++) {
-        //     outputPos[i] = GetCtrlPosition(outputs[i], this);
-        // }
+        positions[NUM_INPUTS + NUM_CONFIG_NUMBERS + 2] = GetCtrlPosition(hashOutput, this);
 
         wxSize size = GetSize();
 
@@ -233,16 +219,17 @@ private:
                 inputs[CHOICE_KEY]->GetValue(),
                 inputs[SHUFFLE_KEY]->GetValue()
             );
-            outputs[HASH]->SetValue(hash);
+            hashOutput->SetValue(hash);
             for (unsigned long i = 0; i < config.size; ++i) {
                 free(config.srcs[i].elts);
             }
             free(config.srcs);
         } else {
-            outputs[HASH]->SetValue("ERROR");
+            hashOutput->SetValue("ERROR");
         }
         for (int i = 0; i < NUM_INPUTS; i++) { AdjustTextCtrlSize(inputs[i], i); }
-        for (int i = 0; i < NUM_OUTPUTS; i++) { AdjustTextCtrlSize(outputs[i]); }
+        AdjustTextCtrlSize(hashOutput);
+        // for (int i = 0; i < NUM_OUTPUTS; i++) { ; }
         Refresh();
     }
 };
@@ -252,6 +239,7 @@ class MyFrame : public wxFrame {
     MyFrame();
 
     private:
+    wxTextCtrl* hashOutput;
     void OnExit(wxCommandEvent& event) {
         Close(true);
     }
@@ -267,12 +255,19 @@ class MyFrame : public wxFrame {
     void OnDocumentation(wxCommandEvent& WXUNUSED(event)) {
         wxLaunchDefaultBrowser("https://thornoar.github.io/pshash/web/help/");
     }
+    void OnCopyToClipboard(wxCommandEvent& event) {
+        if (wxTheClipboard->Open()) {
+            wxTheClipboard->SetData(new wxTextDataObject(hashOutput->GetValue()));
+            wxTheClipboard->Close();
+        }
+    }
 };
  
 enum {
     ID_Preferences = 1,
     ID_Version,
-    ID_Documentation
+    ID_Documentation,
+    ID_CopyToClipboard
 };
  
 bool MyApp::OnInit() {
@@ -310,11 +305,11 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     wxTextCtrl* inputs[NUM_INPUTS];
     wxPanel* inputPanel = new wxPanel(getHashPanel);
     inputs[PUBLIC_KEY] = new wxTextCtrl(inputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
-    inputs[PUBLIC_KEY]->SetValue(wxString("(PUBLIC)"));
+    inputs[PUBLIC_KEY]->SetValue(wxString("(PUBLIC KEY)"));
     inputs[CHOICE_KEY] = new wxTextCtrl(inputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
-    inputs[CHOICE_KEY]->SetValue(wxString("(CHOICE)"));
+    inputs[CHOICE_KEY]->SetValue(wxString("(CHOICE KEY)"));
     inputs[SHUFFLE_KEY] = new wxTextCtrl(inputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_CENTER);
-    inputs[SHUFFLE_KEY]->SetValue(wxString("(SHUFFLE)"));
+    inputs[SHUFFLE_KEY]->SetValue(wxString("(SHUFFLE KEY)"));
 
     wxBoxSizer* primaryInputSizer = new wxBoxSizer(wxHORIZONTAL);
     primaryInputSizer->Add(inputs[PUBLIC_KEY],  wxSizerFlags().Border(wxLEFT|wxTOP, BORDER_WIDTH));
@@ -363,28 +358,44 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     configSizer->AddStretchSpacer();
     configPanel->SetSizer(configSizer);
 
-    wxTextCtrl* outputs[NUM_OUTPUTS];
+    // wxTextCtrl* outputs[NUM_OUTPUTS];
 
     wxPanel* outputPanel = new wxPanel(getHashPanel);
-    for (int i = 0; i < NUM_OUTPUTS; i++) {
-        outputs[i] = new wxTextCtrl(outputPanel, wxID_ANY, "", outputPositions[i], wxDefaultSize, wxTE_READONLY | wxTE_CENTER);
-    }
+    hashOutput = new wxTextCtrl(outputPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxTE_CENTER);
+    // wxPoint position = GetCtrlPosition(hashOutput, getHashPanel);
+    // wxPoint position = hashOutput->GetPosition();
+    // wxButton* copyButton = new wxButton(outputPanel, ID_CopyToClipboard, "Copy", wxDefaultPosition, wxDefaultSize);
+    // for (int i = 0; i < NUM_OUTPUTS; i++) {
+    //     outputs[i] = new wxTextCtrl(outputPanel, wxID_ANY, "", outputPositions[i], wxDefaultSize, wxTE_READONLY | wxTE_CENTER);
+    // }
 
     wxBoxSizer* outputSizer = new wxBoxSizer(wxHORIZONTAL);
     outputSizer->AddStretchSpacer();
-    for (int i = 0; i < NUM_OUTPUTS; i++) {
-        outputSizer->Add(outputs[i], wxSizerFlags().Border(wxTOP|wxBOTTOM, BORDER_WIDTH/2));
-    }
+    outputSizer->Add(hashOutput, wxSizerFlags().Border(wxTOP, BORDER_WIDTH/2));
+    // outputSizer->Add(copyButton, wxSizerFlags().Border(wxTOP|wxBOTTOM, BORDER_WIDTH/2));
+    // for (int i = 0; i < NUM_OUTPUTS; i++) {
+    //     outputSizer->Add(outputs[i], wxSizerFlags().Border(wxTOP|wxBOTTOM, BORDER_WIDTH/2));
+    // }
     outputSizer->AddStretchSpacer();
     outputPanel->SetSizer(outputSizer);
-    getHashPanel->SetFields(inputs, patchKey, configKeyword, configNumbers, outputs);
+    getHashPanel->SetFields(inputs, patchKey, configKeyword, configNumbers, hashOutput);
+
+    wxPanel* clipboardPanel = new wxPanel(getHashPanel);
+    wxButton* copyButton = new wxButton(clipboardPanel, ID_CopyToClipboard, "Copy to Clipboard", wxDefaultPosition, wxDefaultSize);
+    wxBoxSizer* clipboardSizer = new wxBoxSizer(wxHORIZONTAL);
+    clipboardSizer->AddStretchSpacer();
+    clipboardSizer->Add(copyButton, wxSizerFlags().Border(wxBOTTOM, BORDER_WIDTH/2));
+    clipboardSizer->AddStretchSpacer();
+    clipboardPanel->SetSizer(clipboardSizer);
 
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
     mainSizer->Add(inputPanel, 3, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
     mainSizer->Add(patchPanel, 2, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
     mainSizer->Add(configPanel, 3, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
-    mainSizer->Add(outputPanel, 2, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
+    mainSizer->Add(outputPanel, 1, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
+    mainSizer->Add(clipboardPanel, 1, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
     getHashPanel->SetSizer(mainSizer);
+
 
     SetSizerAndFit(new wxBoxSizer(wxVERTICAL));
     GetSizer()->Add(getHashPanel, 1, wxEXPAND);
@@ -394,6 +405,7 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     Bind(wxEVT_MENU, &MyFrame::OnVersion, this, ID_Version);
     Bind(wxEVT_MENU, &MyFrame::OnDocumentation, this, ID_Documentation);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
+    Bind(wxEVT_BUTTON, &MyFrame::OnCopyToClipboard, this, ID_CopyToClipboard);
 
     for (int i = 0; i < NUM_INPUTS; i++) {
         inputs[i]->Bind(wxEVT_TEXT, &GetHashPanel::OnTextChange, getHashPanel);
