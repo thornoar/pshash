@@ -1,4 +1,5 @@
 #include "algorithm.h"
+#include "mini-gmp.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -113,8 +114,11 @@ void multi_choose_ordered (char** to, const struct source* srcs, unsigned long s
 }
 
 // Tested
-void shuffle_list (char* to, const char* lst, mpz_t key) {
-    const struct source src = { lst, strlen(lst) };
+void shuffle_list (char* to, char* lst, mpz_t key) {
+    // struct source src;
+    // strcpy(src.elts, lst);
+    // src.amount = strlen(lst);
+    struct source src = { .elts = lst, .amount = strlen(lst) };
     choose_ordered(to, src, key);
 }
 
@@ -209,9 +213,10 @@ void choose_and_merge (char* to, const struct configuration* config, mpz_t key) 
     mpz_t spr; mpz_init(spr); mpz_set_ui(spr, 1);
     mpz_t curprod; mpz_init(curprod);
     for (int i = 0; i < config->size; i++) {
-        mpz_rel_fac_ui(curprod, strlen(config->srcs[0].elts), config->srcs[0].amount);
+        mpz_rel_fac_ui(curprod, strlen(config->srcs[i].elts), config->srcs[i].amount);
         mpz_mul(spr, spr, curprod);
     }
+    print(spr);
     mpz_t key_mod; mpz_init(key_mod);
     mpz_fdiv_qr(key, key_mod, key, spr);
     multi_choose_ordered(selections, config->srcs, config->size, key_mod);
@@ -227,6 +232,7 @@ void choose_and_merge (char* to, const struct configuration* config, mpz_t key) 
 void get_hash (char* to, const struct configuration *config, mpz_t key1, mpz_t key2) {
     char temp[MAXSIZE_SMALL] = {};
     choose_and_merge(temp, config, key1);
+    printf("temp: %s\n", temp);
     shuffle_list(to, temp, key2);
 }
 
