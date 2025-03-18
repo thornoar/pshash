@@ -101,10 +101,6 @@ int GetTextWidthInPixels(wxTextCtrl* textCtrl) {
     return textSize.GetWidth();
 }
 
-const char* GetTextCtrlValue(wxTextCtrl* textCtrl) {
-    return textCtrl->GetValue().ToStdString().c_str();
-}
-
 wxPoint GetCtrlPosition(wxControl* ctrl, wxWindow* relativeTo) {
     wxPoint screenPos = ctrl->ClientToScreen(wxPoint(0, 0));
     wxPoint relativePos = relativeTo->ScreenToClient(screenPos);

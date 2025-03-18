@@ -2,22 +2,23 @@
 // IMPORTS
 // ========================================================
 
-#include <cstdlib>
-#include <cstring>
+// #include <cstdlib>
+// #include <cstring>
 #include "algorithm.h"
-#include "wx/string.h"
 
-#include <wx/wxprec.h>
-#ifndef WX_PRECOMP
-    #include "wx/wx.h"
-#endif
+// #include "wx/wx.h"
+// #include <wx/wxprec.h>
+// #ifndef WX_PRECOMP
+//     #include "wx/wx.h"
+// #endif
 
-#include "wx/clipbrd.h"
+#include "inputs.h"
+#include <wx/clipbrd.h>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/dcclient.h>
 #include <wx/aboutdlg.h>
-#include "inputs.h"
+#include <wx/notebook.h>
 
 using namespace std;
 
@@ -281,6 +282,9 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     // CreateStatusBar();
     // SetStatusText("The pshash pseudo-hash algorithm, version 1.0");
 
+    // wxNotebook* notebook = new wxNotebook(this, wxID_ANY);
+    // GetHashPanel* getHashPanel = new GetHashPanel(notebook);
+
     // Custom panel
     GetHashPanel* getHashPanel = new GetHashPanel(this);
 
@@ -365,7 +369,11 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "pshash-gui") {
     mainSizer->Add(clipboardPanel, 1, wxEXPAND | wxLEFT | wxRIGHT, SUPER_BORDER_WIDTH);
     getHashPanel->SetSizer(mainSizer);
 
+    // notebook->AddPage(getHashPanel, "HASH GENERATION");
 
+    // wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    // sizer->Add(notebook, 1, wxEXPAND);
+    // SetSizer(sizer);
     SetSizerAndFit(new wxBoxSizer(wxVERTICAL));
     GetSizer()->Add(getHashPanel, 1, wxEXPAND);
 

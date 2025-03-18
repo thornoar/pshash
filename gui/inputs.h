@@ -4,7 +4,7 @@
 #include <wx/spinctrl.h>
 
 const int VERTICAL_OFFSET = 60;
-const int BORDER_WIDTH = 70;
+const int BORDER_WIDTH = 60;
 const int SUPER_BORDER_WIDTH = 0;
 const int BOX_HEIGHT = 28;
 const int BOX_WIDTH = 115;
