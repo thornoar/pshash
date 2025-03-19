@@ -1,14 +1,14 @@
 #include "algorithm.h"
 #include "mini-gmp.h"
-#include <stdio.h>
+// #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-void print (mpz_t x) {
-    char x_str[MAXSIZE_BIG];
-    mpz_get_str(x_str, 10, x);
-    printf("%s\n", x_str);
-}
+// void print (mpz_t x) {
+//     char x_str[MAXSIZE_BIG];
+//     mpz_get_str(x_str, 10, x);
+//     printf("%s\n", x_str);
+// }
 
 // Tested
 unsigned long sum (const unsigned long arr[], const unsigned long size) {
@@ -216,7 +216,6 @@ void choose_and_merge (char* to, const struct configuration* config, mpz_t key) 
         mpz_rel_fac_ui(curprod, strlen(config->srcs[i].elts), config->srcs[i].amount);
         mpz_mul(spr, spr, curprod);
     }
-    print(spr);
     mpz_t key_mod; mpz_init(key_mod);
     mpz_fdiv_qr(key, key_mod, key, spr);
     multi_choose_ordered(selections, config->srcs, config->size, key_mod);
@@ -232,7 +231,6 @@ void choose_and_merge (char* to, const struct configuration* config, mpz_t key) 
 void get_hash (char* to, const struct configuration *config, mpz_t key1, mpz_t key2) {
     char temp[MAXSIZE_SMALL] = {};
     choose_and_merge(temp, config, key1);
-    printf("temp: %s\n", temp);
     shuffle_list(to, temp, key2);
 }
 
