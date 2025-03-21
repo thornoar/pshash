@@ -115,10 +115,7 @@ void multi_choose_ordered (char** to, const struct source* srcs, unsigned long s
 
 // Tested
 void shuffle_list (char* to, char* lst, mpz_t key) {
-    // struct source src;
-    // strcpy(src.elts, lst);
-    // src.amount = strlen(lst);
-    struct source src = { .elts = lst, .amount = strlen(lst) };
+    struct source src = { lst, strlen(lst) };
     choose_ordered(to, src, key);
 }
 

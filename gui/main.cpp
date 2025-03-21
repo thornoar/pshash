@@ -129,7 +129,7 @@ private:
         }
         string keyword = configKeyword->GetStringSelection().ToStdString();
         bool validKeyword = keyword != "(NONE)";
-        bool validConfigNumbers[NUM_CONFIG_NUMBERS];
+        bool validConfigNumbers = (configNumbers[CONFIG_NUMBERS_1_KEY]->GetValue() + configNumbers[CONFIG_NUMBERS_2_KEY]->GetValue() + configNumbers[CONFIG_NUMBERS_3_KEY]->GetValue() + configNumbers[CONFIG_NUMBERS_4_KEY]->GetValue()) > 0;
 
         bool validConnections[NUM_CONNECTIONS];
         validConnections[PUBLIC_PATCH] = validInputs[PUBLIC_KEY];
@@ -140,7 +140,7 @@ private:
         validConnections[SHUFFLE_CONFIG_KEYWORD] = validInputs[SHUFFLE_KEY];
         validConnections[SHUFFLE_CONFIG_NUMBERS] = validInputs[SHUFFLE_KEY];
         validConnections[CONFIG_KEYWORD_HASH] = validKeyword && validConnections[PATCH_CONFIG_KEYWORD] && validConnections[CHOICE_CONFIG_KEYWORD] && validConnections[SHUFFLE_CONFIG_KEYWORD];
-        validConnections[CONFIG_NUMBERS_HASH] = validConnections[PATCH_CONFIG_NUMBERS] && validConnections[CHOICE_CONFIG_NUMBERS] && validConnections[SHUFFLE_CONFIG_NUMBERS];
+        validConnections[CONFIG_NUMBERS_HASH] = validConfigNumbers && validConnections[PATCH_CONFIG_NUMBERS] && validConnections[CHOICE_CONFIG_NUMBERS] && validConnections[SHUFFLE_CONFIG_NUMBERS];
 
         bool greyOutKeyword = !validConnections[CONFIG_KEYWORD_HASH] && validConnections[CONFIG_NUMBERS_HASH];
         bool greyOutNumbers = validConnections[CONFIG_KEYWORD_HASH];
@@ -168,6 +168,7 @@ private:
             validInputs[PUBLIC_KEY]
 			&& validInputs[CHOICE_KEY]
 			&& validInputs[SHUFFLE_KEY]
+            && (validKeyword || validConfigNumbers)
         ) {
             struct configuration config;
             config.size = 4;
@@ -175,12 +176,10 @@ private:
             if (!config.srcs) {
                 return;
             }
-            for (unsigned long i = 0; i < config.size; ++i) {
-                config.srcs[i].elts = (char*)malloc(MAXSIZE_SMALL * sizeof(char));
+            for (unsigned long i = 0; i < config.size; i++) {
+                config.srcs[i].elts = (char*) malloc(MAXSIZE_SMALL * sizeof(char));
                 if (!config.srcs[i].elts) {
-                    for (unsigned long j = 0; j < i; ++j) {
-                        free(config.srcs[j].elts);
-                    }
+                    for (unsigned long j = 0; j < i; j++) free(config.srcs[j].elts);
                     free(config.srcs);
                     return;
                 }
