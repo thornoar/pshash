@@ -129,7 +129,13 @@ private:
         }
         string keyword = configKeyword->GetStringSelection().ToStdString();
         bool validKeyword = keyword != "(NONE)";
-        bool validConfigNumbers = (configNumbers[CONFIG_NUMBERS_1_KEY]->GetValue() + configNumbers[CONFIG_NUMBERS_2_KEY]->GetValue() + configNumbers[CONFIG_NUMBERS_3_KEY]->GetValue() + configNumbers[CONFIG_NUMBERS_4_KEY]->GetValue()) > 0;
+        int numbers[4] = {
+            configNumbers[CONFIG_NUMBERS_1_KEY]->GetValue(),
+            configNumbers[CONFIG_NUMBERS_2_KEY]->GetValue(),
+            configNumbers[CONFIG_NUMBERS_3_KEY]->GetValue(),
+            configNumbers[CONFIG_NUMBERS_4_KEY]->GetValue()
+        };
+        bool validConfigNumbers = (numbers[0] + numbers[1] + numbers[2] + numbers[3]) > 0;
 
         bool validConnections[NUM_CONNECTIONS];
         validConnections[PUBLIC_PATCH] = validInputs[PUBLIC_KEY];
@@ -189,12 +195,6 @@ private:
             if (validKeyword) {
                 setConfigWithKeyword(&config, keyword.c_str());
             } else {
-                int numbers[4] = {
-                    configNumbers[CONFIG_NUMBERS_1_KEY]->GetValue(),
-                    configNumbers[CONFIG_NUMBERS_2_KEY]->GetValue(),
-                    configNumbers[CONFIG_NUMBERS_3_KEY]->GetValue(),
-                    configNumbers[CONFIG_NUMBERS_4_KEY]->GetValue()
-                };
                 setConfigWithNumbers(&config, numbers);
             }
             wxString hash = getHash(
