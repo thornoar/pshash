@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.14.7
+
+* Made the `--pure` behavior default, overridable with `--impure`.
+
 ## 0.1.14.6
 
 * Split the program into modules, changed help messages.

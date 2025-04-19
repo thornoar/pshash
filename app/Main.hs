@@ -21,7 +21,7 @@ import Inverse
 import Info
 
 currentVersion :: String
-currentVersion = "0.1.14.6"
+currentVersion = "0.1.14.7"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -93,7 +93,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 data OptionName =
     KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH
   | CONFIGFILE | CONFIGKEYWORD
-  | PURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION
+  | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION
   | FIRST | SECOND | THIRD
   | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
@@ -118,7 +118,7 @@ infoAction config "help" = do
       let show' :: [([Char],Integer)] -> String
           show' config' = "[\n" ++ concatMap (("  " ++) . (++ "\n") . show) config' ++ "]"
       putStrLn . unlines $
-          "usage: pshash [ --help | --version | --list | --pure ]"
+          "usage: pshash [ --help | --version | --list | --pure | --impure ]"
         : "              [ +color | +no-color ]"
         : "              [ -d|n|c|i|q|f|p ARGUMENT ]"
         : "              [ PUBLIC CHOICE SHUFFLE ]"
@@ -134,7 +134,9 @@ infoAction config "help" = do
         : "                       * the NUMBER of pairs to compute, and"
         : "                       * the final HASH."
         : ""
-        : "  --pure              Ignore all configuration files."
+        : "  --pure              Ignore all configuration files. The default behavior."
+        : ""
+        : "  --impure            Enable configuration file usage."
         : ""
         : "  --no-prompts        Omit prompts."
         : ""
@@ -178,9 +180,10 @@ infoAction config "help" = do
         : "                       * choice (followed by PUBLIC SHUFFLE HASH as keys)"
         : "                       * shuffle (followed by PUBLIC CHOICE HASH as keys)"
         : ""
-        : "  -f PATH             Read the configuration file from PATH. If neither"
-        : "                      this nor the `--pure` option is used, the program"
-        : "                      will try to read from the following files:"
+        : "  -f PATH             Read the configuration file from PATH. If neither this"
+        : "                      nor the `--pure` option is used, but the `--impure`"
+        : "                      option is set, the program will try to read from the"
+        : "                      following files:"
         : map ("                       * " ++) defaultConfigFiles ++
           "                      Each line of the file should follow the format"
         : "                         PUBLIC: ARGS"
@@ -318,7 +321,8 @@ getConfigFromContents :: Maybe String -> String -> IO (Result [([Char], Integer)
 getConfigFromContents keywordM contents = case keywordM of
   Nothing -> return . Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
     [
-      ("Disable configuration files by passing the " ++ "{--pure}" ++ " option, or") :=> [],
+      ("Disable configuration files by removing the " ++ "{--impure}" ++ " option, or") :=> [],
+      ("Pass the " ++ "{--pure}" ++ " option for the same effect, or") :=> [],
       ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
       ("{Remove}" ++ " the configuration files.") :=> []
     ]
@@ -359,6 +363,7 @@ getConfig args
       case fileContentsH of
         Error tr -> return (Error $ ("Trace while reading contents from {" ++ args ! CONFIGFILE ++ "}:") :=> [tr])
         Content contents -> getConfigFromContents (DM.lookup CONFIGKEYWORD args) contents
+  | not (member IMPURE args) = return (Content defaultConfiguration)
   | otherwise = do
       let replaceChar :: Char -> String -> String -> String
           replaceChar _ _ "" = ""
@@ -390,11 +395,12 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   ch -> Error $ ("<Unsupported option: {{" ++ ['-',ch] ++ "}}.>") :=> []
 parseArgs _ [['-', ch]] = Error $ ("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []
 parseArgs trp (('-':'-':opt) : rest) = case opt of
-  "pure" -> insert' PURE "" <$> parseArgs trp rest
-  "list" -> insert' LIST "" <$> parseArgs trp rest
-  "no-prompts" -> insert' NOPROMPTS "" <$> parseArgs trp rest
-  "ask-repeat" -> insert' ASKREPEAT "" <$> parseArgs trp rest
-  "show" -> insert' SHOW "" <$> parseArgs trp rest
+  "pure" -> insert' PURE [] <$> parseArgs trp rest
+  "impure" -> insert' IMPURE [] <$> parseArgs trp rest
+  "list" -> insert' LIST [] <$> parseArgs trp rest
+  "no-prompts" -> insert' NOPROMPTS [] <$> parseArgs trp rest
+  "ask-repeat" -> insert' ASKREPEAT [] <$> parseArgs trp rest
+  "show" -> insert' SHOW [] <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
   str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
