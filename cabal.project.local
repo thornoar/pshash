@@ -1,1 +1,4 @@
 ignore-project: False
+optimization: 2
+package *
+  optimization: 2
