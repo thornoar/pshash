@@ -1,6 +1,6 @@
 import export;
 settings.outformat = "svg";
-size(15cm, 15cm);
+size(20cm, 20cm);
 
 defaultpen(white + 1.5pt);
 
