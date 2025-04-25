@@ -1,4 +1,6 @@
-<img src="./documentation/figures/logo-white.svg">
+<p align="center">
+  <img src="./documentation/figures/logo-white.svg">
+</p>
 
 ## Synopsis
 
