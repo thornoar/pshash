@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./documentation/figures/logo-white.svg">
+  <img src="./documentation/figures/logo-white.svg" width=250>
 </p>
 
 ## Synopsis
