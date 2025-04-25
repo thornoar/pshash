@@ -7,7 +7,7 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 // Library imports
 #import "@local/common:0.0.0": *
 #import "@local/templates:0.0.0": *
-#show: article
+#show: article-rule
 #import "@local/theorem:0.0.0": *
 #show: theorem
 
@@ -34,9 +34,9 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 
 // Begin Document
 #let keywords = ("Combinatorics", "Hash", "Security", "Haskell", "Functional programming")
-#show: title([ On rearrangement hashing with Haskell ], abstract: [
+#show: title-rule([ On rearrangement hashing with Haskell ], abstract: [
   In this paper I introduce and develop a mathematical method of producing a pseudo-cryptographic hash of adjustable length, given a public key and a pair of private keys. The hashing is done through encoding selections and permutations with natural numbers, and then composing the hash from a set of source strings with respect to the permutations encoded by the keys. The attempts to construct a suitable integer-to-selection mapping lead to interesting mathematical definitions and statements, which are discussed in this paper and applied to give bounds on the reliability of the hashing algorithm. An implementation is provided in the Haskell programming language (source available at https://github.com/thornoar/pshash) and applied in the setting of password creation.
-], date: datetime(year: 2024, month: 3, day: 26), keywords: keywords, logo: image("figures/haskell.png", width: 20%), keywordlength: 60%)
+], date: datetime(year: 2024, month: 3, day: 26), keywords: keywords, logo: image("figures/logo.svg", width: 60%), keywordlength: 60%)
 
 = Introduction
 
