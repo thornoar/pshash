@@ -28,12 +28,6 @@ insertAt a 0 lst = a:lst
 insertAt a n (l:lst) = l : insertAt a (n-1) lst
 insertAt _ _ _ = []
 
-break' :: (Eq a) => a -> [a] -> ([a], [a])
-break' _ [] = ([],[])
-break' a (a':rest)
-  | a == a' = ([], rest)
-  | otherwise = let (res1, res2) = break' a rest in (a' : res1, res2)
-
 dropElementInfo :: ([a], Integer) -> (Integer, Integer)
 dropElementInfo (src, m) = (length' src, m)
 

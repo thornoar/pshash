@@ -326,16 +326,17 @@ getConfigFromContents keywordM contents = case keywordM of
       ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
       ("{Remove}" ++ " the configuration files.") :=> []
     ]
-  Just publicStr -> process specs
+  Just publicStr -> process $ map (splitBy ':') (filter (elem ':') (lines contents))
     where
-      specLines = filter (elem ':') (lines contents)
-      specs = map (break' ':') specLines
+      split :: Char -> String -> [String]
+      split _ [] = []
+      split c str = let (f, s) = splitBy c str in f : split c s
       process :: [(String, String)] -> IO (Result [([Char], Integer)])
       process [] = return (Content defaultConfiguration)
-      process ((publicStr', argStr) : rest) =
-        if publicStr == publicStr' || publicStr' == "+all"
+      process ((keywords, argStr) : rest) =
+        if keywords == "+all" || publicStr `elem` split ',' (filter (/= ' ') keywords)
         then case parseArgs' (True, True, True) (words argStr) of
-          Error tr -> return . Error $ ("Trace while parsing options for {" ++ publicStr' ++ "}:") :=> [tr]
+          Error tr -> return . Error $ ("Trace while parsing options for {" ++ keywords ++ "}:") :=> [tr]
           Content args -> getConfig (insertWith const PURE "" args)
         else process rest
 
@@ -437,6 +438,12 @@ patchArgs args
   | member FIRST args = Content $ insertWith const CONFIGKEYWORD (args ! FIRST) args
   | otherwise = Content args
 
+splitBy :: (Eq a) => a -> [a] -> ([a], [a])
+splitBy _ [] = ([],[])
+splitBy a (a':rest)
+  | a == a' = ([], rest)
+  | otherwise = let (res1, res2) = splitBy a rest in (a' : res1, res2)
+
 getPublicKey' :: String -> Integer
 getPublicKey' "" = 0
 getPublicKey' (c:cs) = toInteger (ord c) + 128 * getPublicKey' cs
@@ -453,7 +460,7 @@ getPublicStr = reverse . getPublicStr'
 
 getPrivateKey :: String -> Result Integer
 getPrivateKey s = liftA2 (^) base pow where
-  (baseStr, powStr) = break' '-' s
+  (baseStr, powStr) = splitBy '-' s
   base :: Result Integer
   base = readResult "base in private key" baseStr
   pow :: Result Integer
