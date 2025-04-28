@@ -12,7 +12,7 @@ import System.Info (os)
 import Control.Applicative (liftA2)
 import Control.Exception (IOException, catch, bracket_)
 import System.Exit (exitWith, ExitCode (ExitFailure))
-import Data.Char (ord, chr, toUpper)
+import Data.Char (ord, chr)
 import Control.Monad (unless)
 
 import Algorithm
@@ -21,7 +21,7 @@ import Inverse
 import Info
 
 currentVersion :: String
-currentVersion = "0.1.14.7"
+currentVersion = "0.1.15.0"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -92,7 +92,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 
 data OptionName =
     KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH
-  | CONFIGFILE | CONFIGKEYWORD
+  | CONFIGFILE
   | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION
   | FIRST | SECOND | THIRD
   | E1 | E2 | E3 | P1 | P2 | P3
@@ -317,29 +317,6 @@ readFileResult :: FilePath -> IO (Result String)
 readFileResult = safeReadWithHandler handler
   where handler e = return . Error $ "<Error reading configuration file:>" :=> [ show e :=> [] ]
 
-getConfigFromContents :: Maybe String -> String -> IO (Result [([Char], Integer)])
-getConfigFromContents keywordM contents = case keywordM of
-  Nothing -> return . Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
-    [
-      ("Disable configuration files by removing the " ++ "{--impure}" ++ " option, or") :=> [],
-      ("Pass the " ++ "{--pure}" ++ " option for the same effect, or") :=> [],
-      ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
-      ("{Remove}" ++ " the configuration files.") :=> []
-    ]
-  Just publicStr -> process $ map (splitBy ':') (filter (elem ':') (lines contents))
-    where
-      split :: Char -> String -> [String]
-      split _ [] = []
-      split c str = let (f, s) = splitBy c str in f : split c s
-      process :: [(String, String)] -> IO (Result [([Char], Integer)])
-      process [] = return (Content defaultConfiguration)
-      process ((keywords, argStr) : rest) =
-        if keywords == "+all" || publicStr `elem` split ',' (filter (/= ' ') keywords)
-        then case parseArgs' (True, True, True) (words argStr) of
-          Error tr -> return . Error $ ("Trace while parsing options for {" ++ keywords ++ "}:") :=> [tr]
-          Content args -> getConfig (insertWith const PURE "" args)
-        else process rest
-
 getConfig :: Map OptionName String -> IO (Result [([Char], Integer)])
 getConfig args
   | member KEYWORD args = return $ case args ! KEYWORD of
@@ -358,26 +335,7 @@ getConfig args
   | member CONFIG args =
       return $ readResult "source configuration" (args ! CONFIG)
       >>= checkConfigValidity
-  | any (`member` args) [PURE, INFO, QUERY, LIST] = return (Content defaultConfiguration)
-  | member CONFIGFILE args = do
-      fileContentsH <- readFileResult (args ! CONFIGFILE)
-      case fileContentsH of
-        Error tr -> return (Error $ ("Trace while reading contents from {" ++ args ! CONFIGFILE ++ "}:") :=> [tr])
-        Content contents -> getConfigFromContents (DM.lookup CONFIGKEYWORD args) contents
-  | not (member IMPURE args) = return (Content defaultConfiguration)
-  | otherwise = do
-      let replaceChar :: Char -> String -> String -> String
-          replaceChar _ _ "" = ""
-          replaceChar old new (ch : rest)
-            | ch == old = new ++ replaceChar old new rest
-            | otherwise = ch : replaceChar old new rest
-      homeDir <- getHomeDirectory
-      fileContentsM <- mapM (readFileMaybe . replaceChar '~' homeDir) defaultConfigFiles
-      let findContents :: [Maybe String] -> IO (Result [([Char], Integer)])
-          findContents [] = return (Content defaultConfiguration)
-          findContents (Nothing : rest) = findContents rest
-          findContents (Just contents : _) = getConfigFromContents (DM.lookup CONFIGKEYWORD args) contents
-      findContents fileContentsM
+  | otherwise = return (Content defaultConfiguration)
 
 insert' :: (Ord k) => k -> a -> Map k a -> Map k a
 insert' = insertWith (const id)
@@ -417,8 +375,49 @@ parseArgs (b1, b2, b3) (s : rest)
   | b1 = insert' SECOND s <$> parseArgs (True, True, False) rest
   | otherwise = insert' FIRST s <$> parseArgs (True, False, False) rest
 
-parseArgs' :: (Bool, Bool, Bool) -> [String] -> Result (Map OptionName String)
-parseArgs' trp = addTrace "Trace while parsing arguments:" . raise patchArgs . parseArgs trp
+getArgsFromContents :: Maybe String -> String -> Result (Map OptionName String)
+getArgsFromContents keywordM contents = case keywordM of
+  Nothing -> Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
+    [
+      ("Disable configuration files by removing the " ++ "{--impure}" ++ " option, or") :=> [],
+      ("Pass the " ++ "{--pure}" ++ " option for the same effect, or") :=> [],
+      ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
+      ("{Remove}" ++ " the configuration files.") :=> []
+    ]
+  Just publicStr -> process $ map (splitBy ':') (filter (elem ':') (lines contents))
+    where
+      split :: Char -> String -> [String]
+      split _ [] = []
+      split c str = let (f, s) = splitBy c str in f : split c s
+      process :: [(String, String)] -> Result (Map OptionName String)
+      process [] = Content empty
+      process ((keywords, argStr) : rest) =
+        if keywords == "+all" || publicStr `elem` split ',' (filter (/= ' ') keywords)
+        then addTrace ("Trace while parsing options for {" ++ keywords ++ "}:") $ parseArgs (True, True, True) (words argStr)
+        else process rest
+
+getConfigArgs :: Map OptionName String -> IO (Result (Map OptionName String))
+getConfigArgs args
+  | any (`member` args) [PURE, INFO, QUERY, LIST] = return (Content args)
+  | member CONFIGFILE args = do
+      fileContentsH <- readFileResult (args ! CONFIGFILE)
+      case fileContentsH of
+        Error tr -> return (Error $ ("Trace while reading contents from {" ++ args ! CONFIGFILE ++ "}:") :=> [tr])
+        Content contents -> return $ getArgsFromContents (DM.lookup FIRST args) contents
+  | not (member IMPURE args) = return (Content args)
+  | otherwise = do
+      let replaceChar :: Char -> String -> String -> String
+          replaceChar _ _ "" = ""
+          replaceChar old new (ch : rest)
+            | ch == old = new ++ replaceChar old new rest
+            | otherwise = ch : replaceChar old new rest
+      homeDir <- getHomeDirectory
+      fileContentsM <- mapM (readFileMaybe . replaceChar '~' homeDir) defaultConfigFiles
+      let findContents :: [Maybe String] -> Result (Map OptionName String)
+          findContents [] = Content args
+          findContents (Nothing : rest) = findContents rest
+          findContents (Just contents : _) = getArgsFromContents (DM.lookup FIRST args) contents
+      return $ findContents fileContentsM
 
 patchArgs :: Map OptionName String -> Result (Map OptionName String)
 patchArgs args
@@ -427,16 +426,48 @@ patchArgs args
     if member FIRST args
     then do
       patchAmount <- (readResult "integer" (args ! PATCH) :: Result Integer)
-      Content
-        $ insertWith const FIRST (shiftString patchAmount (args ! FIRST))
-        $ insertWith const CONFIGKEYWORD (args ! FIRST) args
+      Content $ insertWith const FIRST (shiftString patchAmount (args ! FIRST)) args
     else Error $ "<Cannot patch public key that was not pre-supplied. Either:>" :=>
       [
         ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
         ("{Remove}" ++ " the " ++ "{-p}" ++ " option.") :=> []
       ]
-  | member FIRST args = Content $ insertWith const CONFIGKEYWORD (args ! FIRST) args
+  | member FIRST args = Content $ insertWith const FIRST (args ! FIRST) args
   | otherwise = Content args
+
+setEchoesAndPrompts :: Map OptionName String -> Map OptionName String
+setEchoesAndPrompts args
+  | member INFO args = args
+  | member QUERY args =
+      insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
+        if member NOPROMPTS args
+        then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
+        else case args ! QUERY of
+            "public" -> insert' P1 "CHOICE KEY: " . insert' P2 "SHUFFLE KEY: "
+            "choice" -> insert' P1 "PUBLIC KEY: " . insert' P2 "SHUFFLE KEY: "
+            "shuffle" -> insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: "
+            _ -> insert' P1 "INPUT: " . insert' P2 "INPUT: "
+          $ insert' P3 "FINAL HASH: " args
+  | member LIST args =
+      insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
+      if member NOPROMPTS args
+      then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
+      else insert' P1 "PUBLIC KEY: " $ insert' P2 "NUMBER OF PAIRS: " $ insert' P3 "FINAL HASH: " args
+  | otherwise =
+      insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
+      if member NOPROMPTS args
+      then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
+      else insert' P1 "PUBLIC KEY: " $ insert' P2 "CHOICE KEY: " $ insert' P3 "SHUFFLE KEY: " args
+
+parseArgs' :: (Bool, Bool, Bool) -> [String] -> IO (Result (Map OptionName String))
+parseArgs' trp rawArgs = case parseArgs trp rawArgs of
+  Error tr -> return . Error $ "Trace while parsing command-line arguments:" :=> [tr]
+  Content args -> do
+    configArgs <- getConfigArgs args
+    return $
+      addTrace "Trace while parsing configuration file arguments:" .
+      fmap setEchoesAndPrompts $
+      (configArgs >>= patchArgs . DM.union args)
 
 splitBy :: (Eq a) => a -> [a] -> ([a], [a])
 splitBy _ [] = ([],[])
@@ -481,10 +512,10 @@ getInput echo askRepeat prompt = do
   unless (null prompt) $ hPutStr stderr prompt
   input <- withEcho echo getLine
   unless (echo || os == "mingw32") $ hPutChar stderr '\n'
-  if not echo && askRepeat then do
+  if askRepeat then do
     unless (null prompt) $ hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
     inputRepeat <- withEcho echo getLine
-    unless (os == "mingw32") $ hPutChar stderr '\n'
+    unless (echo || os == "mingw32") $ hPutChar stderr '\n'
     if input == inputRepeat then return input
     else do
       hPutStrLn stderr "Keys do not match. Try again."
@@ -516,30 +547,6 @@ removeCodesInString True (c:rest) = c : removeCodesInString True rest
 removeCodes :: Trace -> Trace
 removeCodes (msg :=> trs) = removeCodesInString True msg :=> map removeCodes trs
 
-setEchoesAndPrompts :: Map OptionName String -> Map OptionName String
-setEchoesAndPrompts args
-  | member INFO args = args
-  | member QUERY args =
-      insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
-        if member NOPROMPTS args
-        then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
-        else case args ! QUERY of
-            "public" -> insert' P1 "CHOICE KEY: " . insert' P2 "SHUFFLE KEY: "
-            "choice" -> insert' P1 "PUBLIC KEY: " . insert' P2 "SHUFFLE KEY: "
-            "shuffle" -> insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: "
-            _ -> insert' P1 "INPUT: " . insert' P2 "INPUT: "
-          $ insert' P3 "FINAL HASH: " args
-  | member LIST args =
-      insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
-      if member NOPROMPTS args
-      then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
-      else insert' P1 "PUBLIC KEY: " $ insert' P2 "NUMBER OF PAIRS: " $ insert' P3 "FINAL HASH: " args
-  | otherwise =
-      insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
-      if member NOPROMPTS args
-      then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
-      else insert' P1 "PUBLIC KEY: " $ insert' P2 "CHOICE KEY: " $ insert' P3 "SHUFFLE KEY: " args
-
 performAction :: Map OptionName String -> Result [([Char], Integer)] -> IO (Result ())
 performAction _ (Error tr) = return (Error $ "Trace in configuration argument:" :=> [tr])
 performAction args (Content config)
@@ -547,42 +554,6 @@ performAction args (Content config)
   | member QUERY args = passKeysToAction args (queryAction config (args ! QUERY))
   | member LIST args = passKeysToAction args (listPairsAction config)
   | otherwise = passKeysToAction args (hashAction config)
-
-printTraceList :: [Bool] -> [Trace] -> IO ()
-printTraceList _ [] = return ()
-printTraceList places [tr] = printTrace places [False,False] tr
-printTraceList places (tr:rest) = printTrace places [True, False] tr >> printTraceList places rest
-
-printTrace :: [Bool] -> [Bool] -> Trace -> IO ()
-printTrace places pass (msg :=> lst) = do
-  let prefix = map (\b -> if b then '|' else ' ') places ++ "|_"
-  hPutStrLn stderr $ prefix ++ msg
-  printTraceList (places ++ pass) lst
-
-formatWithColor :: String -> String
-formatWithColor [] = []
-formatWithColor ('<':rest) = "\ESC[31m" ++ formatWithColor rest
-formatWithColor ('>':rest) = "\ESC[0m" ++ formatWithColor rest
-formatWithColor ('{':'{':rest) = "\ESC[33m" ++ formatWithColor rest
-formatWithColor ('}':'}':rest) = "\ESC[31m" ++ formatWithColor rest
-formatWithColor ('{':rest) = "\ESC[33m" ++ formatWithColor rest
-formatWithColor ('}':rest) = "\ESC[0m" ++ formatWithColor rest
-formatWithColor (c:rest) = c : formatWithColor rest
-
-formatWithoutColor :: String -> Bool -> String
-formatWithoutColor [] _ = []
-formatWithoutColor ('<':rest) _ = formatWithoutColor rest True
-formatWithoutColor ('>':rest) _ = formatWithoutColor rest False
-formatWithoutColor ('{':'{':rest) _ = '*' : formatWithoutColor rest False
-formatWithoutColor ('}':'}':rest) _ = '*' : formatWithoutColor rest True
-formatWithoutColor ('{':rest) upper = '*' : formatWithoutColor rest upper
-formatWithoutColor ('}':rest) upper = '*' : formatWithoutColor rest upper
-formatWithoutColor (c:rest) True = toUpper c : formatWithoutColor rest True
-formatWithoutColor (c:rest) False = c : formatWithoutColor rest False
-
-formatTrace :: Bool -> Trace -> Trace
-formatTrace True (msg :=> trs) = formatWithColor msg :=> map (formatTrace True) trs
-formatTrace False (msg :=> trs) = formatWithoutColor msg False :=> map (formatTrace False) trs
 
 toIO :: [String] -> IO (Result ()) -> IO ()
 toIO rawArgs action = do
@@ -601,4 +572,7 @@ toIO rawArgs action = do
     Content () -> return ()
 
 main :: IO ()
-main = getArgs >>= toIO <*> (raiseH' (raise2' performAction <*> getConfig) . fmap setEchoesAndPrompts . parseArgs' (False, False, False))
+main = do
+  rawArgs <- getArgs
+  parsedArgs <- parseArgs' (False, False, False) rawArgs
+  toIO rawArgs $ raiseH' (raise2' performAction <*> getConfig) parsedArgs

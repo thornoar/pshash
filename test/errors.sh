@@ -4,7 +4,7 @@ cmd="$1"
 
 function run {
     printf "\033[34m| Running \"\033[35m%s\033[34m\"...\033[0m\n" "$1"
-    $1 | head -n "$2"
+    $1 2>&1 | head -n "$2"
     printf "\n"
 }
 
@@ -23,7 +23,7 @@ run "$cmd -q non-existent pub 0 0" 30
 run "$cmd --list pub 3asd5 0" 30
 run "$cmd --list pub 5 ahfs234^&%jkdv" 30
 run "$cmd -f non-existent pub 5 5" 30
-run "$cmd" 30
+run "$cmd --impure" 30
 run "$cmd -d non-existent pub 0 0" 30
 run "$cmd -n non-existent pub 0 0" 30
 run "$cmd -n (5,9,4,) pub 0 0" 30

@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.15.0
+
+* Rewrote the config file reading logic, + minor stuff
+
 ## 0.1.14.7
 
 * Made the `--pure` behavior default, overridable with `--impure`.
