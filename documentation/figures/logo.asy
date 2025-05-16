@@ -1,8 +1,8 @@
 import export;
-settings.outformat = "svg";
+settings.outformat = "pdf";
 size(20cm, 20cm);
 
-defaultpen(white + 1.5pt);
+defaultpen(1.5pt);
 
 config.drawing.gaplength = 0.04;
 
@@ -116,10 +116,10 @@ real r2 = 0.05;
 
 for(int i = 0; i < 8; ++i) {
     real ang = maxang - i*(2*maxang/7);
-    filldraw(circle((-1-r2, .70 - i*.2), r = r2), fillpen = black);
+    filldraw(circle((-1-r2, .70 - i*.2), r = r2), fillpen = white);
     draw(shift((-1-r2, .70 - i*.2)) * scale(r2) * rotate(30) * polygon(3));
-    filldraw(circle((1+r2,  .70 - i*.2), r = r2), fillpen = black);
+    filldraw(circle((1+r2,  .70 - i*.2), r = r2), fillpen = white);
     draw(shift((1+r2, .70 - i*.2)) * scale(r2) * rotate(-30) * polygon(3));
 }
 
-export(prefix = "logo-white");
+export(prefix = "logo");
