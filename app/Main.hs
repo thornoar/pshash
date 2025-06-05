@@ -511,11 +511,11 @@ getInput :: Bool -> Bool -> String -> IO String
 getInput echo askRepeat prompt = do
   unless (null prompt) $ hPutStr stderr prompt
   input <- withEcho echo getLine
-  unless (echo || os == "mingw32") $ hPutChar stderr '\n'
+  unless echo $ hPutChar stderr '\n'
   if askRepeat then do
     unless (null prompt) $ hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
     inputRepeat <- withEcho echo getLine
-    unless (echo || os == "mingw32") $ hPutChar stderr '\n'
+    unless echo $ hPutChar stderr '\n'
     if input == inputRepeat then return input
     else do
       hPutStrLn stderr "Keys do not match. Try again."
