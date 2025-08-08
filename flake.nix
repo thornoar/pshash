@@ -15,11 +15,6 @@
           inherit pkgs;
           pname = "pshash";
         };
-        pshash-gui = import ./build/pshash-gui.nix {
-          inherit pkgs;
-          pname = "pshash-gui";
-          version = "1.0";
-        };
         default = pshash-dynamic;
       };
       apps.${system}.default = {
@@ -37,18 +32,6 @@
               directory
               containers
             ]))
-          ];
-        };
-        pshash-gui = pkgs.mkShell {
-          shellHook = ''
-            export ZDOTDIR="$XDG_CONFIG_HOME/nix-develop"
-          '';
-          nativeBuildInputs = with pkgs; [
-            bear
-            coccinelle
-            valgrind
-            gcc
-            wxGTK32
           ];
         };
       };
