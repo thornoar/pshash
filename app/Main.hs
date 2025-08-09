@@ -21,7 +21,7 @@ import Inverse
 import Info
 
 currentVersion :: String
-currentVersion = "0.1.15.0"
+currentVersion = "0.1.15.1"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -206,10 +206,10 @@ infoAction config "help" = do
         : "                      of the password destination (e.g. \"google\", \"steam\")"
         : ""
         : "  CHOICE              Stands for choice private key, a large number"
-        : ("                      between 0 and " ++ formatDouble (show (fromIntegral (numberOfChoiceKeys' config) :: Double)) numberOfPlaces)
+        : ("                      between 0 and " ++ formatNumber (numberOfChoiceKeys' config) numberOfPlaces)
         : ""
         : "  SHUFFLE             Stands for shuffle private key, a number"
-        : ("                      between 0 and " ++ formatDouble (show (fromIntegral (numberOfShuffleKeys $ map snd config) :: Double)) numberOfPlaces)
+        : ("                      between 0 and " ++ formatNumber (numberOfShuffleKeys $ map snd config) numberOfPlaces)
         : ""
         : "using source configuration:"
         : show' config
@@ -219,32 +219,24 @@ infoAction _ "version" = putStrLn ("The pshash pseudo-hash password manager, ver
 infoAction config "numbers" =
   let amts = map dropElementInfo config
       numHashes = numberOfHashes amts
-      numHashesDouble = fromIntegral numHashes :: Double
       numChoice = numberOfChoiceKeys amts
-      numChoiceDouble = fromIntegral numChoice :: Double
       numShuffle = numberOfShuffleKeys $ map snd amts
-      numShuffleDouble = fromIntegral numShuffle :: Double
       numRepetitions = numberOfRepetitions $ map snd amts
-      numRepetitionsDouble = fromIntegral numRepetitions :: Double
    in do
   putStrLn $ "using the following configuration distribution: " ++ show amts
   putStrLn ""
   putStrLn $
-    "total theoretical number of hashes:         "
-      ++ formatInteger (show numHashes) ++ " ("
-      ++ formatDouble (show numHashesDouble) numberOfPlaces ++ ")"
+    "total theoretical number of hashes:         " ++
+      formatNumber numHashes numberOfPlaces
   putStrLn $
-    "number of choice keys:                      "
-      ++ formatInteger (show numChoice) ++ " ("
-      ++ formatDouble (show numChoiceDouble) numberOfPlaces ++ ")"
+    "number of choice keys:                      " ++
+    formatNumber numChoice numberOfPlaces
   putStrLn $
-    "number of shuffle keys:                     "
-      ++ formatInteger (show numShuffle) ++ " ("
-      ++ formatDouble (show numShuffleDouble) numberOfPlaces ++ ")"
+    "number of shuffle keys:                     " ++
+    formatNumber numShuffle numberOfPlaces
   putStrLn $
-    "number of key pairs with the same hash:     "
-      ++ formatInteger (show numRepetitions) ++ " ("
-      ++ formatDouble (show numRepetitionsDouble) numberOfPlaces ++ ")"
+    "number of key pairs with the same hash:     " ++
+    formatNumber numRepetitions numberOfPlaces
   putStrLn $ "total hash length:                          " ++ show ((sum . map snd) amts) ++ " symbols"
   putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
   return (Content ())
@@ -258,24 +250,28 @@ infoAction config "times" = let amts = map dropElementInfo config in do
         inAoUInteger = floor inAoU :: Integer
         inYInteger = floor inY :: Integer
      in "time to brute-force your password:              "
-          ++ formatInteger (show inYInteger) ++ " ("
-          ++ formatDouble (show inY) numberOfPlaces ++ ") years\n"
-          ++ "                                             or "
-          ++ formatInteger (show inAoUInteger) ++ " ("
-          ++ formatDouble (show inAoU) numberOfPlaces
-          ++ ") ages of the Universe"
+          ++ formatNumber inYInteger numberOfPlaces
+          ++ " years"
+          ++ if inAoUInteger > 0
+             then "\n"
+                  ++ "                                             or "
+                  ++ formatNumber inAoUInteger numberOfPlaces
+                  ++ " ages of the Universe"
+             else ""
   putStrLn ""
   putStrLn $
     let (inY, inAoU) = timeToCrack $ numberOfRepetitions $ map snd amts
         inAoUInteger = floor inAoU :: Integer
         inYInteger = floor inY :: Integer
      in "time to retrieve the keys based on a hash:      "
-          ++ formatInteger (show inYInteger) ++ " ("
-          ++ formatDouble (show inY) numberOfPlaces ++ ") years\n"
-          ++ "                                             or "
-          ++ formatInteger (show inAoUInteger) ++ " ("
-          ++ formatDouble (show inAoU) numberOfPlaces
-          ++ ") ages of the Universe"
+          ++ formatNumber inYInteger numberOfPlaces
+          ++ " years"
+          ++ if inAoUInteger > 0
+             then "\n"
+                  ++ "                                             or "
+                  ++ formatNumber inAoUInteger numberOfPlaces
+                  ++ " ages of the Universe"
+             else ""
   return (Content ())
 infoAction _ cmd = return . Error $ ("Info command not recognized: " ++ cmd ++ ".") :=> []
 

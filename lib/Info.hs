@@ -81,5 +81,12 @@ formatDouble (digit:rest) places
   | places == 0 = formatDouble rest places
   | otherwise = digit : formatDouble rest (places-1)
 
+formatNumber :: Integer -> Int -> String
+formatNumber num places =
+  let str = show (fromIntegral num :: Double)
+   in if 'e' `elem` show str
+      then formatDouble str places
+      else formatInteger (show num)
+
 numberOfPlaces :: Int
 numberOfPlaces = 4
