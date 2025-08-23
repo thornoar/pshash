@@ -2,6 +2,10 @@
 
 ## 0.1.15.0
 
+* Fixed number formatting in the help message.
+
+## 0.1.15.0
+
 * Rewrote the config file reading logic, + minor stuff
 
 ## 0.1.14.7
