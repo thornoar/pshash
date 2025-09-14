@@ -14,8 +14,8 @@ addId = zip [0..]
 removeId :: [(Integer, a)] -> [a]
 removeId = map snd
 
-encrypt :: (Eq a, Shifting a) => Integer -> [a] -> [a]
-encrypt key = removeId . flip shuffleList key . addId
+encrypt :: (Eq a, Shifting a) => [a] -> Integer -> [a]
+encrypt plt key = removeId (shuffleList (addId plt) key)
 
-decrypt :: (Eq a, Shifting a) => Integer -> [a] -> [a]
-decrypt key = removeId . flip shuffleListI' key . addId
+decrypt :: (Eq a, Shifting a) => [a] -> Integer -> [a]
+decrypt cpt key = removeId (shuffleListI' (addId cpt) key)

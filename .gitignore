@@ -7,3 +7,5 @@
 /.hie
 /gui/main
 /gui/.cache
+/secret
+/cipher

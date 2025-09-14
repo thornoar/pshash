@@ -19,6 +19,7 @@ import Algorithm
 import Error
 import Inverse
 import Info
+import Encryption
 
 currentVersion :: String
 currentVersion = "0.1.16.0"
@@ -91,7 +92,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- └────────────────┘
 
 data OptionName =
-    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT
+    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT
   | CONFIGFILE
   | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION
   | FIRST | SECOND | THIRD
@@ -120,7 +121,7 @@ infoAction config "help" = do
       putStrLn . unlines $
           "usage: pshash [ --help | --version | --list | --pure | --impure ]"
         : "              [ +color | +no-color ]"
-        : "              [ -d|n|c|i|q|f|p ARGUMENT ]"
+        : "              [ -k|n|c|i|q|f|p|e|d ARGUMENT ]"
         : "              [ PUBLIC CHOICE SHUFFLE ]"
         : ""
         : "options:"
@@ -151,7 +152,7 @@ infoAction config "help" = do
         : "                      (options starting with '+' are low-level, they are"
         : "                      parsed at the very end of the execution chain)"
         : ""
-        : "  -d KEYWORD          Specify the source configuration. KEYWORD can be"
+        : "  -k KEYWORD          Specify the source configuration. KEYWORD can be"
         : "                      one of the following (default is long):"
         : "                       * long (8 upper, 8 lower, 5 special, 4 digits)"
         : "                       * medium (5 symbols of each type above)"
@@ -200,6 +201,13 @@ infoAction config "help" = do
         : "                      but sometimes necessary to create multiple passwords"
         : "                      with one set of keys. This option is automatically"
         : "                      suppressed when the `-q` option is used."
+        : ""
+        : "  -e FILE             Encrypt FILE, writing encrypted data to stdout. Accepts"
+        : "                      one private key, which can be given as a command line"
+        : "                      argument or prompted for during program run."
+        : ""
+        : "  -d FILE             Decrypt FILE, writing decrypted data to stdout."
+        : "                      Accepts one private key as argument."
         : ""
         : "main arguments:"
         : "  PUBLIC              Stands for public key, a memorable string indicative"
@@ -303,6 +311,24 @@ listPairsAction config publicStr limitStr hashStr =
 hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Result ())
 hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr
 
+encryptionWrapper ::
+  Map OptionName String ->
+  (String -> Integer -> String) ->
+  String ->
+  IO (Result ())
+encryptionWrapper args func fname = do
+  mkey <- getPrivateKey <$> getKeyStr args FIRST E1 P1
+  mcts <- readFileResult fname
+  let printData :: String -> IO ()
+      printData cts = do
+        hPutStrLn stderr "--------------------"
+        putStrLn cts
+        hPutStrLn stderr "--------------------"
+  handleWith printData $ liftH2
+    "Trace while performing encryption/decryption, reading the {file}:"
+    "Trace while performing encryption/decryption, reading the {key}:"
+    func mcts mkey
+
 safeReadWithHandler :: (Monad m) => (IOException -> IO (m String)) -> FilePath -> IO (m String)
 safeReadWithHandler handler path = (return <$> readFile path) `catch` handler
 
@@ -311,7 +337,7 @@ readFileMaybe = safeReadWithHandler (const $ return Nothing)
 
 readFileResult :: FilePath -> IO (Result String)
 readFileResult = safeReadWithHandler handler
-  where handler e = return . Error $ "<Error reading configuration file:>" :=> [ show e :=> [] ]
+  where handler e = return . Error $ "<Error reading file:>" :=> [ show e :=> [] ]
 
 getConfig :: Map OptionName String -> IO (Result [([Char], Integer)])
 getConfig args
@@ -340,13 +366,15 @@ parseArgs :: (Bool, Bool, Bool) -> [String] -> Result (Map OptionName String)
 parseArgs _ [] = Content empty
 parseArgs trp (('+':_) : rest) = parseArgs trp rest
 parseArgs trp (['-', opt] : s : rest) = case opt of
-  'd' -> insert' KEYWORD s <$> parseArgs trp rest
+  'k' -> insert' KEYWORD s <$> parseArgs trp rest
   'n' -> insert' SELECT s <$> parseArgs trp rest
   'c' -> insert' CONFIG s <$> parseArgs trp rest
   'i' -> insert' INFO s <$> parseArgs trp rest
   'q' -> insert' QUERY s <$> parseArgs trp rest
   'f' -> insert' CONFIGFILE s <$> parseArgs trp rest
   'p' -> insert' PATCH s <$> parseArgs trp rest
+  'e' -> insert' ENCRYPT s <$> parseArgs trp rest
+  'd' -> insert' DECRYPT s <$> parseArgs trp rest
   ch -> Error $ ("<Unsupported option: {{" ++ ['-',ch] ++ "}}.>") :=> []
 parseArgs _ [['-', ch]] = Error $ ("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []
 parseArgs trp (('-':'-':opt) : rest) = case opt of
@@ -449,6 +477,11 @@ setEchoesAndPrompts args
       if member NOPROMPTS args
       then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
       else insert' P1 "PUBLIC KEY: " $ insert' P2 "NUMBER OF PAIRS: " $ insert' P3 "FINAL HASH: " args
+  | member ENCRYPT args || member DECRYPT args =
+      (if member SHOW args then insert' E1 "" else id) $
+      if member NOPROMPTS args
+      then insert' P1 "" args
+      else insert' P1 "ENCRYPTION KEY: " args
   | otherwise =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
       if member NOPROMPTS args
@@ -549,6 +582,8 @@ performAction args (Content config)
   | member INFO args = infoAction config (args ! INFO)
   | member QUERY args = passKeysToAction args (queryAction config (args ! QUERY))
   | member LIST args = passKeysToAction args (listPairsAction config)
+  | member ENCRYPT args = encryptionWrapper args encrypt (args ! ENCRYPT)
+  | member DECRYPT args = encryptionWrapper args decrypt (args ! DECRYPT)
   | otherwise = passKeysToAction args (hashAction config)
 
 toIO :: [String] -> IO (Result ()) -> IO ()
