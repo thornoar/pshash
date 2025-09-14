@@ -21,7 +21,7 @@ import Inverse
 import Info
 
 currentVersion :: String
-currentVersion = "0.1.15.1"
+currentVersion = "0.1.16.0"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -91,7 +91,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- └────────────────┘
 
 data OptionName =
-    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH
+    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT
   | CONFIGFILE
   | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION
   | FIRST | SECOND | THIRD

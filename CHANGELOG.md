@@ -1,8 +1,12 @@
 # Revision history for pshash
 
 # TODO:
-1. Add text encryption functionality
-2. Add asterisks when typing in keys (maybe)
+- [x] Add text encryption functionality
+- [ ] Add asterisks when typing in keys (maybe)
+
+## 0.1.16.0
+
+* Adding text encryption functionality.
 
 ## 0.1.15.1
 
