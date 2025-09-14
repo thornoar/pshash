@@ -1,6 +1,10 @@
 # Revision history for pshash
 
-## 0.1.15.0
+# TODO:
+1. Add text encryption functionality
+2. Add asterisks when typing in keys (maybe)
+
+## 0.1.15.1
 
 * Fixed number formatting in the help message.
 
