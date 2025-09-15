@@ -5,9 +5,14 @@ module Encryption where
 
 import Algorithm (Shifting, shift, shuffleList)
 import Inverse (shuffleListI')
+import Data.Word (Word8)
+-- import Data.ByteString (readFile)
 
 instance (Shifting a) => Shifting (Integer, a) where
   shift (_, a) = shift a
+
+instance Shifting Word8 where
+  shift = toInteger
 
 defaultIterations :: Integer
 defaultIterations = 20

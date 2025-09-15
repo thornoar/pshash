@@ -14,12 +14,14 @@ import Control.Exception (IOException, catch, bracket_)
 import System.Exit (exitWith, ExitCode (ExitFailure))
 import Data.Char (ord, chr)
 import Control.Monad (unless)
+import qualified Data.ByteString as BS (readFile, unpack)
 
 import Algorithm
 import Error
 import Inverse
 import Info
 import Encryption
+import Data.Word (Word8)
 
 currentVersion :: String
 currentVersion = "0.1.16.0"
@@ -313,25 +315,29 @@ hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFina
 
 encryptionWrapper ::
   Map OptionName String ->
-  ([Char] -> Integer -> [Char]) ->
-  String ->
+  ([(Integer, Word8)] -> Integer -> [(Integer, Word8)]) ->
+  FilePath ->
   IO (Result ())
 encryptionWrapper args func fname = do
-  mkey <- getPrivateKey <$> getKeyStr args FIRST E1 P1
-  mcts <- readFileResult fname
-  handleWith putStr $ liftH2
-    "Trace while performing encryption/decryption, reading the {file}:"
-    "Trace while performing encryption/decryption, reading the {key}:"
-    func mcts mkey
+  mkey1 <- getPrivateKey <$> getKeyStr args FIRST E1 P1
+  mkey2 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
+  mcts <- readFileResult BS.readFile fname
+  handleWith putStr $ case (mkey1, mkey2, fmap unpack mcts) of
+    (Error tr, _, _) -> Error $ (pref ++ "{first key}:") :=> [tr]
+    (_, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
+    (_, _, Error tr) -> Error $ (pref ++ "{file}:") :=> [tr]
+    (Content k1, Content k2, Content cts) -> Content $ func' (func' cts k1) k2
+    where pref = "Trace while performing encryption/decryption, reading the "
+          func' = removeId <. func . addId
 
-safeReadWithHandler :: (Monad m) => (IOException -> IO (m String)) -> FilePath -> IO (m String)
-safeReadWithHandler handler path = (return <$> readFile path) `catch` handler
+safeReadWithHandler :: (Monad m) => (FilePath -> IO a) -> (IOException -> IO (m a)) -> FilePath -> IO (m a)
+safeReadWithHandler rf handler path = (return <$> rf path) `catch` handler
 
-readFileMaybe :: FilePath -> IO (Maybe String)
-readFileMaybe = safeReadWithHandler (const $ return Nothing)
+readFileMaybe :: (FilePath -> IO a) -> FilePath -> IO (Maybe a)
+readFileMaybe rf = safeReadWithHandler rf (const $ return Nothing)
 
-readFileResult :: FilePath -> IO (Result String)
-readFileResult = safeReadWithHandler handler
+readFileResult :: (FilePath -> IO a) -> FilePath -> IO (Result a)
+readFileResult rf = safeReadWithHandler rf handler
   where handler e = return . Error $ "<Error reading file:>" :=> [ show e :=> [] ]
 
 getConfig :: Map OptionName String -> IO (Result [([Char], Integer)])
@@ -419,7 +425,7 @@ getConfigArgs :: Map OptionName String -> IO (Result (Map OptionName String))
 getConfigArgs args
   | any (`member` args) [PURE, INFO, QUERY, LIST] = return (Content args)
   | member CONFIGFILE args = do
-      fileContentsH <- readFileResult (args ! CONFIGFILE)
+      fileContentsH <- readFileResult readFile (args ! CONFIGFILE)
       case fileContentsH of
         Error tr -> return (Error $ ("Trace while reading contents from {" ++ args ! CONFIGFILE ++ "}:") :=> [tr])
         Content contents -> return $ getArgsFromContents (DM.lookup FIRST args) contents
@@ -431,7 +437,7 @@ getConfigArgs args
             | ch == old = new ++ replaceChar old new rest
             | otherwise = ch : replaceChar old new rest
       homeDir <- getHomeDirectory
-      fileContentsM <- mapM (readFileMaybe . replaceChar '~' homeDir) defaultConfigFiles
+      fileContentsM <- mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
       let findContents :: [Maybe String] -> Result (Map OptionName String)
           findContents [] = Content args
           findContents (Nothing : rest) = findContents rest
@@ -472,8 +478,12 @@ setEchoesAndPrompts args
       if member NOPROMPTS args
       then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
       else insert' P1 "PUBLIC KEY: " $ insert' P2 "NUMBER OF PAIRS: " $ insert' P3 "FINAL HASH: " args
-  | member ENCRYPT args || member DECRYPT args =
-      (if member SHOW args then insert' E1 "" else id) $
+  | member ENCRYPT args =
+      (if member SHOW args then insert' E1 "" . insert' E2 "" else id) $
+      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" else insert' P1 "FIRST KEY: " . insert' P2 "SECOND KEY: ")
+      args
+  | member DECRYPT args =
+      (if member SHOW args then insert' E1 "" . insert' E2 "" else id) $
       if member NOPROMPTS args
       then insert' P1 "" args
       else insert' P1 "ENCRYPTION KEY: " args

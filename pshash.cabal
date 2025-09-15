@@ -29,6 +29,7 @@ executable pshash
         containers,
         directory,
         pshash-lib,
+        bytestring,
     hs-source-dirs:   app
     default-language: Haskell2010
     ghc-options:
