@@ -1,8 +1,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE BangPatterns #-}
 module Encryption where
 
-import Algorithm (shuffleList, Shifting, shift)
+import Algorithm (Shifting, shift, shuffleList)
 import Inverse (shuffleListI')
 
 instance (Shifting a) => Shifting (Integer, a) where
@@ -10,6 +11,14 @@ instance (Shifting a) => Shifting (Integer, a) where
 
 defaultIterations :: Integer
 defaultIterations = 20
+
+defaultSize :: Integer
+defaultSize = 50
+
+partition :: Integer -> [a] -> [a] -> [[a]]
+partition _ !acc [] = [acc]
+partition 0 !acc lst = acc : partition defaultSize [] lst
+partition n !acc (a:rest) = partition (n - 1) (acc ++ [a]) rest
 
 fpow :: (a -> Integer -> a) -> Integer -> (a -> Integer -> a)
 fpow f 1 = f
@@ -21,8 +30,8 @@ addId = zip [0..]
 removeId :: [(Integer, a)] -> [a]
 removeId = map snd
 
-encrypt :: (Eq a, Shifting a) => [a] -> Integer -> [a]
-encrypt plt key = removeId (fpow shuffleList defaultIterations (addId plt) key)
+encrypt :: (Eq a, Shifting a) => ([a] -> Integer -> [a])
+encrypt !plt k = concatMap (\l -> fpow shuffleList defaultIterations l k) (partition defaultSize [] plt)
 
 decrypt :: (Eq a, Shifting a) => [a] -> Integer -> [a]
-decrypt cpt key = removeId (fpow shuffleListI' defaultIterations (addId cpt) key)
+decrypt !cpt k = concatMap (\l -> fpow shuffleListI' defaultIterations l k) (partition defaultSize [] cpt)

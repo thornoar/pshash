@@ -61,6 +61,10 @@ composeHashing f spr g a key = g b nextKey
     b = f a keyMod
     nextKey = keyDiv + shift b
 
+infixr 9 <.
+(<.) :: (b -> c) -> (a -> Integer -> b) -> (a -> Integer -> c)
+(g <. f) a k = g (f a k)
+
 -- ┌─────────────────────────────────────────────────────┐
 -- │ PRE-DEFINED STRINGS FROM WHICH HASHES WILL BE DRAWN │
 -- └─────────────────────────────────────────────────────┘
@@ -116,6 +120,12 @@ chooseOrdered (src, m) key = curElt : chooseOrdered (filter (/= curElt) src, m -
 
 shuffleList :: (Eq a, Shifting a) => [a] -> Integer -> [a]
 shuffleList src = chooseOrdered (src, length' src)
+
+shuffleListSpread :: Integer -> Integer
+shuffleListSpread n = chooseOrderedSpread (n, n)
+
+shuffleListSpread' :: [a] -> Integer
+shuffleListSpread' = shuffleListSpread . length'
 
 chooseOrderedSpread :: (Integer, Integer) -> Integer
 chooseOrderedSpread (n, m) = factorial' n m
