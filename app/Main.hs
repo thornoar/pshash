@@ -313,18 +313,13 @@ hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFina
 
 encryptionWrapper ::
   Map OptionName String ->
-  (String -> Integer -> String) ->
+  ([Char] -> Integer -> [Char]) ->
   String ->
   IO (Result ())
 encryptionWrapper args func fname = do
   mkey <- getPrivateKey <$> getKeyStr args FIRST E1 P1
   mcts <- readFileResult fname
-  let printData :: String -> IO ()
-      printData cts = do
-        hPutStrLn stderr "--------------------"
-        putStrLn cts
-        hPutStrLn stderr "--------------------"
-  handleWith printData $ liftH2
+  handleWith putStr $ liftH2
     "Trace while performing encryption/decryption, reading the {file}:"
     "Trace while performing encryption/decryption, reading the {key}:"
     func mcts mkey
