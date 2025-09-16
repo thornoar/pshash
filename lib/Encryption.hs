@@ -7,22 +7,22 @@ import Algorithm (Shifting, shift, shuffleList)
 import Inverse (shuffleListI')
 import Data.Word (Word8)
 
-instance (Shifting a) => Shifting (Integer, a) where
+instance Shifting a => Shifting (Integer, a) where
   shift (_, a) = shift a
 
 instance Shifting Word8 where
   shift = toInteger
 
 defaultIterations :: Integer
-defaultIterations = 20
+defaultIterations = 10
 
 defaultSize :: Integer
-defaultSize = 50
+defaultSize = 30
 
 partition :: Integer -> [a] -> [a] -> [[a]]
 partition _ !acc [] = [acc]
-partition 0 !acc lst = acc : partition defaultSize [] lst
-partition n !acc (a:rest) = partition (n - 1) (acc ++ [a]) rest
+partition 0 !acc lst = reverse acc : partition defaultSize [] lst
+partition n !acc (a:rest) = partition (n - 1) (a : acc) rest
 
 fpow :: (a -> Integer -> a) -> Integer -> (a -> Integer -> a)
 fpow f 1 = f
@@ -40,5 +40,5 @@ encrypt !plt k = concatMap (\l -> fpow shuffleList defaultIterations l k) (parti
 decrypt :: (Eq a, Shifting a) => [a] -> Integer -> [a]
 decrypt !cpt k = concatMap (\l -> fpow shuffleListI' defaultIterations l k) (partition defaultSize [] cpt)
 
-corr :: [Word8] -> Integer -> Bool
-corr str k = str == removeId (decrypt (encrypt (addId str) k) k)
+correctness :: [Word8] -> Integer -> Bool
+correctness str k = str == removeId (decrypt (encrypt (addId str) k) k)
