@@ -34,11 +34,11 @@ addId = zip [0..]
 removeId :: [(Integer, a)] -> [a]
 removeId = map snd
 
-encrypt :: (Eq a, Shifting a) => [a] -> Integer -> [a]
-encrypt !plt k = concatMap (\l -> fpow shuffleList defaultIterations l k) (partition defaultSize [] plt)
+encrypt :: (Eq a, Shifting a) => Integer -> [a] -> Integer -> [a]
+encrypt r !plt k = concatMap (\l -> fpow shuffleList r l k) (partition defaultSize [] plt)
 
-decrypt :: (Eq a, Shifting a) => [a] -> Integer -> [a]
-decrypt !cpt k = concatMap (\l -> fpow shuffleListI' defaultIterations l k) (partition defaultSize [] cpt)
+decrypt :: (Eq a, Shifting a) => Integer -> [a] -> Integer -> [a]
+decrypt r !cpt k = concatMap (\l -> fpow shuffleListI' r l k) (partition defaultSize [] cpt)
 
-correctness :: [Word8] -> Integer -> Bool
-correctness str k = str == removeId (decrypt (encrypt (addId str) k) k)
+correctness :: Integer -> [Word8] -> Integer -> Bool
+correctness r str k = str == removeId (decrypt r (encrypt r (addId str) k) k)

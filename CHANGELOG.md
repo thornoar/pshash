@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.16.2
+
+* Added round number customization.
+
 ## 0.1.16.1
 
 * Improved file encryption (now supports non-text files).
