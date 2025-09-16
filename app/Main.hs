@@ -14,7 +14,7 @@ import Control.Exception (IOException, catch, bracket_)
 import System.Exit (exitWith, ExitCode (ExitFailure))
 import Data.Char (ord, chr)
 import Control.Monad (unless)
-import qualified Data.ByteString as BS (readFile, unpack)
+import qualified Data.ByteString as BS (readFile, unpack, writeFile, putStr, pack)
 
 import Algorithm
 import Error
@@ -24,7 +24,7 @@ import Encryption
 import Data.Word (Word8)
 
 currentVersion :: String
-currentVersion = "0.1.16.0"
+currentVersion = "0.1.16.1"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -205,11 +205,14 @@ infoAction config "help" = do
         : "                      suppressed when the `-q` option is used."
         : ""
         : "  -e FILE             Encrypt FILE, writing encrypted data to stdout. Accepts"
-        : "                      one private key, which can be given as a command line"
-        : "                      argument or prompted for during program run."
+        : "                      three arguments:"
+        : "                        * WRITE TO: the file to write the encrypted data to."
+        : "                                    A value of `stdout` will write to stdout."
+        : "                        * ROUND 1: first encryption key (e.g. choice key)."
+        : "                        * ROUND 2: second encryption key (e.g. shuffle key)."
         : ""
-        : "  -d FILE             Decrypt FILE, writing decrypted data to stdout."
-        : "                      Accepts one private key as argument."
+        : "  -d FILE             Decrypt FILE. Accepts the same arguments as the above"
+        : "                      encryption mode."
         : ""
         : "main arguments:"
         : "  PUBLIC              Stands for public key, a memorable string indicative"
@@ -315,20 +318,22 @@ hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFina
 
 encryptionWrapper ::
   Map OptionName String ->
-  ([(Integer, Word8)] -> Integer -> [(Integer, Word8)]) ->
+  ([(Integer, Word8)] -> Integer -> Integer -> [(Integer, Word8)]) ->
   FilePath ->
   IO (Result ())
 encryptionWrapper args func fname = do
-  mkey1 <- getPrivateKey <$> getKeyStr args FIRST E1 P1
-  mkey2 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
+  outfile <- getKeyStr args FIRST E1 P1
+  mkey1 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
+  mkey2 <- getPrivateKey <$> getKeyStr args THIRD E3 P3
   mcts <- readFileResult BS.readFile fname
-  handleWith putStr $ case (mkey1, mkey2, fmap unpack mcts) of
+  let write = if outfile == "stdout" then BS.putStr else BS.writeFile outfile
+  handleWith (write . BS.pack) $ case (mkey1, mkey2, fmap BS.unpack mcts) of
     (Error tr, _, _) -> Error $ (pref ++ "{first key}:") :=> [tr]
     (_, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
     (_, _, Error tr) -> Error $ (pref ++ "{file}:") :=> [tr]
-    (Content k1, Content k2, Content cts) -> Content $ func' (func' cts k1) k2
+    (Content k1, Content k2, Content cts) -> Content $ func' cts k1 k2
     where pref = "Trace while performing encryption/decryption, reading the "
-          func' = removeId <. func . addId
+          func' = removeId <<. func . addId
 
 safeReadWithHandler :: (Monad m) => (FilePath -> IO a) -> (IOException -> IO (m a)) -> FilePath -> IO (m a)
 safeReadWithHandler rf handler path = (return <$> rf path) `catch` handler
@@ -471,27 +476,24 @@ setEchoesAndPrompts args
             "public" -> insert' P1 "CHOICE KEY: " . insert' P2 "SHUFFLE KEY: "
             "choice" -> insert' P1 "PUBLIC KEY: " . insert' P2 "SHUFFLE KEY: "
             "shuffle" -> insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: "
-            _ -> insert' P1 "INPUT: " . insert' P2 "INPUT: "
+            _ -> insert' P1 "INPUT 1: " . insert' P2 "INPUT 2: "
           $ insert' P3 "FINAL HASH: " args
   | member LIST args =
       insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
-      if member NOPROMPTS args
-      then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
-      else insert' P1 "PUBLIC KEY: " $ insert' P2 "NUMBER OF PAIRS: " $ insert' P3 "FINAL HASH: " args
+      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "NUMBER OF PAIRS: " . insert' P3 "FINAL HASH: ")
+      args
   | member ENCRYPT args =
-      (if member SHOW args then insert' E1 "" . insert' E2 "" else id) $
-      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" else insert' P1 "FIRST KEY: " . insert' P2 "SECOND KEY: ")
+      insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
+      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "ROUND 1: " . insert' P3 "ROUND 2: ")
       args
   | member DECRYPT args =
-      (if member SHOW args then insert' E1 "" . insert' E2 "" else id) $
-      if member NOPROMPTS args
-      then insert' P1 "" args
-      else insert' P1 "ENCRYPTION KEY: " args
+      insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
+      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "ROUND 1: " . insert' P3 "ROUND 2: ")
+      args
   | otherwise =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
-      if member NOPROMPTS args
-      then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
-      else insert' P1 "PUBLIC KEY: " $ insert' P2 "CHOICE KEY: " $ insert' P3 "SHUFFLE KEY: " args
+      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: " . insert' P3 "SHUFFLE KEY: ")
+      args
 
 parseArgs' :: (Bool, Bool, Bool) -> [String] -> IO (Result (Map OptionName String))
 parseArgs' trp rawArgs = case parseArgs trp rawArgs of
@@ -587,8 +589,8 @@ performAction args (Content config)
   | member INFO args = infoAction config (args ! INFO)
   | member QUERY args = passKeysToAction args (queryAction config (args ! QUERY))
   | member LIST args = passKeysToAction args (listPairsAction config)
-  | member ENCRYPT args = encryptionWrapper args (removeId <. encrypt . addId) (args ! ENCRYPT)
-  | member DECRYPT args = encryptionWrapper args (removeId <. decrypt . addId) (args ! DECRYPT)
+  | member ENCRYPT args = encryptionWrapper args (\c k1 k2 -> encrypt (encrypt c k1) k2) (args ! ENCRYPT)
+  | member DECRYPT args = encryptionWrapper args (\c k1 k2 -> decrypt (decrypt c k2) k1) (args ! DECRYPT)
   | otherwise = passKeysToAction args (hashAction config)
 
 toIO :: [String] -> IO (Result ()) -> IO ()

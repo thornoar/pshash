@@ -36,5 +36,5 @@ compare "$cmd --list 1asdfgh1 1 dU*wG6zh!^I0CfqB3&MF5jt-W" "46715736592631239213
 compare "$cmd -f test/pshash.conf google 123 123" "03NbhL7aoSVGRYjt28y19"
 compare "$cmd -k anlong -p 66 qwer 90 90" "Lh5b1q92I4VzRriNB87eU"
 compare "$cmd -f test/pshash.conf overleaf 876-5 139 -p 4" "3F1SVZD"
-compare "$cmd -e test/data.txt 2321-081" "$(cat "test/data.enc")"
-compare "$cmd -d test/data.enc 2321-081" "$(cat "test/data.txt")"
+$cmd -e test/data.txt test/data.enc 2345-45 123-322
+compare "$cmd -d test/data.enc stdout 2345-45 123-322" "$(cat "test/data.txt")"

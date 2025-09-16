@@ -6,7 +6,6 @@ module Encryption where
 import Algorithm (Shifting, shift, shuffleList)
 import Inverse (shuffleListI')
 import Data.Word (Word8)
--- import Data.ByteString (readFile)
 
 instance (Shifting a) => Shifting (Integer, a) where
   shift (_, a) = shift a
@@ -35,8 +34,11 @@ addId = zip [0..]
 removeId :: [(Integer, a)] -> [a]
 removeId = map snd
 
-encrypt :: (Eq a, Shifting a) => ([a] -> Integer -> [a])
+encrypt :: (Eq a, Shifting a) => [a] -> Integer -> [a]
 encrypt !plt k = concatMap (\l -> fpow shuffleList defaultIterations l k) (partition defaultSize [] plt)
 
 decrypt :: (Eq a, Shifting a) => [a] -> Integer -> [a]
 decrypt !cpt k = concatMap (\l -> fpow shuffleListI' defaultIterations l k) (partition defaultSize [] cpt)
+
+corr :: [Word8] -> Integer -> Bool
+corr str k = str == removeId (decrypt (encrypt (addId str) k) k)

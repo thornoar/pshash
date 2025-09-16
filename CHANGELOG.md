@@ -1,12 +1,12 @@
 # Revision history for pshash
 
-# TODO:
-- [x] Add text encryption functionality
-- [ ] Add asterisks when typing in keys (maybe)
+## 0.1.16.1
+
+* Improved file encryption (now supports non-text files).
 
 ## 0.1.16.0
 
-* Adding text encryption functionality.
+* Added text encryption functionality.
 
 ## 0.1.15.1
 

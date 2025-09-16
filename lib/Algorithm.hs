@@ -65,6 +65,10 @@ infixr 9 <.
 (<.) :: (b -> c) -> (a -> Integer -> b) -> (a -> Integer -> c)
 (g <. f) a k = g (f a k)
 
+infixr 9 <<.
+(<<.) :: (b -> c) -> (a -> Integer -> Integer -> b) -> (a -> Integer -> Integer -> c)
+(g <<. f) a k1 k2 = g (f a k1 k2)
+
 -- ┌─────────────────────────────────────────────────────┐
 -- │ PRE-DEFINED STRINGS FROM WHICH HASHES WILL BE DRAWN │
 -- └─────────────────────────────────────────────────────┘
