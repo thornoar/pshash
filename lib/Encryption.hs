@@ -14,7 +14,7 @@ instance Shifting Word8 where
   shift = toInteger
 
 defaultIterations :: Integer
-defaultIterations = 10
+defaultIterations = 3
 
 defaultSize :: Integer
 defaultSize = 30
