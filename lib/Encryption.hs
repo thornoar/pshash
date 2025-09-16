@@ -20,12 +20,12 @@ defaultSize :: Integer
 defaultSize = 30
 
 partition :: Integer -> [a] -> [a] -> [[a]]
-partition _ !acc [] = [acc]
+partition _ !acc [] = [reverse acc]
 partition 0 !acc lst = reverse acc : partition defaultSize [] lst
 partition n !acc (a:rest) = partition (n - 1) (a : acc) rest
 
 fpow :: (a -> Integer -> a) -> Integer -> (a -> Integer -> a)
-fpow f 1 = f
+fpow _ 0 = const
 fpow f n = \a k -> f (fpow f (n - 1) a k) k
 
 addId :: [a] -> [(Integer, a)]
