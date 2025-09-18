@@ -9,10 +9,10 @@ function run {
 }
 
 run "$cmd -q choice asdf 0 hahaha" 30
-run "$cmd -d pin -q public 0 0 3455" 30
+run "$cmd -k pin -q public 0 0 3455" 30
 run "$cmd -n (2,2,0,0) -q shuffle qwerty 0 dBCW" 30
 run "$cmd -q public 0 0 hahaha" 30
-run "$cmd -d pin -q public 0 0 asdfgh" 30
+run "$cmd -k pin -q public 0 0 asdfgh" 30
 run "$cmd pub hasd-3245 234" 30
 run "$cmd pub 45 2--3ho4" 30
 run "$cmd pub 4--45 2-34" 30
@@ -24,7 +24,7 @@ run "$cmd --list pub 3asd5 0" 30
 run "$cmd --list pub 5 ahfs234^&%jkdv" 30
 run "$cmd -f non-existent pub 5 5" 30
 run "$cmd --impure" 30
-run "$cmd -d non-existent pub 0 0" 30
+run "$cmd -k non-existent pub 0 0" 30
 run "$cmd -n non-existent pub 0 0" 30
 run "$cmd -n (5,9,4,) pub 0 0" 30
 run "$cmd -c () pub 0 0" 30
