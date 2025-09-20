@@ -19,7 +19,7 @@ function compare { # == \"\033[35m%s\033[34m\"...
 }
 
 compare "$cmd zxc-%-vbn 89-45 9045-4557" "FkPw=p+VyMjdv6XN\$2^3i@QW4"
-compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.16.2"
+compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.16.3"
 compare "$cmd -k long AAA0-=~!@ 123 123" "@&FjQ*34kzZu1O\$IGncBb%5Hy"
 compare "$cmd -k medium ##### 9-999 125-125" "4*-mK!el7S6Ds=%HT5t0"
 compare "$cmd -k short ##### 123-1000 666-1" "H\$!x9*PMZ#z6f4h5"
