@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 {-# HLINT ignore "Use list literal" #-}
+{-# LANGUAGE BangPatterns #-}
 module Main where
 
 import System.IO (stdin, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
@@ -24,7 +25,7 @@ import Encryption
 import Data.Word (Word8)
 
 currentVersion :: String
-currentVersion = "0.1.16.2"
+currentVersion = "0.1.16.3"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -329,13 +330,15 @@ encryptionWrapper args func fname = do
   outfile <- getKeyStr args FIRST E1 P1
   mkey1 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
   mkey2 <- getPrivateKey <$> getKeyStr args THIRD E3 P3
-  mcts <- readFileResult BS.readFile fname
+  !mcts <- case fname of
+    "stdin" -> fmap (Content . map (fromIntegral . ord)) getContents
+    _ -> readFileResult (fmap BS.unpack . BS.readFile) fname
   let write = if outfile == "stdout" then BS.putStr else BS.writeFile outfile
-  handleWith (write . BS.pack) $ case (mrounds, mkey1, mkey2, fmap BS.unpack mcts) of
+  handleWith (write . BS.pack) $ case (mrounds, mkey1, mkey2, mcts) of
     (Error tr, _, _, _) -> Error $ (pref ++ "{number of rounds}:") :=> [tr]
     (_, Error tr, _, _) -> Error $ (pref ++ "{first key}:") :=> [tr]
     (_, _, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
-    (_, _, _, Error tr) -> Error $ (pref ++ "{file}:") :=> [tr]
+    (_, _, _, Error tr) -> Error $ (pref ++ "{plaintext}:") :=> [tr]
     (Content rounds, Content k1, Content k2, Content cts) -> Content $ func' rounds cts k1 k2
     where pref = "Trace while performing encryption/decryption, reading the "
           func' r = removeId <<. func r . addId

@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.16.3
+
+* Added the option to read from `stdin` when encrypting files.
+
 ## 0.1.16.2
 
 * Added round number customization.
