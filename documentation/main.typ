@@ -35,7 +35,7 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 
 // Begin Document
 #let keywords = ("Combinatorics", "Hash", "Security", "Haskell", "Functional programming")
-#show: title-rule([ On rearrangement hashing with Haskell ], abstract: [
+#show: title-rule([ Rearrangement-based pseudo-hash password generation ], abstract: [
   We introduce a password generation algorithm which accepts a publicly known string (the "public key") as well as two large integer numbers ("choice private key" and "shuffle private key"), producing a random-looking string of characters (the "hash"), whose composition (i.e. number of lower-case and upper-case characters, etc.) can be set in advance. This is done by encoding list selections and permutations with positive integers, constructing the necessary list rearrangements based on the provided keys, and applying them to a predefined set of character lists (the "source configuration"). The algorithm is pure, which guarantees reproducibility and allows the user to generate secure passwords on the fly, without storing them in any location or having to remember them. We provide a primary implementation of the algorithm in Haskell, but implementations in C, Javascript, and Kotlin are also available.
 ], date: datetime(year: 2024, month: 3, day: 26), keywords: keywords, logo: image("figures/logo.svg", width: 60%), keywordlength: 60%)
 
