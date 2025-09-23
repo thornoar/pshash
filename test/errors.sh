@@ -33,3 +33,8 @@ run "$cmd -rts haha" 30
 run "$cmd -p 3" 30
 run "$cmd -p 3 +no-color" 30
 run "$cmd asd asd asd +no-color" 30
+run "$cmd -e ./data.txt stdout -r --asd- sd  dsas" 30
+run "$cmd -e ./test/data.txt stdout ahahaha 4524" 30
+run "$cmd -e ./test/data.txt stdout 123-123 das%%das" 30
+run "$cmd -e nonexistent stdout 123-123 234-1" 30
+run "$cmd -e nonexistent stdout 123-123 234-1" 30
