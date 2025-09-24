@@ -18,32 +18,41 @@ Strictly speaking, a cryptographic hash is a function that has a uniform distrib
 
 ## Where can you generate the passwords?
 
-### Web implementation
+### Web Implementation
 
-First of all, you can use the algorithm online at https://thornoar.github.io/pshash/web/app/.
+First of all, you can use the algorithm online at https://thornoar.github.io/pshash-web/app/.
 
-### CLI tool
+### CLI Tool
 
 The `pshash` CLI tool adopts a wide range of local deployment options:
-- You can install `pshash` from the AUR.
-- You can build `pshash` with Nix flakes by invoking `nix build github:thornoar/pshash`, there are two relevant outputs: `#pshash-dynamic` for dynamic linking, and `#pshash-static` for static linking (will take a lot longer to build).
+- You can install `pshash` from the [AUR](https://aur.archlinux.org/packages/pshash).
+- You can build `pshash` with Nix flakes by invoking `nix build github:thornoar/pshash`, there are two relevant outputs: `#pshash-dynamic` for dynamic linking, and `#pshash-static` for static linking (will take a lot longer to build). Naturally, the default is `pshash-dynamic`.
 - You can build `pshash` with `cabal-install` by cloning this repo and running `cabal update && cabal install pshash`.
 - You can simply download all the source code (the `app` and `lib` directories) and compile with
   ```bash
-    ghc --make -i./src ./app/Main -o pshash
+    ghc --make -i./lib ./app/Main.hs -o pshash
   ```
-  Here you will have to make sure that the necessary libraries (i.e. `containers` and `directory`) are installed on your system.
-- Finally, you can directly download the relevant pre-compiled executables from the `pshash-bin` repo: https://github.com/thornoar/pshash-bin. Binaries are also available at https://thornoar.github.io/pshash/web/app/.
+  Here you will have to make sure that the necessary packages (i.e. `containers`, `directory`, `bytestring`, and `random`) are installed on your system and available through `ghc`.
+- Finally, you can directly download the relevant pre-compiled executables from the `pshash-bin` repo: https://github.com/thornoar/pshash-bin. Binaries are also available at https://thornoar.github.io/pshash-web/get/.
 
-### GUI application
+### GUI Application
 
 The `pshash-gui` GUI application is available through the following channels:
-- You can build `pshash-gui` with Nix flakes by invoking `nix build github:thornoar/pshash#pshash-gui`.
-- You can download the `gui` directory from this repo and then compile `main.cpp` with
+- You can build `pshash-gui` with Nix flakes by invoking `nix build github:thornoar/pshash-gui`.
+- You can clone the `pshash-gui` repository at https://github.com/thornoar/pshash-gui and then compile with
   ```bash
-    g++ main.cpp -o pshash-gui $(wx-config --cxxflags --libs)
+    g++ -g -O \
+      ./src/main.cpp \
+      ./src/inputs.cpp \
+      ./src/algorithm.c \
+      ./src/mini-gmp.c \
+      -o main $(wx-config --cxxflags --libs)
   ```
-  (on UNIX-like systems). Note that the `wxWidgets` library must be installed on your system.
+  (on UNIX-like systems), or just running `./build.sh`. Note that the `wxWidgets` library must be installed on your system.
+
+### Android Application
+
+The `pshash-app` Android application's source is available at https://github.com/thornoar/pshash-app. You can clone the repository and build the Android Studio project, or get the APK files at https://thornoar.github.io/pshash-web/get/.
 
 ## Contact
 
