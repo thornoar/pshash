@@ -19,7 +19,7 @@ function compare { # == \"\033[35m%s\033[34m\"...
 }
 
 compare "$cmd zxc-%-vbn 89-45 9045-4557" "FkPw=p+VyMjdv6XN\$2^3i@QW4"
-compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.16.3"
+compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.16.4"
 compare "$cmd -k long AAA0-=~!@ 123 123" "@&FjQ*34kzZu1O\$IGncBb%5Hy"
 compare "$cmd -k medium ##### 9-999 125-125" "4*-mK!el7S6Ds=%HT5t0"
 compare "$cmd -k short ##### 123-1000 666-1" "H\$!x9*PMZ#z6f4h5"
@@ -38,5 +38,5 @@ compare "$cmd --list 1asdfgh1 1 dU*wG6zh!^I0CfqB3&MF5jt-W" "46715736592631239213
 compare "$cmd -f test/pshash.conf google 123 123" "03NbhL7aoSVGRYjt28y19"
 compare "$cmd -k anlong -p 66 qwer 90 90" "Lh5b1q92I4VzRriNB87eU"
 compare "$cmd -f test/pshash.conf overleaf 876-5 139 -p 4" "3F1SVZD"
-$cmd -r 5 -e test/data.txt test/data.enc 2345-45 123-322
-compare "$cmd -r 5 -d test/data.enc stdout 2345-45 123-322" "$(cat "test/data.txt")"
+$cmd -e test/data.txt test/data.enc 2345-45 123-322
+compare "$cmd -d test/data.enc stdout 2345-45 123-322" "$(cat "test/data.txt")"

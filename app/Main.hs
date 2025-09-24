@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 {-# HLINT ignore "Use list literal" #-}
-{-# LANGUAGE BangPatterns #-}
 module Main where
 
 import System.IO (stdin, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
@@ -15,7 +14,7 @@ import Control.Exception (IOException, catch, bracket_)
 import System.Exit (exitWith, ExitCode (ExitFailure))
 import Data.Char (ord, chr)
 import Control.Monad (unless)
-import qualified Data.ByteString as BS (readFile, unpack, writeFile, putStr, pack)
+import qualified Data.ByteString as BS (readFile, unpack, writeFile, putStr, pack, ByteString)
 
 import Algorithm
 import Error
@@ -25,7 +24,7 @@ import Encryption
 import Data.Word (Word8)
 
 currentVersion :: String
-currentVersion = "0.1.16.3"
+currentVersion = "0.1.16.4"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -95,7 +94,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- └────────────────┘
 
 data OptionName =
-    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT | ROUNDS
+    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT
   | CONFIGFILE
   | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION
   | FIRST | SECOND | THIRD
@@ -215,9 +214,6 @@ infoAction config "help" = do
         : "  -d FILE             Decrypt FILE. Accepts the same arguments as the above"
         : "                      encryption mode."
         : ""
-        : "  -r N                Perform N rounds of shuffling during encryption and"
-        :("                      decryption. The default is " ++ show defaultIterations ++ ".")
-        : ""
         : "main arguments:"
         : "  PUBLIC              Stands for public key, a memorable string indicative"
         : "                      of the password destination (e.g. \"google\", \"steam\")"
@@ -322,26 +318,24 @@ hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFina
 
 encryptionWrapper ::
   Map OptionName String ->
-  (Integer -> [(Integer, Word8)] -> Integer -> Integer -> [(Integer, Word8)]) ->
+  (BS.ByteString -> Integer -> Integer -> BS.ByteString) ->
   FilePath ->
   IO (Result ())
 encryptionWrapper args func fname = do
-  let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultIterations
+  -- let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
   outfile <- getKeyStr args FIRST E1 P1
   mkey1 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
   mkey2 <- getPrivateKey <$> getKeyStr args THIRD E3 P3
-  !mcts <- case fname of
-    "stdin" -> fmap (Content . map (fromIntegral . ord)) getContents
-    _ -> readFileResult (fmap BS.unpack . BS.readFile) fname
+  mcts <- case fname of
+    "stdin" -> fmap (Content . BS.pack . map (fromIntegral . ord)) getContents
+    _ -> readFileResult BS.readFile fname
   let write = if outfile == "stdout" then BS.putStr else BS.writeFile outfile
-  handleWith (write . BS.pack) $ case (mrounds, mkey1, mkey2, mcts) of
-    (Error tr, _, _, _) -> Error $ (pref ++ "{number of rounds}:") :=> [tr]
-    (_, Error tr, _, _) -> Error $ (pref ++ "{first key}:") :=> [tr]
-    (_, _, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
-    (_, _, _, Error tr) -> Error $ (pref ++ "{plaintext}:") :=> [tr]
-    (Content rounds, Content k1, Content k2, Content cts) -> Content $ func' rounds cts k1 k2
+  handleWith write $ case (mkey1, mkey2, mcts) of
+    (Error tr, _, _) -> Error $ (pref ++ "{first key}:") :=> [tr]
+    (_, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
+    (_, _, Error tr) -> Error $ (pref ++ "{plaintext}:") :=> [tr]
+    (Content k1, Content k2, Content msg) -> Content $ func msg k1 k2
     where pref = "Trace while performing encryption/decryption, reading the "
-          func' r = removeId <<. func r . addId
 
 safeReadWithHandler :: (Monad m) => (FilePath -> IO a) -> (IOException -> IO (m a)) -> FilePath -> IO (m a)
 safeReadWithHandler rf handler path = (return <$> rf path) `catch` handler
@@ -389,7 +383,6 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'p' -> insert' PATCH s <$> parseArgs trp rest
   'e' -> insert' ENCRYPT s <$> parseArgs trp rest
   'd' -> insert' DECRYPT s <$> parseArgs trp rest
-  'r' -> insert' ROUNDS s <$> parseArgs trp rest
   ch -> Error $ ("<Unsupported option: {{" ++ ['-',ch] ++ "}}.>") :=> []
 parseArgs _ [['-', ch]] = Error $ ("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []
 parseArgs trp (('-':'-':opt) : rest) = case opt of
@@ -598,8 +591,8 @@ performAction args (Content config)
   | member INFO args = infoAction config (args ! INFO)
   | member QUERY args = passKeysToAction args (queryAction config (args ! QUERY))
   | member LIST args = passKeysToAction args (listPairsAction config)
-  | member ENCRYPT args = encryptionWrapper args (\ r c k1 k2 -> encrypt r (encrypt r c k1) k2) (args ! ENCRYPT)
-  | member DECRYPT args = encryptionWrapper args (\ r c k1 k2 -> decrypt r (decrypt r c k2) k1) (args ! DECRYPT)
+  | member ENCRYPT args = encryptionWrapper args encrypt (args ! ENCRYPT)
+  | member DECRYPT args = encryptionWrapper args decrypt (args ! DECRYPT)
   | otherwise = passKeysToAction args (hashAction config)
 
 toIO :: [String] -> IO (Result ()) -> IO ()
