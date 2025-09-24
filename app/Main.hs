@@ -208,8 +208,8 @@ infoAction config "help" = do
         : "                      three arguments:"
         : "                        * WRITE TO: the file to write the encrypted data to."
         : "                                    A value of `stdout` will write to stdout."
-        : "                        * ROUND 1: first encryption key (e.g. choice key)."
-        : "                        * ROUND 2: second encryption key (e.g. shuffle key)."
+        : "                        * KEY 1: first encryption key (e.g. choice key)."
+        : "                        * KEY 2: second encryption key (e.g. shuffle key)."
         : ""
         : "  -d FILE             Decrypt FILE. Accepts the same arguments as the above"
         : "                      encryption mode."
@@ -486,11 +486,11 @@ setEchoesAndPrompts args
       args
   | member ENCRYPT args =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
-      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "ROUND 1: " . insert' P3 "ROUND 2: ")
+      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "KEY 1: " . insert' P3 "KEY 2: ")
       args
   | member DECRYPT args =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
-      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "ROUND 1: " . insert' P3 "ROUND 2: ")
+      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "KEY 1: " . insert' P3 "KEY 2: ")
       args
   | otherwise =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
