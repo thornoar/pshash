@@ -24,7 +24,7 @@ import Encryption
 import Data.Word (Word8)
 
 currentVersion :: String
-currentVersion = "0.1.16.5"
+currentVersion = "0.1.16.6"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -94,7 +94,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- └────────────────┘
 
 data OptionName =
-    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT
+    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | ROUNDS
   | CONFIGFILE
   | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION
   | FIRST | SECOND | THIRD
@@ -213,6 +213,8 @@ infoAction config "help" = do
         : "                        * KEY 2: second encryption key (e.g. shuffle key)."
         : "                      The encryption and decryption algorithms are the same."
         : ""
+        :("  -r N                Use N rounds of encryption. The default is " ++ show defaultRounds ++ ".")
+        : ""
         : "main arguments:"
         : "  PUBLIC              Stands for public key, a memorable string indicative"
         : "                      of the password destination (e.g. \"google\", \"steam\")"
@@ -317,11 +319,11 @@ hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFina
 
 encryptionWrapper ::
   Map OptionName String ->
-  (BS.ByteString -> Integer -> Integer -> BS.ByteString) ->
+  (Int -> BS.ByteString -> Integer -> Integer -> BS.ByteString) ->
   FilePath ->
   IO (Result ())
 encryptionWrapper args func fname = do
-  -- let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
+  let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
   outfile <- getKeyStr args FIRST E1 P1
   mkey1 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
   mkey2 <- getPrivateKey <$> getKeyStr args THIRD E3 P3
@@ -329,11 +331,12 @@ encryptionWrapper args func fname = do
     "stdin" -> fmap (Content . BS.pack . map (fromIntegral . ord)) getContents
     _ -> readFileResult BS.readFile fname
   let write = if outfile == "stdout" then BS.putStr else BS.writeFile outfile
-  handleWith write $ case (mkey1, mkey2, mcts) of
-    (Error tr, _, _) -> Error $ (pref ++ "{first key}:") :=> [tr]
-    (_, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
-    (_, _, Error tr) -> Error $ (pref ++ "{plaintext}:") :=> [tr]
-    (Content k1, Content k2, Content msg) -> Content $ func msg k1 k2
+  handleWith write $ case (mrounds, mkey1, mkey2, mcts) of
+    (Error tr, _, _, _) -> Error $ (pref ++ "{number of rounds}:") :=> [tr]
+    (_, Error tr, _, _) -> Error $ (pref ++ "{first key}:") :=> [tr]
+    (_, _, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
+    (_, _, _, Error tr) -> Error $ (pref ++ "{plaintext}:") :=> [tr]
+    (Content rounds, Content k1, Content k2, Content msg) -> Content $ func rounds msg k1 k2
     where pref = "Trace while performing encryption/decryption, reading the "
 
 safeReadWithHandler :: (Monad m) => (FilePath -> IO a) -> (IOException -> IO (m a)) -> FilePath -> IO (m a)
@@ -381,6 +384,7 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'f' -> insert' CONFIGFILE s <$> parseArgs trp rest
   'p' -> insert' PATCH s <$> parseArgs trp rest
   'e' -> insert' ENCRYPT s <$> parseArgs trp rest
+  'r' -> insert' ROUNDS s <$> parseArgs trp rest
   ch -> Error $ ("<Unsupported option: {{" ++ ['-',ch] ++ "}}.>") :=> []
 parseArgs _ [['-', ch]] = Error $ ("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []
 parseArgs trp (('-':'-':opt) : rest) = case opt of

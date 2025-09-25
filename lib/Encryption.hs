@@ -26,9 +26,12 @@ defaultSeed = B.pack $ take defaultSize [
     181,76,23,153,111,162,86
   ]
 
-fpow :: (a -> Integer -> a) -> Integer -> (a -> Integer -> a)
-fpow _ 0 = const
-fpow f n = \a k -> f (fpow f (n - 1) a k) k
+defaultRounds :: Int
+defaultRounds = 8
+
+fpow :: Int -> (a -> a) -> (a -> a)
+fpow 0 _ = id
+fpow n f = f . fpow (n - 1) f
 
 xorbs :: B.ByteString -> B.ByteString -> B.ByteString
 xorbs = B.packZipWith xor
@@ -41,12 +44,13 @@ buildStream 0 _ _ = []
 buildStream n perm prev =
   let cur = processBlock perm (xorbs prev defaultSeed) in cur : buildStream (n-1) perm cur
 
-procrypt :: B.ByteString -> Integer -> Integer -> B.ByteString
-procrypt plaintext k1 k2 =
-  let !perm = B.pack $ map fromIntegral $ shuffleList (shuffleList [0 .. (defaultSize - 1)] k1) k2
+procrypt :: Int -> B.ByteString -> Integer -> Integer -> B.ByteString
+procrypt r plaintext k1 k2 =
+  let enc blk = shuffleList (shuffleList blk k1) k2
+      !perm = B.pack $ map fromIntegral $ fpow r enc [0 .. (defaultSize-1)]
       num = toInteger $ 1 + div (B.length plaintext) defaultSize
       stream = B.concat (buildStream num perm (B.replicate defaultSize 0))
    in xorbs plaintext stream
 
 correctness :: [Word8] -> Integer -> Integer -> Bool
-correctness msg k1 k2 = (==) msg $ B.unpack $ procrypt (procrypt (B.pack msg) k1 k2) k1 k2
+correctness msg k1 k2 = (==) msg $ B.unpack $ procrypt 32 (procrypt 32 (B.pack msg) k1 k2) k1 k2

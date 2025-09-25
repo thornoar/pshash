@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.16.6
+
+* Re-added the `-r` flag to control the number of encryption rounds.
+
 ## 0.1.16.5
 
 * Completely changed the encryption algorithm to use CTR & CBC.
