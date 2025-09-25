@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.16.5
+
+* Completely changed the encryption algorithm to use CTR & CBC.
+
 ## 0.1.16.4
 
 * Vastly improved encryption by utilizing Cipher Block Chaining

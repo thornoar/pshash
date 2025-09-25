@@ -24,7 +24,7 @@ import Encryption
 import Data.Word (Word8)
 
 currentVersion :: String
-currentVersion = "0.1.16.4"
+currentVersion = "0.1.16.5"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -94,7 +94,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- └────────────────┘
 
 data OptionName =
-    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT
+    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT
   | CONFIGFILE
   | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION
   | FIRST | SECOND | THIRD
@@ -204,15 +204,14 @@ infoAction config "help" = do
         : "                      with one set of keys. This option is automatically"
         : "                      suppressed when the `-q` option is used."
         : ""
-        : "  -e FILE             Encrypt FILE, writing encrypted data to stdout. Accepts"
-        : "                      three arguments:"
-        : "                        * WRITE TO: the file to write the encrypted data to."
-        : "                                    A value of `stdout` will write to stdout."
+        : "  -e FILE             Encrypt/decrypt FILE, writing encrypted data to stdout."
+        : "                      Accepts three arguments:"
+        : "                        * WRITE TO: the file to write the encrypted/decrypted"
+        : "                                    data to. A value of `stdout` will write to"
+        : "                                    stdout."
         : "                        * KEY 1: first encryption key (e.g. choice key)."
         : "                        * KEY 2: second encryption key (e.g. shuffle key)."
-        : ""
-        : "  -d FILE             Decrypt FILE. Accepts the same arguments as the above"
-        : "                      encryption mode."
+        : "                      The encryption and decryption algorithms are the same."
         : ""
         : "main arguments:"
         : "  PUBLIC              Stands for public key, a memorable string indicative"
@@ -318,7 +317,8 @@ hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFina
 
 encryptionWrapper ::
   Map OptionName String ->
-  (BS.ByteString -> Integer -> Integer -> BS.ByteString) ->
+  (BS.ByteString -> Integer -> BS.ByteString) ->
+  -- (BS.ByteString -> Integer -> Integer -> BS.ByteString) ->
   FilePath ->
   IO (Result ())
 encryptionWrapper args func fname = do
@@ -334,7 +334,7 @@ encryptionWrapper args func fname = do
     (Error tr, _, _) -> Error $ (pref ++ "{first key}:") :=> [tr]
     (_, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
     (_, _, Error tr) -> Error $ (pref ++ "{plaintext}:") :=> [tr]
-    (Content k1, Content k2, Content msg) -> Content $ func msg k1 k2
+    (Content k1, Content k2, Content msg) -> Content $ func msg (k1 + k2)
     where pref = "Trace while performing encryption/decryption, reading the "
 
 safeReadWithHandler :: (Monad m) => (FilePath -> IO a) -> (IOException -> IO (m a)) -> FilePath -> IO (m a)
@@ -382,7 +382,6 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'f' -> insert' CONFIGFILE s <$> parseArgs trp rest
   'p' -> insert' PATCH s <$> parseArgs trp rest
   'e' -> insert' ENCRYPT s <$> parseArgs trp rest
-  'd' -> insert' DECRYPT s <$> parseArgs trp rest
   ch -> Error $ ("<Unsupported option: {{" ++ ['-',ch] ++ "}}.>") :=> []
 parseArgs _ [['-', ch]] = Error $ ("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []
 parseArgs trp (('-':'-':opt) : rest) = case opt of
@@ -488,10 +487,6 @@ setEchoesAndPrompts args
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
       (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "KEY 1: " . insert' P3 "KEY 2: ")
       args
-  | member DECRYPT args =
-      insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
-      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "KEY 1: " . insert' P3 "KEY 2: ")
-      args
   | otherwise =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
       (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: " . insert' P3 "SHUFFLE KEY: ")
@@ -591,8 +586,7 @@ performAction args (Content config)
   | member INFO args = infoAction config (args ! INFO)
   | member QUERY args = passKeysToAction args (queryAction config (args ! QUERY))
   | member LIST args = passKeysToAction args (listPairsAction config)
-  | member ENCRYPT args = encryptionWrapper args encrypt (args ! ENCRYPT)
-  | member DECRYPT args = encryptionWrapper args decrypt (args ! DECRYPT)
+  | member ENCRYPT args = encryptionWrapper args procrypt (args ! ENCRYPT)
   | otherwise = passKeysToAction args (hashAction config)
 
 toIO :: [String] -> IO (Result ()) -> IO ()
