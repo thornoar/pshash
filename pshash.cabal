@@ -22,7 +22,6 @@ library pshash-lib
         base,
         QuickCheck,
         bytestring >=0.12.2.0,
-        random >=1.3.1,
 
 executable pshash
     import:           warnings
