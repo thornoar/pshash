@@ -317,8 +317,7 @@ hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFina
 
 encryptionWrapper ::
   Map OptionName String ->
-  (BS.ByteString -> Integer -> BS.ByteString) ->
-  -- (BS.ByteString -> Integer -> Integer -> BS.ByteString) ->
+  (BS.ByteString -> Integer -> Integer -> BS.ByteString) ->
   FilePath ->
   IO (Result ())
 encryptionWrapper args func fname = do
@@ -334,7 +333,7 @@ encryptionWrapper args func fname = do
     (Error tr, _, _) -> Error $ (pref ++ "{first key}:") :=> [tr]
     (_, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
     (_, _, Error tr) -> Error $ (pref ++ "{plaintext}:") :=> [tr]
-    (Content k1, Content k2, Content msg) -> Content $ func msg (k1 + k2)
+    (Content k1, Content k2, Content msg) -> Content $ func msg k1 k2
     where pref = "Trace while performing encryption/decryption, reading the "
 
 safeReadWithHandler :: (Monad m) => (FilePath -> IO a) -> (IOException -> IO (m a)) -> FilePath -> IO (m a)

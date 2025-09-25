@@ -41,12 +41,12 @@ buildStream 0 _ _ = []
 buildStream n perm prev =
   let cur = processBlock perm (xorbs prev defaultSeed) in cur : buildStream (n-1) perm cur
 
-procrypt :: B.ByteString -> Integer -> B.ByteString
-procrypt plaintext k =
-  let !perm = B.pack $ map fromIntegral $ shuffleList [0 .. (defaultSize - 1)] k
+procrypt :: B.ByteString -> Integer -> Integer -> B.ByteString
+procrypt plaintext k1 k2 =
+  let !perm = B.pack $ map fromIntegral $ shuffleList (shuffleList [0 .. (defaultSize - 1)] k1) k2
       num = toInteger $ 1 + div (B.length plaintext) defaultSize
       stream = B.concat (buildStream num perm (B.replicate defaultSize 0))
    in xorbs plaintext stream
 
-correctness :: [Word8] -> Integer -> Bool
-correctness msg k = (==) msg $ B.unpack $ procrypt (procrypt (B.pack msg) k) k
+correctness :: [Word8] -> Integer -> Integer -> Bool
+correctness msg k1 k2 = (==) msg $ B.unpack $ procrypt (procrypt (B.pack msg) k1 k2) k1 k2
