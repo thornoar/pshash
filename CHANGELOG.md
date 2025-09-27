@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.16.7
+
+* Added another key parsing algorithm.
+
 ## 0.1.16.6
 
 * Re-added the `-r` flag to control the number of encryption rounds.

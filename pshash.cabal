@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               pshash
-version:            0.1.16.6
+version:            0.1.16.7
 synopsis:           Password generator using hashing functions
 license:            MIT
 license-file:       LICENSE
@@ -28,6 +28,7 @@ executable pshash
     main-is:          Main.hs
     build-depends:
         base,
+        QuickCheck,
         containers,
         directory,
         pshash-lib,

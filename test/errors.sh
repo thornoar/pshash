@@ -38,3 +38,4 @@ run "$cmd -e ./test/data.txt stdout ahahaha 4524" 30
 run "$cmd -e ./test/data.txt stdout 123-123 das%%das" 30
 run "$cmd -e nonexistent stdout 123-123 234-1" 30
 run "$cmd -e nonexistent stdout 123-123 234-1" 30
+run "$cmd --alpha asd 234-23 d,," 30

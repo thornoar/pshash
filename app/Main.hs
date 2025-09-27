@@ -24,20 +24,21 @@ import Encryption
 import Data.Word (Word8)
 
 currentVersion :: String
-currentVersion = "0.1.16.6"
+currentVersion = "0.1.16.7"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
 -- └─────────────────────┘
 
-getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Result [Char]
-getFinalHash config publicStr choiceStr shuffleStr =
+getFinalHash :: [([Char], Integer)] -> Bool -> String -> String -> String -> Result [Char]
+getFinalHash config alpha publicStr choiceStr shuffleStr =
   liftH2
     ("Trace while computing hash, getting the " ++ "{choice}" ++ " key:")
     ("Trace while computing hash, getting the " ++ "{shuffle}" ++ " key:")
     (getHash config) choiceKey shuffleKey
   where
     publicKey = getPublicKey publicStr
+    getPrivateKey = if alpha then getPrivateKeyAlpha else getPrivateKeyPow
     choiceKey = liftA2 mod ((+publicKey) <$> getPrivateKey choiceStr) $ return (chooseAndMergeSpread' config)
     shuffleKey = getPrivateKey shuffleStr
 
@@ -65,8 +66,8 @@ getConfigFromSpec (a,b,c,d) = [(sourceLower, a), (sourceUpper, b), (sourceSpecia
 
 retrievePublicKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result String
 retrievePublicKey config choiceStr shuffleStr hashStr =
-  let shuffleKey = getPrivateKey shuffleStr
-      preChoiceKey = getPrivateKey choiceStr
+  let shuffleKey = getPrivateKeyPow shuffleStr
+      preChoiceKey = getPrivateKeyPow choiceStr
       choiceKey = shuffleKey >>= getHashI' config hashStr
    in addTrace "Trace while retrieving public key:" $
       getPublicStr <$> fmap2 mod (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
@@ -74,7 +75,7 @@ retrievePublicKey config choiceStr shuffleStr hashStr =
 retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =
   let publicKey = getPublicKey publicStr
-      shuffleKey = getPrivateKey shuffleStr
+      shuffleKey = getPrivateKeyPow shuffleStr
       preChoiceKey = shuffleKey >>= getHashI' config hashStr
       choiceMergeSpr = chooseAndMergeSpread' config
    in addTrace "Trace while retrieving choice key:" $
@@ -83,7 +84,7 @@ retrieveChoiceKey config publicStr shuffleStr hashStr =
 retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveShuffleKey config publicStr choiceStr hashStr =
   let publicKey = getPublicKey publicStr
-      preChoiceKey = getPrivateKey choiceStr
+      preChoiceKey = getPrivateKeyPow choiceStr
       choiceKey = fmap2 mod (fmap (+ publicKey) preChoiceKey) (numberOfChoiceKeys' config)
       preHash = fmap (chooseAndMerge config) choiceKey
    in addTrace "Trace while retrieving shuffle key:" $
@@ -96,7 +97,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 data OptionName =
     KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | ROUNDS
   | CONFIGFILE
-  | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION
+  | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | ALPHAKEYS
   | FIRST | SECOND | THIRD
   | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
@@ -146,6 +147,12 @@ infoAction config "help" = do
         : "  --ask-repeat        Ask the user to repeat keys."
         : ""
         : "  --show              Do not conceal typed keys."
+        : ""
+        : "  --alpha             Whether to accept strings of English alphabets as"
+        : "                      private keys, treating them as numbers in base-52."
+        : "                      The default is to accept keys in the form `n-m`,"
+        : "                      where `n` and `m` are numbers, and use `n` to the"
+        : "                      power `m` as the private key."
         : ""
         : "  +color              Enable colors in error messages."
         : ""
@@ -314,8 +321,8 @@ listPairsAction config publicStr limitStr hashStr =
         Error tr -> return (Error $ "Trace while reading number of pairs to print:" :=> [tr])
         Content limit -> sequence' $ take' limit $ map (handleWith putStrLn  . getPair) [0 .. numberOfShuffleKeys' config - 1]
 
-hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Result ())
-hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr
+hashAction :: [([Char], Integer)] -> Bool -> String -> String -> String -> IO (Result ())
+hashAction config alpha publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config alpha publicStr choiceStr shuffleStr
 
 encryptionWrapper ::
   Map OptionName String ->
@@ -324,6 +331,7 @@ encryptionWrapper ::
   IO (Result ())
 encryptionWrapper args func fname = do
   let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
+      getPrivateKey = if member ALPHAKEYS args then getPrivateKeyAlpha else getPrivateKeyPow
   outfile <- getKeyStr args FIRST E1 P1
   mkey1 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
   mkey2 <- getPrivateKey <$> getKeyStr args THIRD E3 P3
@@ -394,6 +402,7 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "no-prompts" -> insert' NOPROMPTS [] <$> parseArgs trp rest
   "ask-repeat" -> insert' ASKREPEAT [] <$> parseArgs trp rest
   "show" -> insert' SHOW [] <$> parseArgs trp rest
+  "alpha" -> insert' ALPHAKEYS [] <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
   str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
@@ -525,8 +534,25 @@ getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128
 getPublicStr :: Integer -> String
 getPublicStr = reverse . getPublicStr'
 
-getPrivateKey :: String -> Result Integer
-getPrivateKey s = liftA2 (^) base pow where
+getPrivateKeyAlpha :: String -> Result Integer
+getPrivateKeyAlpha [] = Content 0
+getPrivateKeyAlpha (c:rest)
+  | 65 <= n && n <= 90 = (n - 65 +) . (52 *) <$> getPrivateKeyAlpha rest
+  | 97 <= n && n <= 122 = (n - 71 +) . (52 *) <$> getPrivateKeyAlpha rest
+  | otherwise = Error $ "<Private key string must consist of English alphabets only.>" :=> [
+      ("The character {" ++ show c ++ "} is invalid.") :=> []
+    ]
+  where n = toInteger (ord c)
+
+getPrivateStr :: Integer -> String
+getPrivateStr 0 = ""
+getPrivateStr n =
+  let (next, cur) = divMod n 52
+      cur' = fromInteger cur
+   in chr (if cur' < 26 then cur' + 65 else cur' + 71) : getPrivateStr next
+
+getPrivateKeyPow :: String -> Result Integer
+getPrivateKeyPow s = liftA2 (^) base pow where
   (baseStr, powStr) = splitBy '-' s
   base :: Result Integer
   base = readResult "base in private key" baseStr
@@ -590,7 +616,7 @@ performAction args (Content config)
   | member QUERY args = passKeysToAction args (queryAction config (args ! QUERY))
   | member LIST args = passKeysToAction args (listPairsAction config)
   | member ENCRYPT args = encryptionWrapper args procrypt (args ! ENCRYPT)
-  | otherwise = passKeysToAction args (hashAction config)
+  | otherwise = passKeysToAction args (hashAction config (member ALPHAKEYS args))
 
 toIO :: [String] -> IO (Result ()) -> IO ()
 toIO rawArgs action = do

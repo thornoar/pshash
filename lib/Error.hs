@@ -9,9 +9,9 @@ import System.IO (stderr, hPutStrLn)
 -- │ ERROR HANDLING │
 -- └────────────────┘
 
-data Trace = String :=> [Trace] deriving (Read, Show)
+data Trace = String :=> [Trace] deriving (Read, Show, Eq)
 
-data Result a = Content a | Error Trace deriving (Read, Show)
+data Result a = Content a | Error Trace deriving (Read, Show, Eq)
 
 liftH2 :: String -> String -> (a -> b -> c) -> (Result a -> Result b -> Result c)
 liftH2 _ _ f (Content a) (Content b) = Content (f a b)
