@@ -51,8 +51,8 @@ maxLengthOfPublicKey amts = getBiggestPower 0 $ (length' . show) (numberOfPublic
       | get128PowerLength (guess + 1) < bound = getBiggestPower (guess + 1) bound
       | otherwise = guess + 1
 
-timeToChechPicos :: Double
-timeToChechPicos = 100.0
+timeToCheckPicos :: Double
+timeToCheckPicos = 1.0
 
 psInYear :: Double
 psInYear = 3.15576E19
@@ -63,7 +63,7 @@ ageOfUniverseYears = 13.787E9
 timeToCrack :: Integer -> (Double, Double)
 timeToCrack num = (inYears, inAgesOfUniverse)
   where
-    inYears = (timeToChechPicos / psInYear) * fromIntegral num
+    inYears = (timeToCheckPicos / psInYear) * fromIntegral num
     inAgesOfUniverse = inYears / ageOfUniverseYears
 
 formatInteger :: String -> String

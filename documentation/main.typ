@@ -34,20 +34,38 @@ Asymptote libraries at https://github.com/thornoar/smoothmanifold
 #let rel(n,m) = $(#n#h(.5mm)|#h(.5mm)#m)!$
 
 // Begin Document
-#let keywords = ("Combinatorics", "Hash", "Security", "Haskell", "Functional programming")
+#let keywords = ("Combinatorics", "Cryptography", "Hash", "Security", "Haskell", "Functional programming")
 #show: title-rule([ Multiselection-based pseudo-hash password generation ], abstract: [
-  We introduce a password generation algorithm which accepts a publicly known string (the "public key") as well as two large integer numbers ("choice private key" and "shuffle private key"), producing a random-looking string of characters (the "hash"), whose composition (i.e. number of lower-case and upper-case characters, etc.) can be set in advance. This is done by encoding list selections and permutations with positive integers, constructing the necessary list rearrangements based on the provided keys, and applying them to a predefined set of character lists (the "source configuration"). The algorithm is pure, which guarantees reproducibility and allows the user to generate secure passwords on the fly, without storing them in any location or having to remember them. We provide a primary implementation of the algorithm in Haskell, but implementations in C, Javascript, and Kotlin are also available.
+  We introduce a password generation algorithm which accepts a publicly
+  known string (the "public key") as well as two large integer numbers
+  ("choice private key" and "shuffle private key"), producing a 
+  random-looking string of characters (the "hash", used as a password), whose composition
+  (i.e. number of lower-case and upper-case characters, etc.) can be
+  set in advance. This is done by encoding list selections and
+  permutations with positive integers, constructing the necessary list
+  rearrangements based on the provided keys, and applying them to a
+  predefined set of character lists (the "source configuration"). The
+  algorithm is pure, which guarantees reproducibility and allows the
+  user to generate secure passwords on the fly, without storing them in
+  any location or having to remember them. Good levels of confusion and diffusion are achieved through so-called argument shift functions.
+  We provide a primary
+  implementation of the algorithm in Haskell, but implementations in C,
+  Javascript, and Kotlin are also available.
 ], date: datetime(year: 2024, month: 3, day: 26), keywords: keywords, logo: image("figures/logo.svg", width: 60%), keywordlength: 60%)
 
 = Introduction
 
-The motivation behind the topic lies in the management of personal passwords. Nowadays, the average person requires tens of different passwords for different websites and services. Overall, we can distinguish between two ways of managing this set of passwords:
+The motivation behind the topic lies in the management of personal passwords. Nowadays, the average person requires tens of different passwords for different websites and services. Overall, we can distinguish between three ways of managing this set of passwords:
 
 - *Keeping everything in one's head.* This is a method employed by many, yet it inevitably leads to certain risks. First of all, in order to fit the passwords in memory, one will probably make them similar to each other, or at least have them follow a simple pattern like "[shortened name of website]+[fixed phrase]". As a result, if even one password is guessed or leaked, it will be almost trivial to retrieve most of the others, following the pattern. Furthermore, the passwords themselves will tend to be memorable and connected to one's personal life, which will make them easier to guess. There is, after all, a limit to one's imagination.
 
 - *Storing the passwords in a secure location.* Arguably, this is a better method, but there is a natural risk of this location being revealed, or of the passwords being lost, especially if they are stored physically on a piece of paper. Currently, various "password managers" are available, which are software programs that will create and store your passwords for you. This is a good solution, but it comes with the necessity to trust the password manager not to have security vulnerabilities, not to mention that the password manager itself will have access to one's passwords, and a party inside the team developing the password manager will be able to get ahold of them.
 
-In this paper we suggest a way of doing neither of these things. The user will not know the passwords or have any connection to them whatsoever, and at the same time the passwords will not be stored anywhere, physically or digitally. In this system, every password is a pseudo-hash (since it does not adhere to the definition of a cryptographic hash, but the idea is similar) produced by a fixed algorithm. The algorithm requires three inputs: one public key, i.e. the name of the website or service, and two private keys, which are arbitrary positive integers known only to the user (the initial version of the algorithm, finalized in @merge-mult, will only use one private key). Every time when retrieving a password, the user will invoke the keys to re-create it from scratch. Therefore, in order to be reliable, the algorithm must be "pure", i.e. must always return the same output given the same input. Additionally, the algorithm must be robust enough so that, even if a hacker had full access to it and its mechanics, they would still not be able to guess the user's private key or the passwords that it produces. These considerations naturally lead to exploring pure mathematical functions as pseudo-hashing algorithms and implementing them in a functional programming language such as Haskell.
+- *Using a password manager*. These are software programs that create random passwords for the user and give access to them via a _master password._ This is a valid solution, especially since password managers tend to employ very secure encryption algorithms. However, this using such software implies problematic notions such as
+  1. trusting the developers and administrators of the password manager,
+  2. storing passwords in a database (although encrypted).
+
+In this paper we suggest a way of doing neither of these things. The user will not know the passwords or have any connection to them whatsoever, and at the same time the passwords will not be stored anywhere, physically or digitally. In this system, every password is a so-called "pseudo-hash" (since it does not technically adhere to the definition of a cryptographic hash, but has similar properties) produced by a fixed algorithm. The algorithm requires three inputs: one public key, i.e. the name of the website or service, and two private keys, which are arbitrary positive integers known only to the user (the initial version of the algorithm, finalized in @merge-mult, will only use one private key). Every time when requiring a password, the user will invoke the keys to re-create it from scratch. Therefore, in order to be reliable, the algorithm must be "pure", i.e. must always return the same output given the same input. Additionally, the algorithm should be published online for better accessibility, meaning that it must be robust enough so that, even if an attacker had full access to it and its mechanics, they would still not be able to guess the user's private key or the passwords that it produces. In other words, the algorithm has to adhere to Kerchhoff's principle. These considerations naturally lead to exploring pure mathematical functions as pseudo-hashing algorithms and implementing them in a functional programming language such as Haskell.
 
 = The theory
 
@@ -144,7 +162,7 @@ With this proposition at hand, we have a natural way of extending the definition
   q.e.d.
 ]
 
-The preceding result is especially valuable considering the fact that there are exactly $rel(n,m)$ ways to select an ordered sub-list from a list, meaning that $ch^m (E, k)$ is not only injective, but also surjective with respect to $k$ on the interval $(rel(n,m))$. This makes it a bijection
+The above result is especially valuable considering the fact that there are exactly $rel(n,m)$ ways to select an ordered sub-list from a list, meaning that $ch^m (E, k)$ is not only injective, but also surjective with respect to $k$ on the interval $(rel(n,m))$. This makes it a bijection
 $
   ch^m (E, -) : (rel(n,m)) -> [E]_m,
 $
@@ -199,7 +217,8 @@ where $E_i$, $n_i$, and $m_i$ compose the configuration $conf$. In fact, due to 
 This solves the problem with lacking symbol categories --- now we can separate upper-case letters, lower-case letters, numbers, etc., into different sources and apply the elevated choice function, specifying the number of symbols from each source. However, there are two issues arising:
 
 - The result of the elevated choice function will be something like `"amwYXT28@!"`, which is not a bad password, but it would be nice to be able to shuffle the individual selections between each other instead of lining them up one after another.
-- Despite the fact that the argument shift function makes the password selection chaotic, the function is a bijection, which means that it can be reversed. With sufficient knowledge of the algorithm, a hacker can write an inverse algorithm that retrieves the private key from the resulting password. This is a deal breaker for our function, because it defeats the purpose --- you may as well have one password for everything. The way to solve this problem is to make the choice function artificially non-injective, or non-collision-free, in a controlled way. In such case, many different keys will produce the same password, and it will be impossible to know which one of them is the correct one. This violates the common non-collision property of hash functions, but it is necessary given the nature of the function we are developing.
+
+- Despite the fact that the argument shift function makes the password selection chaotic, the function is a bijection, which means that it can be reversed. With sufficient knowledge of the algorithm, an attacker can write an inverse algorithm that retrieves the private key from the resulting password. This is a deal breaker for our function, because it defeats the purpose --- you may as well have one password for everything. The way to solve this problem is to make the choice function artificially non-injective, or non-collision-free, in a controlled way. In such case, many different keys will produce the same password, and it will be impossible to know which one of them is the correct one. This violates the common non-collision property of hash functions, but it is necessary given the nature of the function we are developing.
 
 We will solve one problem at a time.
 
@@ -252,14 +271,14 @@ We will solve one problem at a time.
     // where $T$ is an argument shift function.
 ]
 
-The merge function takes two lists and combines them together in one, in such a way that the order of elements in each of the two lists is not disturbed. For example, the merge of $[1,2,3]$ and $[a,b,c]$ with a certain key could be $[1,a,b,2,c,3]$. We will now derive some properties of $mg^2$. If $s_1$ and $s_2$ are what they are in the above definition, we immediately see that $mg^2(alpha, beta, -)$ is periodic with period $s_1 + s_2$, since it depends only on $k' = #lui($(s_1 + s_2)$)k$. Moreover, it is clear from the definition that $mg^2(alpha, beta, -)$ is injective on the interval $((s_1 + s_2))$, which means that its spread is equal exactly to $s_1 + s_2$:
+The merge function takes two lists and combines them together in one, in such a way that the order of elements in each of the two lists is not disturbed. For example, the merge of $[1,2,3]$ and $[a,b,c]$ with a certain key could be $[1,a,b,2,c,3]$. We will now derive some properties of $mg^2$. If $s_1$ and $s_2$ are what they are in the above definition, we immediately see that $mg^2(alpha, beta, -)$ is periodic with period $s_1 + s_2$, since it depends only on $k' = #lui($(s_1 + s_2)$)k$. Moreover, it is clear from the definition that $mg^2(alpha, beta, -)$ is injective on the interval\ $((s_1 + s_2))$, which means that its spread is equal exactly to $s_1 + s_2$:
 $
 #spr (mg^2 (alpha, beta, -)) = #spr (mg^2 (alpha excl 0, beta, -)) + #spr (mg^2 (alpha, beta excl 0, -)).
 $ <recspr>
 // From this recursive relationship we can derive this useful proposition:
 
 #prop[
-  Let $alpha$ and $beta$ be elements of $[E_1]_(m_1)$ and $[E_2]_(m_2)$ respectively. Then the spread of the corresponding merge function, with respect to the key $k$, is equal to $(m_1 + m_2)!/(m_1 ! dot m_2 !)$.
+  Let $alpha$ and $beta$ be elements of $[E_1]_(m_1)$ and $[E_2]_(m_2)$ respectively. Then the spread of the corresponding merge function $mg^2 (alpha, beta, -)$, with respect to the key $k$, is equal to $(m_1 + m_2)!\/(m_1 ! dot m_2 !)$.
 ]
 #pf[
   We will conduct a proof by induction over the sum $m_1 + m_2$. The base case is provided by the situation where either $m_1$ or $m_2$ is zero. Now assume that $m_1, m_2 != 0$ and for all similar pairs with sum $m_1 + m_2 - 1$ the statement is proven. Recall @recspr, which we can now transform due to the induction hypothesis:
@@ -271,7 +290,7 @@ $ <recspr>
   q.e.d.
 ]
 
-Using some combinatorial logic, we can see that the number $(m_1 + m_2)!/(m_1 ! dot m_2 !)$ corresponds to the number of all possible ways to merge the lists $alpha$ and $beta$, which we will denote by $\#^mg (alpha, beta)$. It means that the function $mg^2 (alpha, beta, -)$ is in fact surjective, and therefore bijective, on the interval from zero to its spread. Now we will, as usual, expand its definition beyond only two lists.
+Using basic combinatorics, we can see that the number $(m_1 + m_2)!\/(m_1 ! dot m_2 !)$ corresponds to the number of all possible ways to merge the lists $alpha$ and $beta$, which we will denote by $\#^mg (alpha, beta)$. It means that the function $mg^2 (alpha, beta, -)$ is in fact surjective, and therefore bijective, on the interval from zero to its spread. Now we will, as usual, expand its definition beyond only two lists.
 
 #def[
   Let $oval = [alpha_0, alpha_1, ..., alpha_(N-1)]$ be a list of lists, where $N >= 2$ and $a_i in [E_i]_(m_i)$. Define the _merge function of order $N$_ recursively as follows:
@@ -317,9 +336,9 @@ In other words, the merged choice function selects $N$ lists from the configurat
 
 It can once again be shown using combinatorics, that the final expression in @sprmc is, in fact, the total number of ways to choose a multiselection from $conf$ and merge it (the reader should not hesitate to check this). Therefore, we conclude that the function $mc (conf, -)$ is bijective on the interval from zero to its spread, and therefore periodic with the period of its spread.
 
-== Double encryption
+== Subverting invertability
 
-However, we still have one problem left: our current pseudo-hash function is bijective, and it can be reverse-engineered relatively easily to retrieve the private key from the final pseudo-hash. To prevent this, we will have to make our function a bit less injective --- artificially add inputs that produce the same output, in order to make the function harder to invert.
+We still have one problem left: our current pseudo-hash function is bijective, and it can be inverted relatively easily to retrieve the private key from the source configuration and the final pseudo-hash. To prevent this, we will have to make our function a bit less injective --- artificially add inputs that produce the same output, in order to make the function harder to invert.
 
 #def[
   Let $conf$ be a source configuration consisting of pairs $(E_i, m_i)$ for $i in (N)$, where $n_i = abs(E_i)$. Let $k_1, k_2 in NN_0$ be two numbers, referred to as the _primary (or choice) key_ and the _secondary (or shuffle) key._ Define the _hash_ corresponding to these inputs as follows:
@@ -333,7 +352,7 @@ However, we still have one problem left: our current pseudo-hash function is bij
   This pseudo-hash function makes a multiselection from every source in the configuration, then merges them together with the merge function, and finally reshuffles the resulting list.
 ]
 
-Note that the term "hash" is used loosely here, as it may not adhere to the formal definition of a cryptographic hash. Still, such naming is somewhat justified, given that $hash$ is designed to be a uniformly distributed encryption mapping that is very hard to invert. We will now discuss the properties of $hash (conf, k_1, k_2)$ for a given source configuration $conf$:
+Note that the term "hash" is used loosely here, as it may not adhere to the formal definition of a cryptographic hash. Still, such naming is somewhat justified, given that $hash$ is a mapping that is impossible to invert, with a uniform distribution of outputs (given a uniform distribution of keys). The reason $hash$ is not a proper hash function is the fact that for each "hash" it produces, one may easily construct key pairs that result in this hash. However, there is no way to pinpoint the pair that was actually used. We will now discuss the properties of $hash (conf, k_1, k_2)$ for a given source configuration $conf$:
 
 - *Injectivity.*
   $hash$ is injective with respect to the choice key $k_1$ on the interval from zero up to
@@ -361,7 +380,7 @@ Note that the term "hash" is used loosely here, as it may not adhere to the form
     = (sum_(i=0)^(N-1) m_i)!
   $
   
-With respect to each of the two keys, $hash$ is an injective function, but in combination they clash together and, to a degree, encrypt each other, erasing the trace to the original pair of keys. It does mean that the pseudo-hash function now requires two private keys instead of one, but it is a minor disadvantage.
+With respect to each of the two keys, $hash$ is an injective function, but in combination they clash together and, in a sense, encrypt each other, erasing the trace to the original pair of keys. It does mean that the pseudo-hash function now requires two private keys instead of one, but it is a minor disadvantage.
 
 #figure(
   image("./figures/hash.svg"),
@@ -370,7 +389,7 @@ With respect to each of the two keys, $hash$ is an injective function, but in co
 
 == Producing different hashes with the same private keys
 
-The premise of this entire discussion was that one requires many passwords for different purposes. Right now, the only way is to create a new primary-secondary key pair for every new occasion. Considering how large these numbers tend to be, you may as well try to remember the hashes themselves. This is where the public key comes into play. The public key, denoted $p$, is an integer number defined by the environment and available to the public. We will assume that it is the name of the website for which we require a password, like `"google"`, for example, converted into a number by treating the characters in the string as digits in base-128. This number acts on the choice private key by shifting it modulo $\#^smc (conf)$:
+The premise of this entire discussion was that one requires many passwords for different purposes. Right now, the only way is to create a new primary-secondary key pair for every new occasion. Considering how large these numbers tend to be, you may as well try to remember the hashes themselves. This is where the public key comes into play. The public key, denoted $p$, is an integer defined by the particular context in which the algorithm is invoked. We will assume it to be the name of the website for which we require a password, like `"google"`, for example, converted into a number by treating the characters in the string as digits in base-128. This number acts on the choice private key by shifting it modulo $\#^smc (conf)$:
 $
   k'_1 = lui(\#^smc (conf))(k_1 + p),
 $
@@ -398,7 +417,7 @@ In this subsection, we will use a specific source configuration $conf$, particul
 
 Therefore, every password produced with this configuration will contain a total of 32 symbols, 10, 10, 6 and 6 from their respective categories.
 
-Now, let's imagine that you have inserted your two private keys into the function and got a password out of it. A sophisticated hacker sets their mind to crack your password whatever it takes. They are very smart and they have a supercomputer that can perform 1,000,000,000,000 password checks in a second, or one picosecond to check one password or key. What is more, they got their hands on the pseudo-hash function and the configuration you use, so they can try to reverse-engineer your password.
+Now, let's imagine that you have inserted your two private keys into the function and got a password out of it. An attacker sets their mind to crack your password whatever it takes. They are very smart and they have a supercomputer that can perform 1,000,000,000,000 password checks in a second, or one picosecond to check one password or key. What is more, they got their hands on the pseudo-hash function and the configuration you use, so they can try to reverse-engineer your password.
 
 First, they read into the configuration and see the structure of the password. They decide to brute-force it by checking every relevant combination of 32 symbols. Well, they will have to check $\#^hash (conf)$ combinations, which in our case equals exactly
 $
@@ -416,7 +435,7 @@ $
 $
 ages of the Universe.
 
-Okay, thinks the hacker, no luck. They dig a little deeper into the algorithm and find that your password depends on two private keys. The number of all pairs of such keys is
+Okay, thinks the attacker, no luck. They dig a little deeper into the algorithm and find that your password depends on two private keys. The number of all pairs of such keys is
 $
   \#^((k_1,k_2)) (conf) =
     1,&231,943,871,416,597,272,872,197,263,679,034,862,\
@@ -429,17 +448,15 @@ $
 
 This one is going to take billions of billions times longer than the previous one.
 
-Okay, thinks the hacker, the night is young. They are able to get their hands on one of your 32-symbol passwords because of a security leak on the website you were registered to. They have also dug ears deep into the pseudo-hash function and understood how it works to the tiniest detail. Now, they want to retrieve your private keys to be able to generate your passwords to all other websites and services you use. They see that your password starts with a `'W'`. They know it was shuffled from some other position by the shuffle function, $shuf (-, k_2)$, but they don't know what the password was before the shuffling. What they do know is that your password is produced by
+Okay, thinks the attacker, the night is young. They are able to get their hands on one of your 32-symbol passwords because of a security leak on the website you were registered to. They have also dug ears deep into the pseudo-hash function and understood how it works to the tiniest detail. Now, they want to retrieve your private keys to be able to generate your passwords to all other websites and services you use. They see that your password starts with a `'W'`. They know it was shuffled from some other position by the shuffle function, $shuf (-, k_2)$, but they don't know what the password was before the shuffling. What they do know is that your password is produced by
 $
   \#^inter (conf) = 263,130,836,933,693,530,167,218,012,160,000,000 approx 2 times 10^35
 $
-different $(k_1, k_2)$ pairs. The hacker can (relatively) easily retrieve any one of these pairs by substituting the intermediary layer $alpha$ (after the application of $mc$, but before $shuf$) of their choosing, and then solve for the two keys. The problem is that if the keys they receive differ from the true keys, they will not produce the correct password given a different public key. Therefore, to get the key to another website, the hacker would need to go through all of $\#^inter (conf)$different combinations, which will take them about $8,338,113,067,333,812 approx 8 times 10^15$ years, or $604,780$ ages of the Universe. It is, of course, almost infinitely better than brute-forcing the password from scratch (after all, the resulting hash does give the hacker a lot of information about the original keys), but it is still pretty much impossible.
+different $(k_1, k_2)$ pairs. The attacker can (relatively) easily retrieve any one of these pairs by substituting the intermediary layer $alpha$ (after the application of $mc$, but before $shuf$) of their choosing, and then solve for the two keys. The problem is that if the keys they receive differ from the true keys, they will not produce the correct password given a different public key. Therefore, to get the key to another website, the attacker would need to go through all of $\#^inter (conf)$different combinations, which will take them about $8,338,113,067,333,812 approx 8 times 10^15$ years, or $604,780$ ages of the Universe. It is, of course, almost infinitely better than brute-forcing the password from scratch (after all, the resulting hash does give the attacker a lot of information about the original keys), but it is still pretty much impossible.
 
-After that, the hacker can go to sleep and forget about cracking your password, because they have nothing left to try. And you can go to sleep knowing that your accounts are safe.
+== Assumptions
 
-== Some advice
-
-All the above calculations are based on the premise that the hacker will not get your key pair among the first couple of hundreds, that they will have to deplete the entire spread of the pseudo-hash function to find your choice-shuffle pair. Therefore, if your pair is something like $(14, 245)$, the password will not take a single millisecond to be broken. It is therefore advisory that the keys be very large --- somewhere in the middle of the spread. You can practice your memory and remember two large numbers, if you are not afraid of forgetting them (and you should be). Or, you can take the factorial, or a power, of a smaller number and remember that number instead.
+All the above calculations are based on the premise that the attacker will not get your key pair among the first couple of hundreds, that they will have to deplete the entire spread of the pseudo-hash function to find your choice-shuffle pair. Therefore, if your pair is something like $(14, 245)$, the password will not take a single millisecond to be broken. It is therefore advisory that the keys be very large --- ideally, randomly chosen from the spread interval. You can practice your memory and remember two large numbers, if you are not afraid of forgetting them (and you should be). Or, you can take the factorial, or a power, of a smaller number and remember that number instead.
 
 But anyway, how can _you_ get some of those hashes yourself?
 
@@ -457,14 +474,16 @@ It is obvious that the hashing algorithm, which is basically a mathematical func
 
 == The `pshash` program
 
-`pshash` (from "password-hash") is the name of the implementation of the pseudo-hash function described in the previous section. There is no front-end or GUI, it is only a command-line utility designed to be simple and lightweight. The source, written in Haskell, is available at https://github.com/thornoar/pshash. The code repeats the definitions explained in the previous section almost verbatim --- such is the benefit of functional programming.
+`pshash` (from "password-hash") is the name of the implementation of the pseudo-hash function described in the previous section. The main program has no GUI, it is only a command-line utility designed to be simple and lightweight. The source, written in Haskell, is available at https://github.com/thornoar/pshash. The code repeats the definitions explained in the previous section almost verbatim --- such is the benefit of functional programming.
 
-The program accepts three arguments: the public key and two private keys, returning a hash using its builtin source configuration. On demand, the user may pass a different configuration using one of the `-d`, `-s`, and `-c` command-line options, but this is not recommended, since it will have to be done every time. Instead, it is suggested to download the source, change the default configuration in the code, and then compile it to a new executable. You can run `"pshash --help"` to see all available options.
+The program accepts three arguments: the public key and two private keys, returning a hash using its builtin source configuration. On demand, the user may pass a different configuration using one of the `-k`, `-n`, and `-c` command-line options, but this is not recommended, since it will have to be done every time. Instead, it is suggested to download the source, change the default configuration in the code, and then compile it to a new executable. You can run `"pshash --help"` to see all available options. Alternatively, one can write a configuration file and invoke `pshash` with the `--impure` flag to read it. Refer to `pshash --help` for more details.
+
+The instructions for installing `pshash` are also given on the GitHub page.
 
 *! Important notice !*
 
-The program is _extremely sensitive to changes._ Thus, before using it to create passwords, make sure that the configuration is set to your liking, save the executable and do _not_ change it afterwards. Any small change, and all your passwords will be lost. You will have to undo the change to retrieve them. Additionally, it is advised to store the program openly on the internet, in case you lose your local copy. This way, you can access it from anywhere with an internet connection. Currently, there are pre-compiled static binaries for Linux (NixOS, Debian, and Arch), as well as dynamic binaries for Windows, all hosted at https://github.com/thornoar/pshash-bin and available at https://thornoar.github.io/pshash-web/get.
+The program is _extremely sensitive to changes._ Thus, before using it to create passwords, make sure that the configuration is set to your liking, save the executable and do _not_ change it afterwards. Any small change, and all your passwords will be lost. You will have to undo the change to retrieve them. Additionally, it is advised to store the program openly on the internet, in case you lose your local copy. This way, you can access it from anywhere with an internet connection. Currently, there are pre-compiled static binaries for Linux, as well as dynamic binaries for Windows, all hosted at https://github.com/thornoar/pshash-bin and available at https://thornoar.github.io/pshash-web/get.
 
 == Other implementations
 
-The pseudo-hashing algorithm is implemented in other languages, namely C (to provide for the in-development desktop app, source at https://github.com/thornoar/pshash-gui), JavaScript (for the web interface, available at https://thornoar.github.io/pshash-web/app/), and Kotlin (for the `pshash-app` Android app, source available at https://github.com/thornoar/pshash-app).
+The pseudo-hashing algorithm is implemented in other languages, namely C (to provide for the in-development desktop app, source at https://github.com/thornoar/pshash-gui), JavaScript (for the web interface, available at https://thornoar.github.io/pshash-web/app/), and Kotlin (for the `pshash-app` Android app, source at https://github.com/thornoar/pshash-app, download links at https://thornoar.github.io/pshash-web/get/).
