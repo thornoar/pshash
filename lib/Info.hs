@@ -66,7 +66,7 @@ ageOfUniverseYears = 13787000000
 timeToCrack :: Integer -> (Integer, Integer)
 timeToCrack num = (inYears, inAgesOfUniverse)
   where
-    inYears = div (timeToCheckPicos * num) psInYear
+    inYears = div (timeToCheckPicos * num) (2 * psInYear)
     inAgesOfUniverse = div inYears ageOfUniverseYears
 
 getPowerOf :: Integer -> Integer -> Integer
@@ -76,7 +76,7 @@ getPowerOf b n
 
 printTimes :: String -> (Integer, Integer) -> String
 printTimes pr (inY, inAoU) = 
-  pr
+  pr ++ show (inY, inAoU) ++ "\n"
   ++ if inY < 1000
      then show inY
      else "> 10^" ++ show (getPowerOf 10 inY)

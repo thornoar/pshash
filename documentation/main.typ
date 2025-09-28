@@ -407,56 +407,60 @@ In this subsection, we will use a specific source configuration $conf$, particul
     gutter: 3pt,
     $i$, table.vline(), $E_i$, table.vline(), $n_i$, table.vline(), $m_i$,
     table.hline(),
-    [0], `"ckapzfitqdxnwehrolmbyvsujg"`,  [26], [10],
-    [1], `"RQLIANBKJYVWPTEMCZSFDOGUHX"`,  [26], [10],
-    [2], `"=!*@?$%#&-+^{}"`,              [14], [6],
-    [3], `"1952074386"`,                  [10], [6],
+    [0], `"ckapzfitqdxnwehrolmbyvsujg"`,  [26], [8],
+    [1], `"RQLIANBKJYVWPTEMCZSFDOGUHX"`,  [26], [8],
+    [2], `"=!*@?$%#&-+^{}"`,              [14], [5],
+    [3], `"1952074386"`,                  [10], [4],
   ),
   caption: [ An example of a source configuration ]
 )
 
-Therefore, every password produced with this configuration will contain a total of 32 symbols, 10, 10, 6 and 6 from their respective categories.
+Therefore, every password produced with this configuration will contain a total of 25 symbols, 8, 8, 5 and 4 from their respective categories.
 
-Now, let's imagine that you have inserted your two private keys into the function and got a password out of it. An attacker sets their mind to crack your password whatever it takes. They are very smart and they have a supercomputer that can perform 1,000,000,000,000 password checks in a second, or one picosecond to check one password or key. What is more, they got their hands on the pseudo-hash function and the configuration you use, so they can try to reverse-engineer your password.
+Now, let's imagine that you have inserted your two private keys into the function and got a password out of it.
+An attacker sets their mind to crack your password whatever it takes.
+They are very smart and they have a supercomputer that can perform 10,000,000,000 password checks in a second, or 0.1 nanosecond to check one password or key.
+What is more, they got their hands on the pseudo-hash function and the configuration you use, so they can try to reverse-engineer your password.
 
-First, they read into the configuration and see the structure of the password. They decide to brute-force it by checking every relevant combination of 32 symbols. Well, they will have to check $\#^hash (conf)$ combinations, which in our case equals exactly
+First, they read into the configuration and see the structure of the password.
+They decide to brute-force it by checking every relevant combination of 25 symbols.
+They will have to check $\#^hash (conf)$ combinations, which in our case equals exactly
 $
-  \#^hash (conf) = 4,681,868,099,431,597,288,493,491,203,991,195,290,886,471,680,000,000,000 approx 4 dot 10^54.
+  \#^hash (conf) = 6,296,585,738,425,733,189,152,569,035,980,800,000,000,000 > 2^142.
 $
 
 Cracking it would take the supercomputer about
 $
-  148,359,447,468,489,290,599,901,768,793,980,928 approx 10^35
-  // 45,649,060,759,535,167,757,411,626,837,344,256 
+  9,976,338,090,389,847,753,239,424 > 10^24
 $
 years, or about
 $
-  10,760,821,605,025,697,027,325,952 approx 10^25
+  723,604,706,635,950 > 10^14
 $
-ages of the Universe.
+ages of the Universe. Here we calculate the time it would take to find the correct entry with at least $50%$ confidence, that is, the time to traverse half of the spread of the space of possible values.
 
 Okay, thinks the attacker, no luck. They dig a little deeper into the algorithm and find that your password depends on two private keys. The number of all pairs of such keys is
 $
   \#^((k_1,k_2)) (conf) =
-    1,&231,943,871,416,597,272,872,197,263,679,034,862,\
-    &284,237,334,545,743,786,828,619,158,565,735,628,\
-    &800,000,000,000,000,000 approx 10^90
-    // &379,059,652,743,568,391,652,983,773,439,703,034,\
-    // &548,996,102,937,151,934,408,805,894,943,303,270,\
-    // &400,000,000,000,000,000 approx 3 times 10^89
+    97,&667,663,944,563,885,279,694,955,400,689,334,\
+    &503,676,436,493,107,200,000,000,000,000,000 > 2^225.
 $
 
-This one is going to take billions of billions times longer than the previous one.
+There is no possibility of traversing this number of values.
 
-Okay, thinks the attacker, the night is young. They are able to get their hands on one of your 32-symbol passwords because of a security leak on the website you were registered to. They have also dug ears deep into the pseudo-hash function and understood how it works to the tiniest detail. Now, they want to retrieve your private keys to be able to generate your passwords to all other websites and services you use. They see that your password starts with a `'W'`. They know it was shuffled from some other position by the shuffle function, $shuf (-, k_2)$, but they don't know what the password was before the shuffling. What they do know is that your password is produced by
+Okay, thinks the attacker, the night is young. They are able to get their hands on one of your 25-symbol passwords because of a security leak on the website you were registered to. They have also dug ears deep into the pseudo-hash function and understood how it works to the tiniest detail. Now, they want to retrieve your private keys to be able to generate your passwords to all other websites and services you use. They see that your password starts with a `'W'`. They know it was shuffled from some other position by the shuffle function, $shuf (-, k_2)$, but they don't know what the password was before the shuffling. What they do know is that your password is produced by
 $
-  \#^inter (conf) = 263,130,836,933,693,530,167,218,012,160,000,000 approx 2 times 10^35
+  \#^inter (conf) = 15,511,210,043,330,985,984,000,000 > 2^83
 $
-different $(k_1, k_2)$ pairs. The attacker can (relatively) easily retrieve any one of these pairs by substituting the intermediary layer $alpha$ (after the application of $mc$, but before $shuf$) of their choosing, and then solve for the two keys. The problem is that if the keys they receive differ from the true keys, they will not produce the correct password given a different public key. Therefore, to get the key to another website, the attacker would need to go through all of $\#^inter (conf)$different combinations, which will take them about $8,338,113,067,333,812 approx 8 times 10^15$ years, or $604,780$ ages of the Universe. It is, of course, almost infinitely better than brute-forcing the password from scratch (after all, the resulting hash does give the attacker a lot of information about the original keys), but it is still pretty much impossible.
+different $(k_1, k_2)$ pairs. The attacker can (relatively) easily retrieve any one of these pairs by substituting the intermediary layer $alpha$ (after the application of $mc$, but before $shuf$) of their choosing, and then solve for the two keys. The problem is that if the keys they receive differ from the true keys, they will not produce the correct password given a different public key. Therefore, to get the key to another website, the attacker would need to go through all of $\#^inter (conf)$different combinations, which will take them about 
+$
+  24,576,029 > 10^7
+$
+years. It is, of course, almost infinitely better than brute-forcing the password from scratch (it won't even take a single age of the Universe), but it is still pretty much impossible. However, if that is an issue, one can always use a password with, say, 30 symbols instead of 25, and its security will skyrocket.
 
 == Assumptions
 
-All the above calculations are based on the premise that the attacker will not get your key pair among the first couple of hundreds, that they will have to deplete the entire spread of the pseudo-hash function to find your choice-shuffle pair. Therefore, if your pair is something like $(14, 245)$, the password will not take a single millisecond to be broken. It is therefore advisory that the keys be very large --- ideally, randomly chosen from the spread interval. You can practice your memory and remember two large numbers, if you are not afraid of forgetting them (and you should be). Or, you can take the factorial, or a power, of a smaller number and remember that number instead.
+All the above calculations are based on the premise that the attacker will not get your key pair among the first couple of hundreds, that they will in fact have to deplete at least half of the spread of the pseudo-hash function to find your choice-shuffle pair. Therefore, if your pair is something like $(14, 245)$, the password will not take a single millisecond to be broken. It is therefore advisory that the keys be very large --- ideally, randomly chosen from the spread interval. You can practice your memory and remember two large numbers, if you are not afraid of forgetting them (and you should be). Or, you can take the factorial, or a power, of a smaller number and remember that number instead.
 
 But anyway, how can _you_ get some of those hashes yourself?
 
@@ -470,13 +474,13 @@ Haskell, named after mathematician Haskell Curry, is one of the most renown func
 
 - *Stateless programming.* Ever since the model of Turing machines, the idea of state has been integral to programming. It implies that a program can be in different states, which affects its behavior. This does, however, make the program potentially more unpredictable, since, even given the same input twice, it may return different outputs based on its state. In functional programming, state does not exist. All functions and variables are constant and are not allowed to change. As a result, a Haskell program, much like a mathematical function, is guaranteed to give the same result with the same input.
 
-It is obvious that the hashing algorithm, which is basically a mathematical function and which must return the same hash given the same keys, is best implemented in a functional programming language. Haskell has been chosen because of its simple (yet unconventional) syntax, as well as amazing flexibility and a developed infrastructure for working with numbers and strings. Particularly, it has the ability to store integer numbers of _arbitrary length_ (not just, say, 8 bytes). This is crucial given the monstrous numbers seen in @bignum.
+It seems natural that our pseudo-hashing algorithm, which is basically a mathematical function and which must return the same hash given the same keys, is best implemented in a functional programming language. Haskell has been chosen because of its simple (albeit unconventional) syntax, as well as a very good compiler and a developed infrastructure for working with numbers and strings. Particularly, it has the ability to store integer numbers of _arbitrary length_ (not just, say, 8 bytes). This is crucial given the monstrous numbers seen in @bignum.
 
 == The `pshash` program
 
 `pshash` (from "password-hash") is the name of the implementation of the pseudo-hash function described in the previous section. The main program has no GUI, it is only a command-line utility designed to be simple and lightweight. The source, written in Haskell, is available at https://github.com/thornoar/pshash. The code repeats the definitions explained in the previous section almost verbatim --- such is the benefit of functional programming.
 
-The program accepts three arguments: the public key and two private keys, returning a hash using its builtin source configuration. On demand, the user may pass a different configuration using one of the `-k`, `-n`, and `-c` command-line options, but this is not recommended, since it will have to be done every time. Instead, it is suggested to download the source, change the default configuration in the code, and then compile it to a new executable. You can run `"pshash --help"` to see all available options. Alternatively, one can write a configuration file and invoke `pshash` with the `--impure` flag to read it. Refer to `pshash --help` for more details.
+The program accepts three arguments: the public key and two private keys, returning a hash using its builtin source configuration. On demand, the user may pass a different configuration using one of the `-k`, `-n`, and `-c` command-line options, but this is not recommended, since it will have to be done every time. Instead, it is suggested to download the source, change the default configuration in the code, and then compile it to a new executable. You can run `"pshash --help"` to see all available options. Alternatively, one can write a configuration file and invoke `pshash` with the `--impure` flag to read it.
 
 The instructions for installing `pshash` are also given on the GitHub page.
 
