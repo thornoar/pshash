@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.16.9
+
+* Redesigned the module structure and added random key generation.
+
 ## 0.1.16.8
 
 * Changed number formatting.

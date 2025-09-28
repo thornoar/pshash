@@ -31,6 +31,9 @@ insertAt _ _ _ = []
 dropElementInfo :: ([a], Integer) -> (Integer, Integer)
 dropElementInfo (src, m) = (length' src, m)
 
+getConfigFromSpec :: (Integer, Integer, Integer, Integer) -> [([Char], Integer)]
+getConfigFromSpec (a,b,c,d) = [(sourceLower, a), (sourceUpper, b), (sourceSpecial, c), (sourceNumbers, d)]
+
 shiftString :: Integer -> String -> String
 shiftString amt = map (chr . fromInteger . (`mod` 128) . (+ amt) . toInteger . ord)
 
@@ -60,14 +63,6 @@ composeHashing f spr g a key = g b nextKey
     (keyDiv, keyMod) = divMod key $ spr a
     b = f a keyMod
     nextKey = keyDiv + shift b
-
-infixr 9 <.
-(<.) :: (b -> c) -> (a -> Integer -> b) -> (a -> Integer -> c)
-(g <. f) a k = g (f a k)
-
-infixr 9 <<.
-(<<.) :: (b -> c) -> (a -> Integer -> Integer -> b) -> (a -> Integer -> Integer -> c)
-(g <<. f) a k1 k2 = g (f a k1 k2)
 
 -- ┌─────────────────────────────────────────────────────┐
 -- │ PRE-DEFINED STRINGS FROM WHICH HASHES WILL BE DRAWN │

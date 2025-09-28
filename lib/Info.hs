@@ -2,9 +2,9 @@ module Info where
 
 import Algorithm
 
--- ┌──────────────────┐
--- │ COUNTING NUMBERS │
--- └──────────────────┘
+-- ┌───────────────────────────┐
+-- │ COUNTING/PRINTING NUMBERS │
+-- └───────────────────────────┘
 
 numberOfHashes :: [(Integer, Integer)] -> Integer
 numberOfHashes amts = product (zipWith cnk fsts snds) * factorial (sum snds)

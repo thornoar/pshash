@@ -13,6 +13,12 @@ data Trace = String :=> [Trace] deriving (Read, Show, Eq)
 
 data Result a = Content a | Error Trace deriving (Read, Show, Eq)
 
+splitBy :: (Eq a) => a -> [a] -> ([a], [a])
+splitBy _ [] = ([],[])
+splitBy a (a':rest)
+  | a == a' = ([], rest)
+  | otherwise = let (res1, res2) = splitBy a rest in (a' : res1, res2)
+
 liftH2 :: String -> String -> (a -> b -> c) -> (Result a -> Result b -> Result c)
 liftH2 _ _ f (Content a) (Content b) = Content (f a b)
 liftH2 msg1 msg2 _ (Error tr1) (Error tr2) = Error $ "Double trace:" :=>
