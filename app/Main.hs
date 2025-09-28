@@ -24,7 +24,7 @@ import Encryption
 import Data.Word (Word8)
 
 currentVersion :: String
-currentVersion = "0.1.16.7"
+currentVersion = "0.1.16.8"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -106,6 +106,7 @@ defaultConfigFiles :: [String]
 defaultConfigFiles =
   [
     "./pshash.conf",
+    "./.pshash.conf",
     "~/.config/pshash/pshash.conf",
     "~/.pshash.conf",
     "/etc/pshash/pshash.conf",
@@ -120,11 +121,12 @@ handleWith f ma = case ma of
 infoAction :: [([Char], Integer)] -> String -> IO (Result ())
 infoAction config "help" = do
       let show' :: [([Char],Integer)] -> String
-          show' config' = "[\n" ++ concatMap (("  " ++) . (++ "\n") . show) config' ++ "]"
+          show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"
       putStrLn . unlines $
           "usage: pshash [ --help | --version | --list | --pure | --impure ]"
+        : "              [ --no-prompts | --ask-repeat | --show | --alpha ]"
         : "              [ +color | +no-color ]"
-        : "              [ -k|n|c|i|q|f|p|e|d|r ARGUMENT ]"
+        : "              [ -k|n|c|i|q|f|p|e|r ARGUMENT ]"
         : "              [ PUBLIC CHOICE SHUFFLE ]"
         : ""
         : "options:"
@@ -196,11 +198,11 @@ infoAction config "help" = do
         : "                      following files:"
         : map ("                       * " ++) defaultConfigFiles ++
           "                      Each line of the file should follow the format"
-        : "                         PUBLIC: ARGS"
+        : "                         PUBLIC1, PUBLIC2, ... : ARGS"
         : "                      (other lines will be ignored)"
         : "                      A line with the keyword \"+all\" as PUBLIC will apply"
         : "                      to all public keys."
-        : "                      When using configuration files, the PUBLIC key needs"
+        : "                      When using configuration files, the public key needs"
         : "                      to be specified inline as a command line argument."
         : "                      The program will match it with one of the entries in"
         : "                      the file and use the corresponding ARGS."
@@ -214,8 +216,8 @@ infoAction config "help" = do
         : "  -e FILE             Encrypt/decrypt FILE, writing encrypted data to stdout."
         : "                      Accepts three arguments:"
         : "                        * WRITE TO: the file to write the encrypted/decrypted"
-        : "                                    data to. A value of `stdout` will write to"
-        : "                                    stdout."
+        : "                                    data to. A value of `stdout` will write"
+        : "                                    to stdout."
         : "                        * KEY 1: first encryption key (e.g. choice key)."
         : "                        * KEY 2: second encryption key (e.g. shuffle key)."
         : "                      The encryption and decryption algorithms are the same."
@@ -227,10 +229,10 @@ infoAction config "help" = do
         : "                      of the password destination (e.g. \"google\", \"steam\")"
         : ""
         : "  CHOICE              Stands for choice private key, a large number"
-        : ("                      between 0 and " ++ formatNumber (numberOfChoiceKeys' config) numberOfPlaces)
+        : ("                      between 0 and 10^" ++ show (getPowerOf 10 (numberOfChoiceKeys' config)))
         : ""
         : "  SHUFFLE             Stands for shuffle private key, a number"
-        : ("                      between 0 and " ++ formatNumber (numberOfShuffleKeys $ map snd config) numberOfPlaces)
+        : ("                      between 0 and 10^" ++ show (getPowerOf 10 (numberOfShuffleKeys $ map snd config)))
         : ""
         : "using source configuration:"
         : show' config
@@ -246,55 +248,23 @@ infoAction config "numbers" =
    in do
   putStrLn $ "using the following configuration distribution: " ++ show amts
   putStrLn ""
-  putStrLn $
-    "total theoretical number of hashes:         " ++
-      formatNumber numHashes numberOfPlaces
-  putStrLn $
-    "number of choice keys:                      " ++
-    formatNumber numChoice numberOfPlaces
-  putStrLn $
-    "number of shuffle keys:                     " ++
-    formatNumber numShuffle numberOfPlaces
-  putStrLn $
-    "number of key pairs with the same hash:     " ++
-    formatNumber numRepetitions numberOfPlaces
+  putStrLn $ "total theoretical number of hashes:         > " ++ printBits numHashes
+  putStrLn $ "number of choice keys:                      > " ++ printBits numChoice
+  putStrLn $ "number of shuffle keys:                     > " ++ printBits numShuffle
+  putStrLn $ "number of key pairs with the same hash:     > " ++ printBits numRepetitions
   putStrLn $ "total hash length:                          " ++ show ((sum . map snd) amts) ++ " symbols"
   putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
   return (Content ())
 infoAction config "times" = let amts = map dropElementInfo config in do
   putStrLn $ "using the following configuration distribution: " ++ show amts
   putStrLn $ "assumed number of password checks per second:   " ++ "10 billion = 10^10"
-  putStrLn $ "time to check one password:                     " ++ "10^(-10) s = 0.1 nanosecond"
+  putStrLn $ "time to check one password:                     " ++ "10^(" ++ show timeToCheckPower ++ ") s = " ++ show timeToCheckPicos ++ " picoseconds"
   putStrLn ""
-  putStrLn $
-    let (inY, inAoU) = timeToCrack $ numberOfHashes amts
-        inAoUInteger = floor inAoU :: Integer
-        inYInteger = floor inY :: Integer
-     in "time to brute-force your password:              "
-          ++ formatNumber inYInteger numberOfPlaces
-          ++ " years"
-          ++ if inAoUInteger > 0
-             then "\n"
-                  ++ "                                             or "
-                  ++ formatNumber inAoUInteger numberOfPlaces
-                  ++ " ages of the Universe"
-             else ""
+  putStrLn $ printTimes "time to brute-force your password:              " (timeToCrack $ numberOfHashes amts)
   putStrLn ""
-  putStrLn $
-    let (inY, inAoU) = timeToCrack $ numberOfRepetitions $ map snd amts
-        inAoUInteger = floor inAoU :: Integer
-        inYInteger = floor inY :: Integer
-     in "time to retrieve the keys based on a hash:      "
-          ++ formatNumber inYInteger numberOfPlaces
-          ++ " years"
-          ++ if inAoUInteger > 0
-             then "\n"
-                  ++ "                                             or "
-                  ++ formatNumber inAoUInteger numberOfPlaces
-                  ++ " ages of the Universe"
-             else ""
+  putStrLn $ printTimes "time to retrieve the keys based on a hash:      " (timeToCrack $ numberOfRepetitions $ map snd amts)
   return (Content ())
-infoAction _ cmd = return . Error $ ("Info command not recognized: " ++ cmd ++ ".") :=> []
+infoAction _ cmd = return . Error $ ("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []
 
 queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Result ())
 queryAction config "public" choiceStr shuffleStr hashStr = handleWith print $ retrievePublicKey config choiceStr shuffleStr hashStr

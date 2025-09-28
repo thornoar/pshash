@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.16.8
+
+* Changed number formatting.
+
 ## 0.1.16.7
 
 * Added another key parsing algorithm.

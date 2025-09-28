@@ -51,42 +51,44 @@ maxLengthOfPublicKey amts = getBiggestPower 0 $ (length' . show) (numberOfPublic
       | get128PowerLength (guess + 1) < bound = getBiggestPower (guess + 1) bound
       | otherwise = guess + 1
 
-timeToCheckPicos :: Double
-timeToCheckPicos = 1.0
+timeToCheckPower :: Integer
+timeToCheckPower = -10
 
-psInYear :: Double
-psInYear = 3.15576E19
+timeToCheckPicos :: Integer
+timeToCheckPicos = 10 ^ (timeToCheckPower + 12)
 
-ageOfUniverseYears :: Double
-ageOfUniverseYears = 13.787E9
+psInYear :: Integer
+psInYear = 31557600000000000000
 
-timeToCrack :: Integer -> (Double, Double)
+ageOfUniverseYears :: Integer
+ageOfUniverseYears = 13787000000
+
+timeToCrack :: Integer -> (Integer, Integer)
 timeToCrack num = (inYears, inAgesOfUniverse)
   where
-    inYears = (timeToCheckPicos / psInYear) * fromIntegral num
-    inAgesOfUniverse = inYears / ageOfUniverseYears
+    inYears = div (timeToCheckPicos * num) psInYear
+    inAgesOfUniverse = div inYears ageOfUniverseYears
 
-formatInteger :: String -> String
-formatInteger num = reverse $ formatReversed (reverse num)
-  where
-    formatReversed :: String -> String
-    formatReversed (a : b : c : d : str) = a : b : c : ',' : formatReversed (d : str)
-    formatReversed str = str
+getPowerOf :: Integer -> Integer -> Integer
+getPowerOf b n
+  | n < b = 0
+  | otherwise = 1 + getPowerOf b (div n b)
 
-formatDouble :: String -> Int -> String
-formatDouble "" _ = ""
-formatDouble ('e':'-':rest) _ = " * 10^(-" ++ rest ++ ")"
-formatDouble ('e':rest) _ = " * 10^" ++ rest
-formatDouble (digit:rest) places
-  | places == 0 = formatDouble rest places
-  | otherwise = digit : formatDouble rest (places-1)
+printTimes :: String -> (Integer, Integer) -> String
+printTimes pr (inY, inAoU) = 
+  pr
+  ++ if inY < 1000
+     then show inY
+     else "> 10^" ++ show (getPowerOf 10 inY)
+  ++ " years"
+  ++ if inAoU > 0
+     then "\n"
+          ++ "                                             or "
+          ++ if inAoU < 1000
+             then show inAoU
+             else "> 10^" ++ show (getPowerOf 10 inAoU)
+          ++ " ages of the Universe"
+     else ""
 
-formatNumber :: Integer -> Int -> String
-formatNumber num places =
-  let str = show (fromIntegral num :: Double)
-   in if 'e' `elem` show str
-      then formatDouble str places
-      else formatInteger (show num)
-
-numberOfPlaces :: Int
-numberOfPlaces = 4
+printBits :: Integer -> String
+printBits num = "2^" ++ show (getPowerOf 2 num)
