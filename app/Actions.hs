@@ -280,10 +280,16 @@ keygenAction amts = do
   g <- getStdGen
   let choice = fst $ randomR (0, numberOfChoiceKeys amts) g :: Integer
       shuffle = fst $ randomR (0, numberOfShuffleKeys $ map snd amts) g :: Integer
+      printMnems :: [String] -> IO ()
+      printMnems lst = if null lst then putStrLn "    (no mnemonics available)" else do
+        putStrLn "mnemonics: "
+        mapM_ putStrLn $ zipWith (++) ("mnemonics " : repeat "          ") lst
   putStrLn $ "private choice key:  " ++ show choice
-  putStrLn $ "                     (" ++ getPrivateStr choice ++ ")"
+  chmnems <- getMnemonics defaultMnemonicAmount (show choice)
+  printMnems chmnems
   putStrLn $ "private shuffle key: " ++ show shuffle
-  putStrLn $ "                     (" ++ getPrivateStr shuffle ++ ")"
+  shmnems <- getMnemonics defaultMnemonicAmount (show choice)
+  printMnems shmnems
   return (Content ())
 
 encryptionAction ::

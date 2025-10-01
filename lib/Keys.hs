@@ -27,20 +27,34 @@ getPublicStr = reverse . getPublicStr'
 -- │ READING PRIVATE KEYS │
 -- └──────────────────────┘
 
-reverseMap :: (Ord v) => [(k,v)] -> Map v [k]
-reverseMap [] = M.empty
-reverseMap ((k,v):rest) =
-  let prev = reverseMap rest
-   in if M.member v prev then M.update (Just . (k :)) v prev else M.insert v [k] prev
+-- reverseMap :: (Ord v) => [(k,v)] -> Map v [k]
+-- reverseMap [] = M.empty
+-- reverseMap ((k,v):rest) =
+--   let prev = reverseMap rest
+--    in M.insert v (k : M.findWithDefault [] v prev) prev
 
-mnemonicList :: [(Char, Char)]
-mnemonicList = zip ['a'..'z'] $ concat . replicate 3 $ ['0'..'9']
+-- mnemonicList :: [(Char, Char)]
+-- mnemonicList = zip ['a'..'z'] $ concat . replicate 3 $ ['0'..'9']
+
+mnemonicList :: [(Char, [Char])]
+mnemonicList = [
+    ('0', "lps")
+  , ('1', "cda")
+  , ('2', "yf")
+  , ('3', "orn")
+  , ('4', "xib")
+  , ('5', "msu")
+  , ('6', "hw")
+  , ('7', "kv")
+  , ('8', "qg")
+  , ('9', "ze")
+  ]
 
 symbols2digits :: Map Char Char
-symbols2digits = M.fromList mnemonicList
+symbols2digits = M.fromList [(k,v) | (v,l) <- mnemonicList, k <- l]
 
 digits2symbols :: Map Char [Char]
-digits2symbols = reverseMap mnemonicList
+digits2symbols = M.fromList mnemonicList
 
 convertToDigits :: [Char] -> Result [Char]
 convertToDigits [] = Content []
@@ -81,9 +95,55 @@ getPrivateKey s = case getPrivateKeyNum s of
     Content n -> Content n
     Error tr2 -> Error $ "Both numeric and mnemonic read methods failed:" :=> [tr1, tr2]
 
-getPrivateStr :: Integer -> String
-getPrivateStr 0 = ""
-getPrivateStr n =
-  let (next, cur) = divMod n 52
-      cur' = fromInteger cur
-   in chr (if cur' < 26 then cur' + 65 else cur' + 71) : getPrivateStr next
+-- getPrivateStr :: Integer -> String
+-- getPrivateStr 0 = ""
+-- getPrivateStr n =
+--   let (next, cur) = divMod n 52
+--       cur' = fromInteger cur
+--    in chr (if cur' < 26 then cur' + 65 else cur' + 71) : getPrivateStr next
+
+-- ┌────────────────────────┐
+-- │ CONSTRUCTING MNEMONICS │
+-- └────────────────────────┘
+
+newtype Dict = Dict { fromDict :: Map Char Dict }
+  deriving (Show, Read)
+
+defaultMnemonicAmount :: Int
+defaultMnemonicAmount = 5
+
+printDict :: String -> Dict -> IO ()
+printDict prefix (Dict m) =
+  sequence_ $ M.mapWithKey
+  (\ c d -> putStrLn (prefix ++ show c) >> printDict (prefix ++ "  ") d) m
+
+sortByLetter :: [String] -> Map Char [String]
+sortByLetter [] = M.empty
+sortByLetter ([]:rest) = M.insert (chr 0) [] $ sortByLetter rest
+sortByLetter ((c:str):rest) =
+  let prev = sortByLetter rest
+   in M.insert c (str : M.findWithDefault [] c prev) prev
+
+list2dict :: [String] -> Dict
+list2dict lst = Dict $ M.map list2dict (sortByLetter lst)
+
+constructMnemonics :: Dict -> Dict -> String -> [String]
+constructMnemonics _ (Dict curmap) []
+  | M.member '\NUL' curmap = [""]
+  | otherwise = []
+constructMnemonics dct (Dict curmap) (c:rest)
+  | M.member '\NUL' curmap =
+      constructMnemonics dct (Dict $ M.delete '\NUL' curmap) (c:rest)
+      ++ map (' ' :) (constructMnemonics dct dct (c:rest))
+  | otherwise =
+    let trySymbol :: Char -> [String]
+        trySymbol ch = case M.lookup ch curmap of
+          Nothing -> []
+          Just (Dict mp) -> map (ch :) $ constructMnemonics dct (Dict mp) rest
+     in concatMap trySymbol (M.findWithDefault [] c digits2symbols)
+
+getMnemonics :: Int -> String -> IO [String]
+getMnemonics num str = do
+  dct <- fmap (list2dict . lines) (readFile "./lib/words.txt")
+  -- printDict "" dct
+  return $ take num $ concatMap (constructMnemonics dct dct) [str, '0':str, '0':'0':str]
