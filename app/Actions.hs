@@ -3,7 +3,8 @@
 module Actions where
 
 import Data.Map (Map, member, (!))
-import qualified Data.ByteString as BS (readFile, writeFile, putStr, pack, ByteString)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS (readFile, writeFile, putStr, pack)
 import System.Random (getStdGen, randomR)
 import Data.Char (ord)
 import System.IO (stdin, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
@@ -19,21 +20,20 @@ import Info
 import Encryption
 
 currentVersion :: String
-currentVersion = "0.1.16.9"
+currentVersion = "0.1.16.10"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
 -- └─────────────────────┘
 
-getFinalHash :: [([Char], Integer)] -> Bool -> String -> String -> String -> Result [Char]
-getFinalHash config alpha publicStr choiceStr shuffleStr =
+getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Result [Char]
+getFinalHash config publicStr choiceStr shuffleStr =
   liftH2
     ("Trace while computing hash, getting the " ++ "{choice}" ++ " key:")
     ("Trace while computing hash, getting the " ++ "{shuffle}" ++ " key:")
     (getHash config) choiceKey shuffleKey
   where
     publicKey = getPublicKey publicStr
-    getPrivateKey = if alpha then getPrivateKeyAlpha else getPrivateKeyPow
     choiceKey = liftA2 mod ((+publicKey) <$> getPrivateKey choiceStr) $ return (chooseAndMergeSpread' config)
     shuffleKey = getPrivateKey shuffleStr
 
@@ -72,8 +72,8 @@ getKeyStr args opt echoOpt promptOpt
 
 retrievePublicKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result String
 retrievePublicKey config choiceStr shuffleStr hashStr =
-  let shuffleKey = getPrivateKeyPow shuffleStr
-      preChoiceKey = getPrivateKeyPow choiceStr
+  let shuffleKey = getPrivateKey shuffleStr
+      preChoiceKey = getPrivateKey choiceStr
       choiceKey = shuffleKey >>= getHashI' config hashStr
    in addTrace "Trace while retrieving public key:" $
       getPublicStr <$> fmap2 mod (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
@@ -81,7 +81,7 @@ retrievePublicKey config choiceStr shuffleStr hashStr =
 retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =
   let publicKey = getPublicKey publicStr
-      shuffleKey = getPrivateKeyPow shuffleStr
+      shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = shuffleKey >>= getHashI' config hashStr
       choiceMergeSpr = chooseAndMergeSpread' config
    in addTrace "Trace while retrieving choice key:" $
@@ -90,7 +90,7 @@ retrieveChoiceKey config publicStr shuffleStr hashStr =
 retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveShuffleKey config publicStr choiceStr hashStr =
   let publicKey = getPublicKey publicStr
-      preChoiceKey = getPrivateKeyPow choiceStr
+      preChoiceKey = getPrivateKey choiceStr
       choiceKey = fmap2 mod (fmap (+ publicKey) preChoiceKey) (numberOfChoiceKeys' config)
       preHash = fmap (chooseAndMerge config) choiceKey
    in addTrace "Trace while retrieving shuffle key:" $
@@ -111,7 +111,7 @@ infoAction config "help" = do
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"
       putStrLn . unlines $
           "usage: pshash [ --help | --version | --list | --pure | --impure ]"
-        : "              [ --no-prompts | --ask-repeat | --show | --alpha | --gen-keys ]"
+        : "              [ --no-prompts | --ask-repeat | --show | --gen-keys ]"
         : "              [ +color | +no-color ]"
         : "              [ -k|n|c|i|q|f|p|e|r ARGUMENT ]"
         : "              [ PUBLIC CHOICE SHUFFLE ]"
@@ -136,12 +136,6 @@ infoAction config "help" = do
         : "  --ask-repeat        Ask the user to repeat keys."
         : ""
         : "  --show              Do not conceal typed keys."
-        : ""
-        : "  --alpha             Whether to accept strings of English alphabets as"
-        : "                      private keys, treating them as numbers in base-52."
-        : "                      The default is to accept keys in the form `n-m`,"
-        : "                      where `n` and `m` are numbers, and use `n` to the"
-        : "                      power `m` as the private key."
         : ""
         : "  --gen-keys          Generate a random primary-secondary keypair. The"
         : "                      key range depends on the configuration used."
@@ -294,12 +288,11 @@ keygenAction amts = do
 
 encryptionAction ::
   Map OptionName String ->
-  (Int -> BS.ByteString -> Integer -> Integer -> BS.ByteString) ->
+  (Int -> ByteString -> Integer -> Integer -> ByteString) ->
   FilePath ->
   IO (Result ())
 encryptionAction args func fname = do
   let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
-      getPrivateKey = if member ALPHAKEYS args then getPrivateKeyAlpha else getPrivateKeyPow
   outfile <- getKeyStr args FIRST E1 P1
   mkey1 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
   mkey2 <- getPrivateKey <$> getKeyStr args THIRD E3 P3
@@ -315,5 +308,5 @@ encryptionAction args func fname = do
     (Content rounds, Content k1, Content k2, Content msg) -> Content $ func rounds msg k1 k2
     where pref = "Trace while performing encryption/decryption, reading the "
 
-hashAction :: [([Char], Integer)] -> Bool -> String -> String -> String -> IO (Result ())
-hashAction config alpha publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config alpha publicStr choiceStr shuffleStr
+hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Result ())
+hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr

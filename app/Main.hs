@@ -33,8 +33,8 @@ performAction args (Content config)
   | member QUERY args = passKeysToAction args (queryAction config (args ! QUERY))
   | member LIST args = passKeysToAction args (listPairsAction config)
   | member ENCRYPT args = encryptionAction args procrypt (args ! ENCRYPT)
-  | member KEYGEN args = keygenAction (map dropElementInfo config)
-  | otherwise = passKeysToAction args (hashAction config (member ALPHAKEYS args))
+  | member GENKEYS args = keygenAction (map dropElementInfo config)
+  | otherwise = passKeysToAction args (hashAction config)
 
 toIO :: [String] -> IO (Result ()) -> IO ()
 toIO rawArgs action = do

@@ -11,7 +11,7 @@ import Algorithm
 data OptionName =
     KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | ROUNDS
   | CONFIGFILE
-  | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | ALPHAKEYS | KEYGEN
+  | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | GENKEYS
   | FIRST | SECOND | THIRD
   | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
@@ -101,8 +101,7 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "no-prompts" -> insert' NOPROMPTS [] <$> parseArgs trp rest
   "ask-repeat" -> insert' ASKREPEAT [] <$> parseArgs trp rest
   "show" -> insert' SHOW [] <$> parseArgs trp rest
-  "alpha" -> insert' ALPHAKEYS [] <$> parseArgs trp rest
-  "gen-keys" -> insert' KEYGEN [] <$> parseArgs trp rest
+  "gen-keys" -> insert' GENKEYS [] <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
   str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
