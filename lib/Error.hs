@@ -13,11 +13,13 @@ data Trace = String :=> [Trace] deriving (Read, Show, Eq)
 
 data Result a = Content a | Error Trace deriving (Read, Show, Eq)
 
-splitBy :: (Eq a) => a -> [a] -> ([a], [a])
-splitBy _ [] = ([],[])
+splitBy :: (Eq a) => a -> [a] -> [[a]]
+splitBy _ [] = [[]]
 splitBy a (a':rest)
-  | a == a' = ([], rest)
-  | otherwise = let (res1, res2) = splitBy a rest in (a' : res1, res2)
+  | a == a' = [] : splitBy a rest
+  | otherwise = case splitBy a rest of
+      [] -> [[a']]
+      (str:strs) -> (a':str) : strs
 
 liftH2 :: String -> String -> (a -> b -> c) -> (Result a -> Result b -> Result c)
 liftH2 _ _ f (Content a) (Content b) = Content (f a b)
@@ -66,7 +68,7 @@ raise2' f a mb = mb >>= f a
 
 readResult :: (Read a) => String -> String -> Result a
 readResult msg str = case readMaybe str of
-  Nothing -> Error $ ("<Failed to read {{" ++ str ++ "}} as {{" ++ msg ++ "}}.>") :=> []
+  Nothing -> Error $ ("<Failed to read \"{{" ++ str ++ "}}\" as {{" ++ msg ++ "}}.>") :=> []
   Just a -> Content a
 
 addTrace :: String -> Result a -> Result a

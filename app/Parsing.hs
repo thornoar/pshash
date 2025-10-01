@@ -7,11 +7,12 @@ import System.Directory (getHomeDirectory)
 
 import Error
 import Algorithm
+import Data.List (intercalate)
 
 data OptionName =
     KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | ROUNDS
   | CONFIGFILE
-  | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | GENKEYS
+  | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | GENKEYS | GENSPELL
   | FIRST | SECOND | THIRD
   | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
@@ -67,7 +68,7 @@ getConfig args
       "pin" -> Content pinCodeConfiguration
       "mediumpin" -> Content mediumPinCodeConfiguration
       "longpin" -> Content longPinCodeConfiguration
-      str -> Error $ ("<Unrecognized configuration keyword: {{" ++ str ++ "}}.>") :=> []
+      str -> Error $ ("<Unrecognized configuration keyword: \"{{" ++ str ++ "}}\".>") :=> []
   | member SELECT args =
       return $ readResult "(Int,Int,Int,Int)" (args ! SELECT)
       >>= (checkConfigValidity . getConfigFromSpec)
@@ -92,7 +93,7 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'p' -> insert' PATCH s <$> parseArgs trp rest
   'e' -> insert' ENCRYPT s <$> parseArgs trp rest
   'r' -> insert' ROUNDS s <$> parseArgs trp rest
-  ch -> Error $ ("<Unsupported option: {{" ++ ['-',ch] ++ "}}.>") :=> []
+  ch -> Error $ ("<Unsupported option: \"{{" ++ ['-',ch] ++ "}}\".>") :=> []
 parseArgs _ [['-', ch]] = Error $ ("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []
 parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE [] <$> parseArgs trp rest
@@ -102,6 +103,7 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "ask-repeat" -> insert' ASKREPEAT [] <$> parseArgs trp rest
   "show" -> insert' SHOW [] <$> parseArgs trp rest
   "gen-keys" -> insert' GENKEYS [] <$> parseArgs trp rest
+  "gen-spell" -> insert' GENSPELL [] <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
   str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
@@ -128,15 +130,16 @@ getArgsFromContents keywordM contents = case keywordM of
     ]
   Just publicStr -> process $ map (splitBy ':') (filter (elem ':') (lines contents))
     where
-      split :: Char -> String -> [String]
-      split _ [] = []
-      split c str = let (f, s) = splitBy c str in f : split c s
-      process :: [(String, String)] -> Result (Map OptionName String)
+      process :: [[String]] -> Result (Map OptionName String)
       process [] = Content empty
-      process ((keywords, argStr) : rest) =
-        if keywords == "+all" || publicStr `elem` split ',' (filter (/= ' ') keywords)
+      process ([keywords, argStr] : rest) =
+        if keywords == "+all" || publicStr `elem` splitBy ',' (filter (/= ' ') keywords)
         then addTrace ("Trace while parsing options for {" ++ keywords ++ "}:") $ parseArgs (True, True, True) (words argStr)
         else process rest
+      process (lst:_) = Error $ "<Cannot use configuration file: incorrect syntax:>" :=>
+        [
+          ("In line {" ++ intercalate ":" lst ++ "}") :=> []
+        ]
 
 getConfigArgs :: Map OptionName String -> IO (Result (Map OptionName String))
 getConfigArgs args
@@ -197,6 +200,10 @@ setEchoesAndPrompts args
   | member ENCRYPT args =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
       (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "KEY 1: " . insert' P3 "KEY 2: ")
+      args
+  | member GENSPELL args =
+      insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
+      ((if member NOPROMPTS args then insert' P1 "" else insert' P1 "NUMERIC KEY: ") . insert' P2 "" . insert' P3 "")
       args
   | otherwise =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $

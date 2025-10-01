@@ -5,7 +5,7 @@ cmd="$1"
 test_number=1
 
 function compare {
-    printf "\033[34m| Test #%-2s: \033[35m%-45.45s\033[34m -- \033[0m" "$test_number" "$1"
+    printf "\033[34m| Test #%02d: \033[35m%-45.45s\033[34m -- \033[0m" "$test_number" "$1"
     output="$($1)"
     if [[ "$output" == "$2" ]]; then
         printf "\033[1;32mPASSED\033[0m\n"
@@ -18,14 +18,14 @@ function compare {
     fi
 }
 
-compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.16.10"
+compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.17.0"
 compare "$cmd zxc-%-vbn 89^45 9045^4557" "FkPw=p+VyMjdv6XN\$2^3i@QW4"
 compare "$cmd -k long AAA0-=~!@ 123 123" "@&FjQ*34kzZu1O\$IGncBb%5Hy"
-compare "$cmd -k medium ##### 9^999 125^125" "4*-mK!el7S6Ds=%HT5t0"
+compare "$cmd -k medium ##### 9^900*30*99 125^125" "5y=D06Zw*K\$N%8k@1raX"
 compare "$cmd -k short ##### 123^1000 666^1" "H\$!x9*PMZ#z6f4h5"
 compare "$cmd -k anlong --pure ##### 123^1000 666^1" "bWZHh3y92TzV84XBx6af0"
 compare "$cmd -k anshort ##### 123^1000 666^1" "3xPM47Zz2Hfh"
-compare "$cmd -k pin ##### 123^1000 666^1" "0349"
+compare "$cmd -k pin ##### 12*43^10+120 666^1" "6720"
 compare "$cmd -k mediumpin qwerty 89 9045" "185074"
 compare "$cmd -k longpin tyuio 1000 9000" "30624859"
 compare "$cmd -n (4,6,5,5) hahaha 456 123" "&Uo0b\$u1*=FdEVW4O+26"
@@ -40,5 +40,6 @@ compare "$cmd -k anlong -p 66 qwer 90 90" "Lh5b1q92I4VzRriNB87eU"
 compare "$cmd -f test/pshash.conf overleaf 876^5 139 -p 4" "3F1SVZD"
 $cmd -r 24 -e test/data.txt test/data.enc 2345^45 123^322
 compare "$cmd -r 24 -e test/data.enc stdout 2345^45 123^322" "$(cat "test/data.txt")"
-compare "$cmd -k anlong --pure NCALKSJ billyyeah asdfyhhhh" "h016KbycZmjGPC7pF94M2"
-compare "$cmd --pure NCALKSJ cdssae laksjfhaklsjdfksaaskvjdksaldvn" "YCo@+2l\$zGWUqbjk0?3pMJ%5H"
+compare "$cmd -k anlong puuub uskehaunpicadopebewokabeitagelelcavemuduunba tifijalierfumeterotejoquve" "K4QEmk0hx5uYB3vFb187S"
+compare "$cmd -n (24,13,10,7) magiiiic 1234^247+1237*123 ityilereorbafafapijahofemefule" "ecdwLxq@^IayFC2SEb%-nr8Blvz*6#O1mZAhg!5o?ut+psj9\$QiW7X"
+compare "$cmd --gen-spell 123^11" "yudayi tikipu higogi suwaca"

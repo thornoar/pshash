@@ -1,5 +1,9 @@
 # Revision history for pshash
 
+## 0.1.17.0
+
+* Great improvements to key reading and representation.
+
 ## 0.1.16.10
 
 * Introduced mnemonic key reading.

@@ -20,7 +20,7 @@ import Info
 import Encryption
 
 currentVersion :: String
-currentVersion = "0.1.16.10"
+currentVersion = "0.1.17.0"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -140,6 +140,10 @@ infoAction config "help" = do
         : "  --gen-keys          Generate a random primary-secondary keypair. The"
         : "                      key range depends on the configuration used."
         : ""
+        : "  --gen-spell         Prompt for a numeric key (e.g. `34+78^3`) and"
+        : "                      and print the mnemonic spell corresponding to this"
+        : "                      key."
+        : ""
         : "  +color              Enable colors in error messages."
         : ""
         : "  +no-color           Disable colors in error messages."
@@ -218,6 +222,14 @@ infoAction config "help" = do
         : "  SHUFFLE             Stands for shuffle private key, a number"
         : ("                      between 0 and 10^" ++ show (getPowerOf 10 (numberOfShuffleKeys $ map snd config)))
         : ""
+        : "                      Keys can be given in two formats:"
+        : "                        * numeric: an expression with numbers and `^`, `*`, `+`"
+        : "                          symbols. This expression will be evaluated as usual."
+        : "                          For example, `6543 + 67^3^2 * 9888 + 23`."
+        : "                        * mnemonic (spell incantation): a gibberish-looking"
+        : "                          automatically generated sentence composed from"
+        : "                          common English syllables, like `mufasa kurimu ro`."
+        : ""
         : "using source configuration:"
         : show' config
         : []
@@ -254,7 +266,7 @@ queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO
 queryAction config "public" choiceStr shuffleStr hashStr = handleWith print $ retrievePublicKey config choiceStr shuffleStr hashStr
 queryAction config "choice" publicStr shuffleStr hashStr = handleWith print $ retrieveChoiceKey config publicStr shuffleStr hashStr
 queryAction config "shuffle" publicStr choiceStr hashStr = handleWith print $ retrieveShuffleKey config publicStr choiceStr hashStr
-queryAction _ kw _ _ _ = return . Error $ ("<Query keyword not recognized: {{" ++ kw ++ "}}.>") :=> []
+queryAction _ kw _ _ _ = return . Error $ ("<Query keyword not recognized: \"{{" ++ kw ++ "}}\".>") :=> []
 
 listPairsAction :: [([Char], Integer)] -> String -> String -> [Char] -> IO (Result ())
 listPairsAction config publicStr limitStr hashStr =
@@ -280,17 +292,18 @@ keygenAction amts = do
   g <- getStdGen
   let choice = fst $ randomR (0, numberOfChoiceKeys amts) g :: Integer
       shuffle = fst $ randomR (0, numberOfShuffleKeys $ map snd amts) g :: Integer
-      printMnems :: [String] -> IO ()
-      printMnems lst = if null lst then putStrLn "    (no mnemonics available)" else do
-        putStrLn "mnemonics: "
-        mapM_ putStrLn $ zipWith (++) ("mnemonics " : repeat "          ") lst
   putStrLn $ "private choice key:  " ++ show choice
-  chmnems <- getMnemonics defaultMnemonicAmount (show choice)
-  printMnems chmnems
+  putStrLn $ "       incantation:  " ++ getMnemonic choice
   putStrLn $ "private shuffle key: " ++ show shuffle
-  shmnems <- getMnemonics defaultMnemonicAmount (show choice)
-  printMnems shmnems
+  putStrLn $ "       incantation:  " ++ getMnemonic shuffle
   return (Content ())
+
+spellgenAction :: Map OptionName String -> IO (Result ())
+spellgenAction args = do
+  key <- getKeyStr args FIRST E1 P1
+  case getPrivateKeyNum key of
+    Error tr -> return $ Error $ "Trace while generating mnemonic incantation:" :=> [tr]
+    Content n -> putStrLn (getMnemonic n) >> return (Content ())
 
 encryptionAction ::
   Map OptionName String ->

@@ -10,8 +10,8 @@ import Error
 
 mapHashingI :: (Shifting b) => (a -> b -> Result Integer) -> (a -> Integer) -> ([a] -> [b] -> Result Integer)
 mapHashingI _ _ [] [] = Content 0
-mapHashingI _ _ _ [] = Error $ "<A bug in the Matrix, calling `mapHashingI`.>" :=> []
-mapHashingI _ _ [] _ = Error $ "<A bug in the Matrix, calling `mapHashingI`.>" :=> []
+mapHashingI _ _ _ [] = Error $ "<A bug in the Matrix.>" :=> []
+mapHashingI _ _ [] _ = Error $ "<A bug in the Matrix.>" :=> []
 mapHashingI fI spr (a:as) (b:bs) =
   let curSpr = spr a
       restSpr = product $ map spr as
@@ -65,7 +65,7 @@ chooseOrderedI (src, num) (a:as) =
         Just keyMod -> case keyDivH of
           Error tr -> Error tr
           Content keyDiv -> Content $ keyMod + srcLen * mod (keyDiv - shift a) prevSpread
-chooseOrderedI (_,_) _ = Error $ "<A bug in the Matrix, calling `chooseOrderedI`.>" :=> []
+chooseOrderedI (_,_) _ = Error $ "<A bug in the Matrix.>" :=> []
 
 shuffleListI :: (Shifting a, Eq a, Show a) => [a] -> [a] -> Result Integer
 shuffleListI lst = chooseOrderedI (lst, length' lst)
@@ -103,7 +103,7 @@ mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
       Error tr -> Error tr
       Content prevKey -> Content $ spr1 + mod (prevKey - shift m) spr2
   | otherwise = Error $
-      ("<Invalid hash: element {" ++ show m ++ "< does not match either source." ++ "}") :=>
+      ("<Invalid hash: element {{" ++ show m ++ "}} does not match either source.>") :=>
       [
         ("Reversing hash: {" ++ show (m:ms) ++ "}") :=> [],
         ("First source list: {" ++ show (e1:rest1) ++ "}") :=> [],
@@ -117,7 +117,7 @@ mergeTwoListsI (_, _) [] = Error $ "<Invalid hash: too few elements.>" :=> []
 
 mergeListsI :: (Shifting a, Eq a, Show a) => [[a]] -> [a] -> Result Integer
 mergeListsI [] [] = Content 0
-mergeListsI [] _  = Error $ "<A bug in the Matrix, calling `mergeListsI`.>" :=> []
+mergeListsI [] _  = Error $ "<A bug in the Matrix.>" :=> []
 mergeListsI [src] lst
   | lst == src = Content 0
   | otherwise = Error $

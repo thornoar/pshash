@@ -2,8 +2,9 @@ module Keys where
 
 import Error
 import Data.Char (ord, chr)
-import Data.Map (Map)
-import qualified Data.Map as M
+import Data.List (elemIndex)
+import Test.QuickCheck (Positive(..))
+import Algorithm (getHash, defaultConfiguration)
 
 -- ┌────────────────────────┐
 -- │ READING THE PUBLIC KEY │
@@ -27,66 +28,38 @@ getPublicStr = reverse . getPublicStr'
 -- │ READING PRIVATE KEYS │
 -- └──────────────────────┘
 
--- reverseMap :: (Ord v) => [(k,v)] -> Map v [k]
--- reverseMap [] = M.empty
--- reverseMap ((k,v):rest) =
---   let prev = reverseMap rest
---    in M.insert v (k : M.findWithDefault [] v prev) prev
-
--- mnemonicList :: [(Char, Char)]
--- mnemonicList = zip ['a'..'z'] $ concat . replicate 3 $ ['0'..'9']
-
-mnemonicList :: [(Char, [Char])]
-mnemonicList = [
-    ('0', "lps")
-  , ('1', "cda")
-  , ('2', "yf")
-  , ('3', "orn")
-  , ('4', "xib")
-  , ('5', "msu")
-  , ('6', "hw")
-  , ('7', "kv")
-  , ('8', "qg")
-  , ('9', "ze")
+commonCombinations :: [[Char]]
+commonCombinations = [
+    "or","un","el","is","it","us","of","ag","um","yu","in","er","es",
+    "ti","re","te","le","ra","li","ri","ne","se","de","co","ro","la",
+    "di","ca","ta","ve","he","si","me","pe","ni","lo","ma","mi","to",
+    "ce","na","ho","ge","hi","ha","po","pa","no","ci","pi","ke","mo",
+    "ba","be","sa","fi","bo","su","so","bi","tu","vi","gi","ru","ku",
+    "ga","ko","qu","lu","ki","do","fe","fo","bu","da","we","va","fu",
+    "wa","fa","mu","pu","go","wo","gu","du","nu","hu","vo","yi","ze",
+    "ye","ju","jo","xi","ka","xe","ja","zi","je"
   ]
 
-symbols2digits :: Map Char Char
-symbols2digits = M.fromList [(k,v) | (v,l) <- mnemonicList, k <- l]
-
-digits2symbols :: Map Char [Char]
-digits2symbols = M.fromList mnemonicList
-
-convertToDigits :: [Char] -> Result [Char]
-convertToDigits [] = Content []
-convertToDigits (c:rest) = case M.lookup c symbols2digits of
-  Nothing -> Error $ ("<Invalid character: {{" ++ show c ++ "}}.>") :=> []
-  Just d -> fmap (d:) (convertToDigits rest)
+readMnemonic :: [[Char]] -> Result [Char]
+readMnemonic [] = Content []
+readMnemonic (pt:rest) = case elemIndex pt commonCombinations of
+  Nothing -> Error $ ("<Unknown mnemonic syllable: \"{{" ++ pt ++ "}}\">") :=> []
+  Just n ->
+    let sn = show n
+     in fmap ((replicate (2 - length sn) '0' ++ sn) ++) (readMnemonic rest)
 
 getPrivateKeyMnemonic :: [Char] -> Result Integer
-getPrivateKeyMnemonic = fmap read . convertToDigits . filter (/= ' ')
+getPrivateKeyMnemonic = fmap read . readMnemonic . getPairs . filter (/= ' ')
 
--- getPrivateKeyAlpha :: String -> Result Integer
--- getPrivateKeyAlpha [] = Content 0
--- getPrivateKeyAlpha (c:rest)
---   | 65 <= n && n <= 90 = (n - 65 +) . (52 *) <$> getPrivateKeyAlpha rest
---   | 97 <= n && n <= 122 = (n - 71 +) . (52 *) <$> getPrivateKeyAlpha rest
---   | otherwise = Error $ "<Private key string must consist of English alphabets only.>" :=> [
---       ("The character {" ++ show c ++ "} is invalid.") :=> []
---     ]
---   where n = toInteger (ord c)
+power :: [Integer] -> Integer
+power = foldr (^) 1
 
 getPrivateKeyNum :: String -> Result Integer
-getPrivateKeyNum s = liftA2 (^) base pow where
-  (baseStr, powStr) = splitBy '^' s
-  base :: Result Integer
-  base = readResult "base in private key" baseStr
-  pow :: Result Integer
-  pow = if null powStr then Content 1 else case readResult "exponent in private key" powStr of
-    Error tr -> Error tr
-    Content n ->
-      if n < 0
-      then Error $ ("<Cannot have negative exponent in private key: {{" ++ powStr ++ "}}.>") :=> []
-      else Content n
+getPrivateKeyNum s
+  | '+' `elem` s = sum <$> mapM getPrivateKeyNum (splitBy '+' s)
+  | '*' `elem` s = product <$> mapM getPrivateKeyNum (splitBy '*' s)
+  | '^' `elem` s = power <$> mapM getPrivateKeyNum (splitBy '^' s)
+  | otherwise = readResult "integer" s
 
 getPrivateKey :: String -> Result Integer
 getPrivateKey s = case getPrivateKeyNum s of
@@ -95,55 +68,34 @@ getPrivateKey s = case getPrivateKeyNum s of
     Content n -> Content n
     Error tr2 -> Error $ "Both numeric and mnemonic read methods failed:" :=> [tr1, tr2]
 
--- getPrivateStr :: Integer -> String
--- getPrivateStr 0 = ""
--- getPrivateStr n =
---   let (next, cur) = divMod n 52
---       cur' = fromInteger cur
---    in chr (if cur' < 26 then cur' + 65 else cur' + 71) : getPrivateStr next
-
 -- ┌────────────────────────┐
 -- │ CONSTRUCTING MNEMONICS │
 -- └────────────────────────┘
 
-newtype Dict = Dict { fromDict :: Map Char Dict }
-  deriving (Show, Read)
+includeSpaces :: [String] -> [String]
+includeSpaces [s1, s2, s3] = [s1, s2, s3]
+includeSpaces (s1:s2:s3:rest) = s1 : s2 : s3 : " " : includeSpaces rest
+includeSpaces strs = strs
 
-defaultMnemonicAmount :: Int
-defaultMnemonicAmount = 5
+getPairs :: [a] -> [[a]]
+getPairs (a1:a2:rest) = [a1,a2] : getPairs rest
+getPairs [] = []
+getPairs [a] = [[a]]
 
-printDict :: String -> Dict -> IO ()
-printDict prefix (Dict m) =
-  sequence_ $ M.mapWithKey
-  (\ c d -> putStrLn (prefix ++ show c) >> printDict (prefix ++ "  ") d) m
+getCombinations :: [Int] -> [String]
+getCombinations = foldr (\ n -> ((commonCombinations !! n) :)) []
 
-sortByLetter :: [String] -> Map Char [String]
-sortByLetter [] = M.empty
-sortByLetter ([]:rest) = M.insert (chr 0) [] $ sortByLetter rest
-sortByLetter ((c:str):rest) =
-  let prev = sortByLetter rest
-   in M.insert c (str : M.findWithDefault [] c prev) prev
+getMnemonic :: Integer -> String
+getMnemonic n =
+  let nstr = show n
+      nums :: [Int]
+      nums = map read $ getPairs $ if mod (length nstr) 2 == 1 then '0':nstr else nstr
+   in concat $ includeSpaces (getCombinations nums)
 
-list2dict :: [String] -> Dict
-list2dict lst = Dict $ M.map list2dict (sortByLetter lst)
 
-constructMnemonics :: Dict -> Dict -> String -> [String]
-constructMnemonics _ (Dict curmap) []
-  | M.member '\NUL' curmap = [""]
-  | otherwise = []
-constructMnemonics dct (Dict curmap) (c:rest)
-  | M.member '\NUL' curmap =
-      constructMnemonics dct (Dict $ M.delete '\NUL' curmap) (c:rest)
-      ++ map (' ' :) (constructMnemonics dct dct (c:rest))
-  | otherwise =
-    let trySymbol :: Char -> [String]
-        trySymbol ch = case M.lookup ch curmap of
-          Nothing -> []
-          Just (Dict mp) -> map (ch :) $ constructMnemonics dct (Dict mp) rest
-     in concatMap trySymbol (M.findWithDefault [] c digits2symbols)
+prop :: Positive Integer -> Bool
+prop (Positive n) = Content n == getPrivateKeyMnemonic (getMnemonic n)
 
-getMnemonics :: Int -> String -> IO [String]
-getMnemonics num str = do
-  dct <- fmap (list2dict . lines) (readFile "./lib/words.txt")
-  -- printDict "" dct
-  return $ take num $ concatMap (constructMnemonics dct dct) [str, '0':str, '0':'0':str]
+hashProp :: Positive Integer -> Positive Integer -> Bool
+hashProp (Positive ch) (Positive sh) =
+  Content (getHash defaultConfiguration ch sh) == liftA2 (getHash defaultConfiguration) (getPrivateKeyMnemonic (getMnemonic ch)) (getPrivateKeyMnemonic (getMnemonic sh))
