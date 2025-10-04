@@ -1,10 +1,8 @@
 /dist-newstyle
+/test/data.enc
 /result
 /app/main
 /app/Main
 /app/Main.hi
 /app/Main.o
 /.hie
-/gui/main
-/gui/.cache
-/sbx
