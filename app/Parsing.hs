@@ -10,7 +10,7 @@ import Algorithm
 import Data.List (intercalate)
 
 data OptionName =
-    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | ROUNDS
+    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT | ROUNDS
   | CONFIGFILE
   | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | GENKEYS | GENSPELL
   | FIRST | SECOND | THIRD
@@ -92,6 +92,7 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'f' -> insert' CONFIGFILE s <$> parseArgs trp rest
   'p' -> insert' PATCH s <$> parseArgs trp rest
   'e' -> insert' ENCRYPT s <$> parseArgs trp rest
+  'd' -> insert' DECRYPT s <$> parseArgs trp rest
   'r' -> insert' ROUNDS s <$> parseArgs trp rest
   ch -> Error $ ("<Unsupported option: \"{{" ++ ['-',ch] ++ "}}\".>") :=> []
 parseArgs _ [['-', ch]] = Error $ ("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []
@@ -197,7 +198,7 @@ setEchoesAndPrompts args
       insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
       (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "NUMBER OF PAIRS: " . insert' P3 "FINAL HASH: ")
       args
-  | member ENCRYPT args =
+  | member ENCRYPT args || member DECRYPT args =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
       (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "KEY 1: " . insert' P3 "KEY 2: ")
       args

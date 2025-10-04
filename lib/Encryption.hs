@@ -6,6 +6,7 @@ import Algorithm (Shifting, shift, shuffleList)
 import Data.Word (Word8)
 import GHC.Bits (xor)
 import qualified Data.ByteString as B (ByteString, unpack, pack, length, concat, packZipWith, map, index, replicate)
+import Test.QuickCheck
 
 instance Shifting Int where
   shift = (2^)
@@ -43,13 +44,26 @@ buildStream 0 _ _ = []
 buildStream n perm prev =
   let cur = processBlock perm (xorbs prev defaultSeed) in cur : buildStream (n-1) perm cur
 
-procrypt :: Int -> B.ByteString -> Integer -> Integer -> B.ByteString
-procrypt r plaintext k1 k2 =
+procrypt :: Int -> (B.ByteString, B.ByteString) -> Integer -> Integer -> B.ByteString
+procrypt r (iv, plaintext) k1 k2 =
   let enc blk = shuffleList (shuffleList blk k1) k2
       !perm = B.pack $ map fromIntegral $ fpow r enc [0 .. (defaultSize-1)]
       num = toInteger $ 1 + div (B.length plaintext) defaultSize
-      stream = B.concat (buildStream num perm (B.replicate defaultSize 0))
+      stream = B.concat (buildStream num perm iv)
    in xorbs plaintext stream
 
-correctness :: [Word8] -> Integer -> Integer -> Bool
-correctness msg k1 k2 = (==) msg $ B.unpack $ procrypt 32 (procrypt 32 (B.pack msg) k1 k2) k1 k2
+allZero :: B.ByteString
+allZero = B.replicate defaultSize 0
+
+-- ┌─────────┐
+-- │ TESTING │
+-- └─────────┘
+
+genIV :: Gen [Word8]
+genIV = vectorOf defaultSize arbitrary
+
+correctness :: [Word8] -> Integer -> Integer -> Property
+correctness msg k1 k2 =
+  forAll genIV $ \iv ->
+    let iv' = B.pack iv
+     in (==) msg $ B.unpack $ procrypt 32 (iv', procrypt 32 (iv', B.pack msg) k1 k2) k1 k2

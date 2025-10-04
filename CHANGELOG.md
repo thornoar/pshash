@@ -2,6 +2,10 @@
 
 ## 0.1.17.0
 
+* Added seed randomization for file encryption.
+
+## 0.1.17.0
+
 * Great improvements to key reading and representation.
 
 ## 0.1.16.10

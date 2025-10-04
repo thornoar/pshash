@@ -4,8 +4,8 @@ module Actions where
 
 import Data.Map (Map, member, (!))
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS (readFile, writeFile, putStr, pack)
-import System.Random (getStdGen, randomR)
+import qualified Data.ByteString as B (readFile, writeFile, putStr, pack, splitAt, append)
+import System.Random (getStdGen, randomR, uniformByteString)
 import Data.Char (ord)
 import System.IO (stdin, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
 import Control.Exception (bracket_)
@@ -20,7 +20,7 @@ import Info
 import Encryption
 
 currentVersion :: String
-currentVersion = "0.1.17.0"
+currentVersion = "0.1.17.1"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -113,7 +113,7 @@ infoAction config "help" = do
           "usage: pshash [ --help | --version | --list | --pure | --impure ]"
         : "              [ --no-prompts | --ask-repeat | --show | --gen-keys ]"
         : "              [ +color | +no-color ]"
-        : "              [ -k|n|c|i|q|f|p|e|r ARGUMENT ]"
+        : "              [ -k|n|c|i|q|f|p|e|d|r ARGUMENT ]"
         : "              [ PUBLIC CHOICE SHUFFLE ]"
         : ""
         : "options:"
@@ -201,14 +201,14 @@ infoAction config "help" = do
         : "                      with one set of keys. This option is automatically"
         : "                      suppressed when the `-q` option is used."
         : ""
-        : "  -e FILE             Encrypt/decrypt FILE, writing encrypted data to stdout."
-        : "                      Accepts three arguments:"
+        : "  -e FILE             Encrypt FILE. Accepts three arguments:"
         : "                        * WRITE TO: the file to write the encrypted/decrypted"
         : "                                    data to. A value of `stdout` will write"
         : "                                    to stdout."
         : "                        * KEY 1: first encryption key (e.g. choice key)."
         : "                        * KEY 2: second encryption key (e.g. shuffle key)."
-        : "                      The encryption and decryption algorithms are the same."
+        : ""
+        : "  -d FILE             Decrypt FILE. Accepts the same arguments."
         : ""
         :("  -r N                Use N rounds of encryption. The default is " ++ show defaultRounds ++ ".")
         : ""
@@ -306,25 +306,29 @@ spellgenAction args = do
     Content n -> putStrLn (getMnemonic n) >> return (Content ())
 
 encryptionAction ::
+  Bool ->
   Map OptionName String ->
-  (Int -> ByteString -> Integer -> Integer -> ByteString) ->
+  (Int -> (ByteString, ByteString) -> Integer -> Integer -> ByteString) ->
   FilePath ->
   IO (Result ())
-encryptionAction args func fname = do
+encryptionAction dec args func fname = do
   let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
   outfile <- getKeyStr args FIRST E1 P1
   mkey1 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
   mkey2 <- getPrivateKey <$> getKeyStr args THIRD E3 P3
   mcts <- case fname of
-    "stdin" -> fmap (Content . BS.pack . map (fromIntegral . ord)) getContents
-    _ -> readFileResult BS.readFile fname
-  let write = if outfile == "stdout" then BS.putStr else BS.writeFile outfile
+    "stdin" -> fmap (Content . B.pack . map (fromIntegral . ord)) getContents
+    _ -> readFileResult B.readFile fname
+  let write = if outfile == "stdout" then B.putStr else B.writeFile outfile
+  g <- getStdGen
   handleWith write $ case (mrounds, mkey1, mkey2, mcts) of
     (Error tr, _, _, _) -> Error $ (pref ++ "{number of rounds}:") :=> [tr]
     (_, Error tr, _, _) -> Error $ (pref ++ "{first key}:") :=> [tr]
     (_, _, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
     (_, _, _, Error tr) -> Error $ (pref ++ "{plaintext}:") :=> [tr]
-    (Content rounds, Content k1, Content k2, Content msg) -> Content $ func rounds msg k1 k2
+    (Content rounds, Content k1, Content k2, Content msg) ->
+      let (iv, msg') = if dec then B.splitAt defaultSize msg else (fst $ uniformByteString defaultSize g, msg)
+      in Content $ (if dec then id else B.append iv) $ func rounds (iv,msg') k1 k2
     where pref = "Trace while performing encryption/decryption, reading the "
 
 hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Result ())
