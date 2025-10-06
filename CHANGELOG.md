@@ -1,6 +1,6 @@
 # Revision history for pshash
 
-## 0.1.17.0
+## 0.1.17.1
 
 * Added seed randomization for file encryption.
 
