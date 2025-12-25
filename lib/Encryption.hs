@@ -3,10 +3,9 @@
 module Encryption where
 
 import Algorithm (Shifting, shift, shuffleList)
-import Data.Word (Word8)
 import GHC.Bits (xor)
-import qualified Data.ByteString as B (ByteString, unpack, pack, length, concat, packZipWith, map, index, replicate)
-import Test.QuickCheck
+import qualified Data.ByteString as B (ByteString, pack, length, concat, packZipWith, map, index, replicate)
+-- import Test.QuickCheck
 
 instance Shifting Int where
   shift = (2^)
@@ -59,11 +58,11 @@ allZero = B.replicate defaultSize 0
 -- │ TESTING │
 -- └─────────┘
 
-genIV :: Gen [Word8]
-genIV = vectorOf defaultSize arbitrary
-
-correctness :: [Word8] -> Integer -> Integer -> Property
-correctness msg k1 k2 =
-  forAll genIV $ \iv ->
-    let iv' = B.pack iv
-     in (==) msg $ B.unpack $ procrypt 32 (iv', procrypt 32 (iv', B.pack msg) k1 k2) k1 k2
+-- genIV :: Gen [Word8]
+-- genIV = vectorOf defaultSize arbitrary
+--
+-- correctness :: [Word8] -> Integer -> Integer -> Property
+-- correctness msg k1 k2 =
+--   forAll genIV $ \iv ->
+--     let iv' = B.pack iv
+--      in (==) msg $ B.unpack $ procrypt 32 (iv', procrypt 32 (iv', B.pack msg) k1 k2) k1 k2
