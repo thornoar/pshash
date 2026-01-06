@@ -110,8 +110,8 @@ infoAction config "help" = do
       let show' :: [([Char],Integer)] -> String
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"
       putStrLn . unlines $
-          "usage: pshash [ --help | --version | --list | --pure | --impure ]"
-        : "              [ --no-prompts | --ask-repeat | --show | --gen-keys ]"
+          "usage: pshash [ --help | --version | --list | --pure | --impure | --no-prompts ]"
+        : "              [ --ask-repeat | --show | --gen-keys | --gen-spell ]"
         : "              [ +color | +no-color ]"
         : "              [ -k|n|c|i|q|f|p|e|d|r ARGUMENT ]"
         : "              [ ARG_1 ARG_2 ARG_3 ]"
