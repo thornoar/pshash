@@ -26,6 +26,7 @@ First of all, you can use the algorithm online at https://thornoar.github.io/psh
 
 The `pshash` CLI tool adopts a wide range of local deployment options:
 - You can install `pshash` from the [AUR](https://aur.archlinux.org/packages/pshash).
+- You can find `pshash` in [Nixpkgs](https://github.com/NixOS/nixpkgs) (version 25.05 onward).
 - You can build `pshash` with Nix flakes by invoking `nix build github:thornoar/pshash`, there are two relevant outputs: `#pshash-dynamic` for dynamic linking, and `#pshash-static` for static linking (will take a lot longer to build). Naturally, the default is `pshash-dynamic`.
 - You can build `pshash` with `cabal-install` by cloning this repo and running `cabal update && cabal install pshash`.
 - You can simply download all the source code (the `app` and `lib` directories) and compile with
