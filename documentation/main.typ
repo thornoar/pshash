@@ -59,13 +59,15 @@ The motivation behind the topic lies in the management of personal passwords. No
 
 - *Keeping everything in one's head.* This is a method employed by many, yet it inevitably leads to certain risks. First of all, in order to fit the passwords in memory, one will probably make them similar to each other, or at least have them follow a simple pattern like "[shortened name of website]+[fixed phrase]". As a result, if even one password is guessed or leaked, it will be almost trivial to retrieve most of the others, following the pattern. Furthermore, the passwords themselves will tend to be memorable and connected to one's personal life, which will make them easier to guess. There is, after all, a limit to one's imagination.
 
-- *Storing the passwords in a secure location.* Arguably, this is a better method, but there is a natural risk of this location being revealed, or of the passwords being lost, especially if they are stored physically on a piece of paper. Currently, various "password managers" are available, which are software programs that will create and store your passwords for you. This is a good solution, but it comes with the necessity to trust the password manager not to have security vulnerabilities, not to mention that the password manager itself will have access to one's passwords, and a party inside the team developing the password manager will be able to get ahold of them.
+- *Storing the passwords in a secure location.* Arguably, this is a better method, but there is a natural risk of this location being revealed, or of the passwords being lost, especially if they are stored physically on a piece of paper.
 
 - *Using a password manager*. These are software programs that create random passwords for the user and give access to them via a _master password._ This is a valid solution, especially since password managers tend to employ very secure encryption algorithms. However, this using such software implies problematic notions such as
   1. trusting the developers and administrators of the password manager,
   2. storing passwords in a database (although encrypted).
 
 In this paper we suggest a way of doing neither of these things. The user will not know the passwords or have any connection to them whatsoever, and at the same time the passwords will not be stored anywhere, physically or digitally. In this system, every password is a so-called "pseudo-hash" (since it does not technically adhere to the definition of a cryptographic hash, but has similar properties) produced by a fixed algorithm. The algorithm requires three inputs: one public key, i.e. the name of the website or service, and two private keys, which are arbitrary positive integers known only to the user (the initial version of the algorithm, finalized in @merge-mult, will only use one private key). Every time when requiring a password, the user will invoke the keys to re-create it from scratch. Therefore, in order to be reliable, the algorithm must be "pure", i.e. must always return the same output given the same input. Additionally, the algorithm should be published online for better accessibility, meaning that it must be robust enough so that, even if an attacker had full access to it and its mechanics, they would still not be able to guess the user's private key or the passwords that it produces. In other words, the algorithm has to adhere to Kerchhoff's principle. These considerations naturally lead to exploring pure mathematical functions as pseudo-hashing algorithms and implementing them in a functional programming language such as Haskell.
+
+#pagebreak()
 
 = The theory
 
@@ -129,7 +131,7 @@ Trivially, if $#spr (f) >= n$, then $f$ is injective on $(n)$, but the converse 
   $
   Since $f$ is injective on $(n)$, we see that $lun k_1 = lun k_2$. Consequently, it follows from $k_1 != k_2$ that $lln k_1 != lln k_2$ and $lln k_1 + T(lun k_1) != lln k_2 + T(lun k_2)$. We then utilize the definition of $spr(g)$:
   $
-    abs(lln k_1 + T(lun k_1) - lln k_2 + T(lun k_2)) &>= m,\
+    abs(lln k_1 + T(lun k_1) - lln k_2 - T(lun k_2)) &>= m,\
     #vphantom(1em)
     abs(lln k_1 - lln k_2) &>= m,\
     abs((k_1 - lun k_1)/n - (k_2 - lun k_2)/n) &>= m,\
