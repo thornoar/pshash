@@ -1,5 +1,5 @@
 size(x = 8.7 inches);
-settings.outformat = 'svg';
+settings.outformat = "svg";
 import export;
 
 usepackage("euscript");

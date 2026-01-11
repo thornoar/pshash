@@ -152,14 +152,14 @@ With this proposition at hand, we have a natural way of extending the definition
 ]
 
 #prop[
-  Let $E$ be a source with cardinality $n$. Then the choice function $ch^m (E, k)$ of order $m <= n$, as a function of $k$, has a spread of at least $rel(n,m)$#h(1pt) .
+  Let $E$ be a source with cardinality $n$. Then the choice function $ch^m (E, -)$ of order $m <= n$, as a function of $k$, has a spread of at least $rel(n,m)$#h(1pt) .
 ]
 #pf[
   We will conduct a proof by induction over $m$. In the base case, $m = 1$, we notice that $rel(n,m) = n$, and the statement trivially follows from the definition of $ch^1 (E,k)$.
 
-  Let us assume that the statement is proven for all choice functions of order $m - 1$. Under closer inspection it is clear that the definition of $ch^m (E,k)$ follows the scheme given in @map, with $ch^1 (E,k)$ standing for $f$ and $ch^(m-1)(E', k')$ standing for $g$. The application of the proposition is not straightforward, and we encourage the reader to consider the caveats. Thus, we can utilize the statement of the proposition as follows:
+  Let us assume that the statement is proven for all choice functions of order $m - 1$. Under closer inspection it is clear that the definition of $ch^m (E,-)$ follows the scheme given in @map, with $ch^1 (E,k)$ standing for $f$ and $ch^(m-1)(E', -)$ standing for $g$. The application of the proposition is not straightforward, and we encourage the reader to consider the caveats. Thus, we can utilize the statement of the proposition as follows:
   $
-    #spr (ch^m (E,k)) >= #spr (ch^1 (E, -)) dot #spr (ch^(m-1) (E', -)) >=\ >= n dot rel((n-1), (m-1)) = rel(n,m),
+    #spr (ch^m (E,-)) >= #spr (ch^1 (E, -)) dot #spr (ch^(m-1) (E', -)) >=\ >= n dot rel((n-1), (m-1)) = rel(n,m),
   $
   q.e.d.
 ]
@@ -229,7 +229,7 @@ We will solve one problem at a time.
 #prop[
   Let $f : A times NN_0 -> B$ and $g : B times NN_0 -> C$ be functions such that\ $#spr (f) >= n$ and $#spr (g) >= m$, where the spread is taken with respect to the second argument. Assume also that $g$ is *absolutely injective* with respect to the first argument, that is,
   $
-    forall (b_1, k_1), (b_2, k_2) in B times NN_0:  hs hs g(b_1, k_1) = g(b_2, k_2) ==> b_1 = b_2.
+    forall (b_1, k_1), (b_2, k_2) in B times NN_0 wh hs g(b_1, k_1) = g(b_2, k_2) ==> b_1 = b_2.
   $
   Define the function $h : A times NN_0 -> C$ by
   $
@@ -242,7 +242,7 @@ We will solve one problem at a time.
   $
     g(f(a, lun k_1), hs lln k_1 + T(lun k_1)) = g(f(a, lun k_2),#h(5pt) lln k_2 + T(lun k_2)).
   $
-  Since $g$ is absolutely injective, we see that $f(a, k_1) = f(a, k_2)$, which means that\ $lun k_1 = lun k_2$, since $f$ is injective on $(n)$. Now, since the first argument of $g$ in the above equation is the same, we can use the definition of spread for the function $g$:
+  Since $g$ is absolutely injective, we see that $f(a, lun k_1) = f(a, lun k_2)$, which means that\ $lun k_1 = lun k_2$, since $f$ is injective on $(n)$. Now, since the first argument of $g$ in the above equation is the same, we can use the definition of spread for the function $g$:
   $
     abs(lln k_1 + T(lun k_1) - lln k_2 - T(lun k_2)) &>= m,\
     #vphantom(1em)
@@ -295,7 +295,7 @@ $ <recspr>
 Using basic combinatorics, we can see that the number $(m_1 + m_2)!\/(m_1 ! dot m_2 !)$ corresponds to the number of all possible ways to merge the lists $alpha$ and $beta$, which we will denote by $\#^mg (alpha, beta)$. It means that the function $mg^2 (alpha, beta, -)$ is in fact surjective, and therefore bijective, on the interval from zero to its spread. Now we will, as usual, expand its definition beyond only two lists.
 
 #def[
-  Let $oval = [alpha_0, alpha_1, ..., alpha_(N-1)]$ be a list of lists, where $N >= 2$ and $a_i in [E_i]_(m_i)$. Define the _merge function of order $N$_ recursively as follows:
+  Let $oval = [alpha_0, alpha_1, ..., alpha_(N-1)]$ be a list of lists, where $N >= 2$ and $alpha_i in [E_i]_(m_i)$. Define the _merge function of order $N$_ recursively as follows:
   $
     mg^N (oval, k) = cases(
       mg^2 (alpha_0, alpha_1, k)\, #h(1em) N = 2\,,
@@ -338,12 +338,12 @@ In other words, the merged choice function selects $N$ lists from the configurat
 
 It can once again be shown using combinatorics, that the final expression in @sprmc is, in fact, the total number of ways to choose a multiselection from $conf$ and merge it (the reader should not hesitate to check this). Therefore, we conclude that the function $mc (conf, -)$ is bijective on the interval from zero to its spread, and therefore periodic with the period of its spread.
 
-== Subverting invertability
+== Subverting invertibility
 
 We still have one problem left: our current pseudo-hash function is bijective, and it can be inverted relatively easily to retrieve the private key from the source configuration and the final pseudo-hash. To prevent this, we will have to make our function a bit less injective --- artificially add inputs that produce the same output, in order to make the function harder to invert.
 
 #def[
-  Let $conf$ be a source configuration consisting of pairs $(E_i, m_i)$ for $i in (N)$, where $n_i = abs(E_i)$. Let $k_1, k_2 in NN_0$ be two numbers, referred to as the _primary (or choice) key_ and the _secondary (or shuffle) key._ Define the _hash_ corresponding to these inputs as follows:
+  Let $conf$ be a source configuration consisting of pairs $(E_i, m_i)$ for $i in (N)$, where $n_i = abs(E_i)$. Let $k_1, k_2 in NN_0$ be two numbers, referred to as the _choice key_ and the _shuffle key._ Define the _hash_ corresponding to these inputs as follows:
   $
     hash (conf, k_1, k_2) = ch^(sum m_i)(mc (conf, k_1), hs k_2).
   $
@@ -411,7 +411,7 @@ In this subsection, we will use a specific source configuration $conf$, particul
     table.hline(),
     [0], `"ckapzfitqdxnwehrolmbyvsujg"`,  [26], [8],
     [1], `"RQLIANBKJYVWPTEMCZSFDOGUHX"`,  [26], [8],
-    [2], `"=!*@?$%#&-+^{}"`,              [14], [5],
+    [2], `"=!*@?$%#&-+^"`,                [12], [5],
     [3], `"1952074386"`,                  [10], [4],
   ),
   caption: [ An example of a source configuration ]
