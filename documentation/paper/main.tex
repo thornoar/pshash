@@ -64,7 +64,6 @@
 \newcommand{\mc}{\mathcal{MC}}
 \newcommand{\h}{\mathcal{H}}
 \newcommand{\s}{\mathcal{S}}
-\newcommand{\link}[1]{\href{#1}{#1}}
 
 \binoppenalty=10000
 \relpenalty=10000
@@ -86,7 +85,7 @@ The motivation behind the topic lies in the management of personal passwords. No
 
   \item \textbf{Storing the passwords in a secure location.} Arguably, this is a better method, but there is a natural risk of this location being revealed, or of the passwords being lost, especially if they are stored physically on a piece of paper.
 
-  \item \textbf{Using a password manager.} These are software programs that create random passwords for the user and give access to them via a \emph{master password.} This is a valid solution, especially since password managers tend to employ very secure encryption algorithms. However, this using such software implies problematic notions such as
+  \item \textbf{Using a password manager.} \cite{passman} These are software programs that create random passwords for the user and give access to them via a \emph{master password.} This is a valid solution, especially since password managers tend to employ very secure encryption algorithms. However, this using such software implies problematic notions such as
     \begin{enumerate}
       \item trusting the developers and administrators of the password manager, and
       \item storing passwords in a database (although encrypted).
@@ -488,7 +487,7 @@ To implement the $\h(\conf, -, -)$ function, we have chosen the Haskell programm
 
 \subsection{The \texttt{pshash} program}
 
-\texttt{pshash} (from ``pseudo-hash'') is the name of the implementation of the algorithm specified in the previous section. The main program has no GUI, it is only a command-line utility. This decision was made for the sake of simplicity, speed, and portability. The Haskell source is available at \link{https://github.com/thornoar/pshash}, together with installation instructions and other details.
+\texttt{pshash} (from ``pseudo-hash'') is the name of the implementation of the algorithm specified in the previous section. The main program has no GUI, it is only a command-line utility. This decision was made for the sake of simplicity, speed, and portability. The Haskell source is available at \url{https://github.com/thornoar/pshash}, together with installation instructions and other details.
 
 The CLI accepts three arguments: the public key and two private keys, returning a hash using its builtin source configuration. On demand, the user may pass a different configuration using one of the \texttt{-k}, \texttt{-n}, and \texttt{-c} command-line options, but this is not recommended, since it will have to be done every time. Instead, it is suggested to download the source, change the default configuration in the code, and then compile it to a new executable. Alternatively, one can write a configuration file and invoke \texttt{pshash} with the \texttt{--impure} flag to read it. You can run \texttt{pshash --help} to see all available options and their behavior.
 
@@ -497,11 +496,14 @@ The CLI accepts three arguments: the public key and two private keys, returning 
 The pseudo-hash algorithm is implemented in other languages:
 
 \begin{itemize}
-  \item \textbf{C} for the in-development desktop app, source at \link{https://github.com/thornoar/pshash-gui};
-  \item \textbf{JavaScript} for the web interface, available at \link{https://thornoar.github.io/pshash-web/app/};
-  \item \textbf{Kotlin} for the Android application, source at \link{https://github.com/thornoar/pshash-app}, with download links hosted at \link{https://thornoar.github.io/pshash-web/get/}.
+  \item \textbf{C} for the in-development desktop app, source at \url{https://github.com/thornoar/pshash-gui};
+  \item \textbf{JavaScript} for the web interface, available at \url{https://thornoar.github.io/pshash-web/app/};
+  \item \textbf{Kotlin} for the Android application, source at \url{https://github.com/thornoar/pshash-app}, with download links hosted at \url{https://thornoar.github.io/pshash-web/get/}.
 \end{itemize}
 
 For more information, see the respective GitHub repositories.
+
+\bibliographystyle{abbrv}
+\bibliography{main}
 
 \end{document}
