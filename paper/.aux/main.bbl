@@ -1,0 +1,12 @@
+\begin{thebibliography}{1}
+
+\bibitem{passman}
+S.~Oesch, S.~Ruoti, J.~Simmons, and A.~Gautam.
+\newblock {\textquotedblleft}{I}t basically started using
+  me:{\textquotedblright} {A}n observational study of password manager usage.
+\newblock 2022.
+\newblock In \emph{Proceedings of the 40th ACM {CHI} Conference on Human
+  Factors in Computing Systems}. Available at
+  \url{https://doi.org/10.1145/3491102.3517534}.
+
+\end{thebibliography}
