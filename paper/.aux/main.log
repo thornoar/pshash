@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/nixos.org) (preloaded format=pdflatex 1980.1.1)  17 FEB 2026 21:10
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/nixos.org) (preloaded format=pdflatex 1980.1.1)  17 FEB 2026 21:23
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -626,10 +626,10 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: F6CF8F6A4EE7970ACA99A811AE463F7B;3771.
  ) 
 Here is how much of TeX's memory you used:
- 11320 strings out of 467888
- 181286 string characters out of 5412697
+ 11322 strings out of 467888
+ 181346 string characters out of 5412697
  599535 words of memory out of 5000000
- 39645 multiletter control sequences out of 15000+600000
+ 39647 multiletter control sequences out of 15000+600000
  669211 words of font info for 87 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  73i,21n,79p,1119b,601s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -665,7 +665,7 @@ texmfdist/fonts/type1/public/tex-gyre/qcsr.pfb></nix/store/60l31nr7ikg0ysgy760w
 zx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/tex-gyre/qcsri.
 pfb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdis
 t/fonts/type1/public/cm-super/sftt1000.pfb>
-Output written on .aux/main.pdf (11 pages, 324953 bytes).
+Output written on .aux/main.pdf (11 pages, 326025 bytes).
 PDF statistics:
  343 PDF objects out of 1000 (max. 8388607)
  284 compressed objects within 3 object streams

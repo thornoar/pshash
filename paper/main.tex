@@ -551,9 +551,26 @@ These problems are solved in the implementation of \texttt{pshash} as follows:
 
 \subsection{Error Messages}
 
-The \texttt{pshash} implementation supports a state-of-the-art error message system. Whenever the algorithm fails at any step, a helpful error message with a stack trace will be printed. For example, 
+The \texttt{pshash} implementation supports a state-of-the-art error message system. Whenever the algorithm fails at any step, a helpful error message with a stack trace will be printed. For example, \verb|$ pshash asd asd asd| will produce
+
+\begin{verbatim}
+ERROR:
+|_Double trace:
+  |_Trace while computing hash, getting the *choice* key:
+  | |_Both numeric and mnemonic read methods failed:
+  |   |_FAILED TO READ "*asd*" AS *integer*.
+  |   |_UNKNOWN MNEMONIC SYLLABLE: "*as*"
+  |_Trace while computing hash, getting the *shuffle* key:
+    |_Both numeric and mnemonic read methods failed:
+      |_FAILED TO READ "*asd*" AS *integer*.
+      |_UNKNOWN MNEMONIC SYLLABLE: "*as*"
+\end{verbatim}
+
+On UNIX-based systems, the error output will also be colored to highlight the relevant parts. Such a detailed error output is achieved via the concept of monadic data structures prevalent in functional programming languages. In essence, most functions in the \texttt{pshash} implementation source code return may return either a value or an error object which keeps a trace of error messages. The error system makes \texttt{pshash} reliable in the sense that, if the program runs without errors, the user can be sure that all inputs were interpreted correctly and the resulting pseudo-hash can be safely used.
 
 \subsection{Key Retrieval}
+
+
 
 \subsection{Specifying the Source Configuration} \label{conf}
 

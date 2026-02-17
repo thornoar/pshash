@@ -20,7 +20,7 @@
 \newblock \url{https://thornoar.github.io/pshash-web/app/}.
 
 \bibitem{pshash-src}
-{Source code for} \texttt{pshash}.
+{Source code for the primary implementation of} \texttt{pshash}.
 \newblock \url{https://github.com/thornoar/pshash}.
 
 \bibitem{serious}
