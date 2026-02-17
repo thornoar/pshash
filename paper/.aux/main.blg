@@ -1,48 +1,58 @@
-This is BibTeX, Version 0.99d (TeX Live 2024/nixos.org)
+This is BibTeX, Version 0.99d (TeX Live 2025/nixos.org)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: abbrv.bst
 Database file #1: main.bib
-Warning--empty journal in passman
-You've used 1 entry,
+Warning--to sort, need author or key in 1password
+Warning--to sort, need author or key in google
+Warning--to sort, need author or key in firefox
+Warning--to sort, need author or key in pshash-src
+Warning--to sort, need author or key in pshash
+Warning--empty booktitle in large
+Warning--empty booktitle in gasti
+Warning--empty booktitle in conv
+Warning--empty booktitle in mirkovic
+Warning--empty booktitle in again
+Warning--empty journal in ross
+You've used 13 entries,
             2118 wiz_defined-function locations,
-            501 strings with 4042 characters,
-and the built_in function-call counts, 330 in all, are:
-= -- 28
-> -- 23
-< -- 0
-+ -- 9
-- -- 8
-* -- 23
-:= -- 67
-add.period$ -- 4
-call.type$ -- 1
-change.case$ -- 7
+            557 strings with 5401 characters,
+and the built_in function-call counts, 4207 in all, are:
+= -- 392
+> -- 183
+< -- 5
++ -- 78
+- -- 62
+* -- 253
+:= -- 620
+add.period$ -- 38
+call.type$ -- 13
+change.case$ -- 69
 chr.to.int$ -- 0
-cite$ -- 2
-duplicate$ -- 10
-empty$ -- 18
-format.name$ -- 8
-if$ -- 60
+cite$ -- 24
+duplicate$ -- 177
+empty$ -- 371
+format.name$ -- 62
+if$ -- 940
 int.to.chr$ -- 0
-int.to.str$ -- 1
-missing$ -- 1
-newline$ -- 9
-num.names$ -- 2
-pop$ -- 8
+int.to.str$ -- 13
+missing$ -- 9
+newline$ -- 66
+num.names$ -- 16
+pop$ -- 130
 preamble$ -- 1
-purify$ -- 6
+purify$ -- 57
 quote$ -- 0
-skip$ -- 7
+skip$ -- 144
 stack$ -- 0
-substring$ -- 5
-swap$ -- 0
-text.length$ -- 0
+substring$ -- 199
+swap$ -- 53
+text.length$ -- 5
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 4
-warning$ -- 1
-while$ -- 2
-width$ -- 2
-write$ -- 13
-(There was 1 warning)
+type$ -- 50
+warning$ -- 11
+while$ -- 27
+width$ -- 15
+write$ -- 124
+(There were 11 warnings)

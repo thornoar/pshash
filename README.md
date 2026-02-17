@@ -4,19 +4,19 @@
 
 ## Synopsis
 
-`pshash` is a pseudo-hash algorithm implemented in Haskell, JavaScript, Kotlin, and C/C++. It serves as a password manager by accepting three keys (one public and two private) and returning a pseudo-hash that can be used as a password. The program does not store the passwords anywhere, instead it generates them on the fly every time, which ensures a degree of security.
+`pshash` is a pseudo-hash algorithm implemented in Haskell, JavaScript, Kotlin, and C/C++. It serves as a password generator by accepting three keys (one public and two private) and returning a pseudo-hash that can be used as a password. The program does not store the passwords anywhere, instead it generates them on the fly every time, which ensures a degree of security.
 
-Various password templates (co-called "source configurations") are supported, and the user is free to define their own. These configurations can then be stored in a configuration file, one per public key. This way, the user can produce different types of passwords for different public keys, and does not have to keep all the templates in their head.
+Various password templates (co-called "source configurations") are supported, and the user is free to define their own. These configurations can then be stored in a configuration file, associated to one or more public keys. This way, the user can produce different types of passwords for different public keys, and does not have to keep all the templates in their head.
 
-The algorithm was designed to withstand different kinds of brute-force attacks as well. For finer detail, please refer to the corresponding mathematical paper: *documentation/main.pdf*
+The algorithm was designed to withstand different kinds of brute-force attacks as well. For finer detail, please refer to the corresponding mathematical paper: *paper/main.pdf*
 
 This repository contains the CLI version of the `pshash` algorithm, implemented in Haskell. For access to other implementations, see sections below.
 
 ## What do I mean by 'pseudo-hash'?
 
-Strictly speaking, a cryptographic hash should be preimage resistant and collision resistant. That is, a function such that finding a preimage of a given value is computationally intractable, and so is finding two inputs mapping to a same hash. The `pshash` algorithm has neither. In fact, computing two sets of keys that map to the same hash under the `pshash` algorithm is trivial, and this functionality is even implemented in the CLI tool. However, `pshash` does have the properties of a _universal hash function:_ given two public keys and a random pair of private keys, the probability of collision is negligible. The distribution of outputs given random inputs is also uniform, without statistical bias. For the purposes of password production, it is sufficient for the task of _completely inverting_ the function (i.e. finding _all_ preimages of a value) to be intractable. In `pshash`, this is achieved through artificial collisions. This is why the algorithm requires _two_ keys instead of one. The first (_choice_) key is used to produce the hash string, and then the second (_shuffle_) key is further used to rearrange the string. This way, different combinations of choice-shuffle keys may result in the same final hash, and computing the exact one used by the user is a computationally intractable problem (see _documentation/main.pdf_ for details).
+Strictly speaking, a cryptographic hash should be preimage resistant and collision resistant. That is, a function such that finding a preimage of a given value is computationally intractable, and so is finding two inputs mapping to a same hash. The `pshash` algorithm has neither. In fact, computing two sets of keys that map to the same hash under the `pshash` algorithm is trivial, and this functionality is even implemented in the CLI tool. However, `pshash` does have the properties of a _universal hash function:_ given two public keys and a random pair of private keys, the probability of collision is negligible. The distribution of outputs given random inputs is also uniform, without statistical bias. For the purposes of password production, it is sufficient for the task of _completely inverting_ the function (i.e. finding _all_ preimages of a value) to be intractable. In `pshash`, this is achieved through artificial collisions. This is why the algorithm requires _two_ keys instead of one. The first (_choice_) key is used to produce the hash string, and then the second (_shuffle_) key is further used to rearrange the string. This way, different combinations of choice-shuffle keys may result in the same final hash, and computing the exact one used by the user is a computationally intractable problem (see paper/main.pdf_ for details).
 
-## Where can you generate the passwords?
+## Where can you generate passwords?
 
 ### Web Implementation
 

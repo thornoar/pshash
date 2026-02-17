@@ -1,12 +1,71 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 
-\bibitem{passman}
-S.~Oesch, S.~Ruoti, J.~Simmons, and A.~Gautam.
-\newblock {\textquotedblleft}{I}t basically started using
-  me:{\textquotedblright} {A}n observational study of password manager usage.
-\newblock 2022.
-\newblock In \emph{Proceedings of the 40th ACM {CHI} Conference on Human
-  Factors in Computing Systems}. Available at
-  \url{https://doi.org/10.1145/3491102.3517534}.
+\bibitem{1password}
+{1Password Password Manager}.
+\newblock \url{https://1password.com/}.
+\newblock Accessed: 17 Feb 2026.
+
+\bibitem{google}
+{Google}.
+\newblock \url{https://www.google.com/chrome/}.
+\newblock Accessed: 17 Feb 2026.
+
+\bibitem{firefox}
+{Mozilla Firefox}.
+\newblock \url{https://www.mozilla.org/}.
+\newblock Accessed: 17 Feb 2026.
+
+\bibitem{pshash}
+{Pshash Web Interface}.
+\newblock \url{https://thornoar.github.io/pshash-web/app/}.
+
+\bibitem{pshash-src}
+{Source code for} \texttt{pshash}.
+\newblock \url{https://github.com/thornoar/pshash}.
+
+\bibitem{serious}
+J.~Aumasson.
+\newblock {\em Serious Cryptography, 2nd Edition: A Practical Introduction to
+  Modern Encryption}.
+\newblock No Starch Press, 2024.
+
+\bibitem{large}
+D.~Florencio and C.~Herley.
+\newblock A large-scale study of web password habits.
+\newblock pages 657--666, 05 2007.
+
+\bibitem{gasti}
+P.~Gasti and K.~Rasmussen.
+\newblock On the security of password manager database formats.
+\newblock 09 2012.
+
+\bibitem{conv}
+J.~Halderman, B.~Waters, and E.~Felten.
+\newblock A convenient method for securely managing passwords.
+\newblock pages 471--479, 01 2005.
+
+\bibitem{mirkovic}
+A.~Hanamsagar, S.~Woo, C.~Kanich, and J.~Mirkovic.
+\newblock Leveraging semantic transformation to investigate password habits and
+  their causes.
+\newblock pages 1--12, 04 2018.
+
+\bibitem{again}
+P.~Kelley, S.~Komanduri, M.~Mazurek, R.~Shay, T.~Vidas, L.~Bauer, N.~Christin,
+  L.~Cranor, and J.~Lopez.
+\newblock Guess again (and again and again): Measuring password strength by
+  simulating password-cracking algorithms.
+\newblock pages 523--537, 05 2012.
+
+\bibitem{ross}
+B.~Ross, C.~Jackson, N.~Miyake, D.~Boneh, and J.~Mitchell.
+\newblock A browser plug-in solution to the unique password problem.
+\newblock 01 2005.
+
+\bibitem{attacks}
+D.~Silver, S.~Jana, D.~Boneh, E.~Chen, and C.~Jackson.
+\newblock Password managers: Attacks and defenses.
+\newblock In {\em 23rd USENIX Security Symposium (USENIX Security 14)}, pages
+  449--464, San Diego, CA, Aug. 2014. USENIX Association.
 
 \end{thebibliography}

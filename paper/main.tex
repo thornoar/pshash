@@ -45,7 +45,7 @@
 
 \renewcommand{\qedsymbol}{$\blacksquare$}
 
-\title{MULTISELECTION-BASED PSEUDO-HASH\\ PASSWORD GENERATION}
+\title{SELECTION-BASED MINIMALISTIC\\ PASSWORD GENERATION}
 \author{
   Roman Maksimovich\\
   \href{mailto:rmaksimovich@connect.ust.hk}{rmaksimovich@connect.ust.hk}
@@ -72,33 +72,48 @@
 
 \maketitle
 
-We introduce a password generation algorithm which accepts a publicly known string (the ``public key'') as well as two large integer numbers (``choice private key'' and ``shuffle private key''), producing a random-looking string of characters (the ``hash'', used as a password), whose composition (i.e. number of lower-case and upper-case characters, etc.) can be set in advance. This is done by encoding list selections and permutations with positive integers, constructing the necessary list rearrangements based on the provided keys, and applying them to a predefined set of character lists (the ``source configuration''). The algorithm is purely functional, which guarantees reproducibility and allows the user to generate secure passwords on the fly, without storing them in any location or having to remember them. Good levels of confusion and diffusion are achieved through so-called argument shift functions. We provide a primary implementation of the algorithm in Haskell, but implementations in C, JavaScript, and Kotlin are also available.
+\textbf{Abstract:}
+The traditional model of password management has been failing for the past 25-30 years, with the growth in the number of passwords an average user needs to remember.
+To combat this problem, we introduce \texttt{pshash} --- a deterministic ``on-the-fly'' password generation algorithm based on selecting characters from predefined sources. The selection of characters and their order are derived from two secret numbers (the "choice key" and "shuffle key") provided by the user, and the resulting character string can be used as a password. The algorithm resembles a hash function in many ways, however it is not cryptographically secure in the usual sense. Yet it still satisfies the conditions for being a \emph{universal hash function}, and we argue that this is sufficient for secure password generation. Its main benefits are simplicity (it is implemented in under 200 lines of code) and independence (it does not draw on any pre-existing algorithms or cryptographic notions). This comes at the cost of convenience, as the user is required to memorize a relatively large amount of entropy to achieve good security. However, we argue that practice can mitigate this drawback, and the benefits of security and minimalism are worth it.
 
-\textbf{Keywords:} Combinatorics, Security, Cryptography, Hashing, Functional Programming, Haskell
+\textbf{Keywords:}
+Passwords, Authentication, Combinatorics, Functional Programming
 
-\section{Introduction}
+\section{Introduction} \label{intro}
 
-The motivation behind the topic lies in the management of personal passwords. Nowadays, the average person requires tens of different passwords for different websites and services. Overall, we can distinguish between three ways of managing this set of passwords:
+In our time, the average computer user has more than 40 different accounts which require usernames and passwords \cite{mirkovic}. Overall, we can distinguish between three methods of managing them, in increasing levels of security and decreasing levels of convenience:
 
 \begin{itemize}
-  \item \textbf{Keeping everything in one's head.} This is a method employed by many, yet it inevitably leads to certain risks. First of all, in order to fit the passwords in memory, one will probably make them similar to each other, or at least have them follow a simple pattern like ``[shortened name of website]+[fixed phrase]''. As a result, if even one password is guessed or leaked, it will be almost trivial to retrieve most of the others, following the pattern. Furthermore, the passwords themselves will tend to be memorable and connected to one's personal life, which will make them easier to guess.
+  \item \textbf{Memorizing passwords directly.} Much like the one-time pad encryption scheme \cite{serious}, this method theoretically provides the best possible security, assuming that all passwords are strong and have no connection to each other. Unfortunately, with a large number of passwords this assumption fails entirely. Statistical studies report that most people reuse their passwords between both important sites (e.g. banking, work-related) and less critical sites (e.g. forums, social media), and overall choose weak passwords for the sake of simplicity \cite{large}, \cite{mirkovic}, \cite{again}. Naturally, this leads to the idea of using computer-assisted password management.
 
-  \item \textbf{Storing the passwords in a secure location.} Arguably, this is a better method, but there is a natural risk of this location being revealed, or of the passwords being lost, especially if they are stored physically on a piece of paper.
+  \item \textbf{Using a password manager.} These are software programs that can store a user's passwords in an encrypted database, allowing the user to decrypt it using a \emph{master password}. Examples include 1Password \cite{1password}, Google Chrome \cite{google}, and Mozilla Firefox \cite{firefox}. A great advantage of password managers is the ability to create random and provably strong passwords on behalf of the user. However, password managers have been criticised for insecure database storage formats \cite{gasti} and auto-fill policies \cite{attacks}, which both leave doors for various attacks. It appears that the sources of most vulnerabilities are 1) the fact that passwords are stored on disk, albeit in an encrypted form; and 2) the tight integration of password managers with browsers, provided for the sake of convenience and some security features such as defence against phishing and spoofing \cite{ross}. Additionally, many password managers are closed-source, which hinders one's trust that the password manager will not abuse the passwords it stores.
 
-  \item \textbf{Using a password manager.} \cite{passman} These are software programs that create random passwords for the user and give access to them via a \emph{master password.} This is a valid solution, especially since password managers tend to employ very secure encryption algorithms. However, this using such software implies problematic notions such as
-    \begin{enumerate}
-      \item trusting the developers and administrators of the password manager, and
-      \item storing passwords in a database (although encrypted).
-    \end{enumerate}
+  \item \textbf{Using a deterministic ``on-the-fly'' password generator.} These are programs that allow the user to derive a password from their identity and a secret master password, using a stateless (usually hash-based) function. An example is PwdHash \cite{ross}. This approach eliminates the problem of storage, since nothing is ever stored on disk. However, being based on well-known hash functions opens such schemes to dictionary attacks and brute-force attacks, although mitigated in \cite{conv}. Still, deterministic password generators are still more complicated than they could be, and they often require users to provide their identity, which hinders anonymity.
 \end{itemize}
 
-In this paper we suggest a way of doing neither of these things. The user will not know the passwords or have any connection to them whatsoever, and at the same time the passwords will not be stored anywhere, physically or digitally. In this system, every password is a so-called ``pseudo-hash'' (since it does not technically adhere to the definition of a cryptographic hash, but has similar properties) produced by a fixed algorithm. The algorithm requires three inputs: one public key, i.e. the name of the website or service, and two private keys, which are arbitrary positive integers known only to the user (the initial version of the algorithm, finalized in Section \ref{mergemult}, will only use one private key). Every time when requiring a password, the user will invoke the keys to re-create it from scratch. Therefore, in order to be reliable, the algorithm must be ``pure'', i.e. must always return the same output given the same input. Additionally, the algorithm should be published online for better accessibility, meaning that it must be robust enough so that, even if an attacker had full access to it and its mechanics, they would still not be able to guess the user's private keys or the passwords that they produce. These considerations naturally lead to exploring pure mathematical functions as pseudo-hashing algorithms and implementing them in a functional programming language such as Haskell.
+In this paper, we specify a new ``on-the-fly'' password generation algorithm \texttt{pshash} that differs from its alternatives in two important ways:
 
-\section{The algorithm}
+\begin{itemize}
+  \item \texttt{pshash} is extremely minimalistic (written in under 200 lines of code) and standalone, which makes it very portable and easy to implement on any platform and in any programming language that supports arbitrary-precision arithmetic (see Section \ref{impl} for a discussion of \texttt{pshash}'s implementation). The program is detached from any external service or browser, making it invulnerable to supply chain attacks.
 
-There are many ways to generate pseudo-hash strings. In our case, these strings are potential passwords, meaning they should contain lower-case and upper-case letters, as well as numbers and special characters. Instead of somehow deriving such symbol sequences directly from the public and private keys, we will be creating the strings by selecting them from a pre-defined set of distinct elements (i.e. the English alphabet or the digits from 0 to 9) and rearranging them. The keys will play a role in determining the rearrangement scheme. With regard to this strategy, some preliminary definitions are in order.
+  \item Our algorithm uses a custom universal hash function instead of the ``industry standards'' of cryptographic hashing such as SHA-256 or Salsa20. This means that our algorithm is immune to attacks targeting these hash functions, such as dictionary attacks.
+\end{itemize}
 
-\subsection{Preliminary terminology and notation}
+The above benefits come at the cost of convenience, which means that \texttt{pshash} is probably ill-suited for mass adoption. However, it fits perfectly for technically educated users who do not mind memorizing a couple of 20+ digit numbers for the sake of security.
+
+\section{The Algorithm Specification} \label{spec}
+
+In this section, we give a full description of \texttt{pshash}. The algorithm is a pure stateless function that takes as input three values:
+
+\begin{itemize}
+  \item The domain name (or any other distinct identifier) of the website for which a password is required, called the \emph{public key} and denoted $p$;
+  \item A secret non-negative integer $k_1$ which lies in a vast range (on the order of $2^{142}$, typically), called the \emph{choice private key};
+  \item Another secret non-negative integer $k_2$, which lies in a smaller range of numbers (on the order of $2^{83}$, typically), called the \emph{shuffle private key}.
+\end{itemize}
+
+The function returns a string of characters which we call a ``pseudo-hash'' since it is not a full cryptographic hash but has some of its properties. \texttt{pshash} does not derive the characters from the keys directly, but instead uses them to select characters from predefined \emph{sources}, which makes it much easier to make sure the pseudo-hash complies with a website's password requirements. The algorithm also supports different password templates, called \emph{source configurations.} We will now consider the algorithm in detail.
+
+\subsection{Preliminary Terminology and Notation}
 
 Symbols $A, B, C$ will denote arbitrary sets (unless specified otherwise). $\N_0$ is the set of all non-negative integers.
 
@@ -118,9 +133,9 @@ Let $n,m \in \N,\ m \leq n$. The quantity $n!/(n-m)!$ will be called a \emph{rel
 
 Consider a function $f$ of many arguments $a_0, a_2, ..., a_{n-1}$. Then with the expression $f(a_0, ..., a_{i-1}, -, a_{i+1}, ..., a_{n-1})$ we will denote the function of one argument $a_i$ where all others are held constant.
 
-\subsection{Enumerating list selections}
+\subsection{Enumerating List Selections}
 
-The defining feature of the public key is that it is either publicly known or at least very easy to guess. Therefore, it should play little role in actually encrypting the information stored in the private keys. It exists solely for the purpose of producing different passwords with the same private keys. So for now we will forget about it. In this and the following subsection we will focus on the method of mapping a (single, for now) private key $k \in \N_0$ to an ordered selection from a set of sources in an effective and reliable way.\\
+The purpose of the public key $p$ is solely to allow the user to generate different passwords with the same set of private keys. Therefore, it need not be an integral part of the core \emph{pshash} algorithm. In this and the following subsections we will build the function $\h(\conf, k_1, k_2)$ which accepts a source configuration and two private keys to produce a pseudo-hash, and we will explain the origin of the decision to use two private keys instead of one.\\
 
 \begin{definition}[First-order choice function]
   \label{c1ek}
@@ -181,11 +196,11 @@ With this proposition at hand, we have a natural way of extending the definition
   Let $E$ be a source with cardinality $n$. Then the choice function $\cc^m(E,-)$ of order $m \le n$, as a function of $k$, has a spread of at least $\rf{n}{m}$.
 \end{proposition}
 \begin{proof}
-  We will conduct a proof by induction over $m$. In the base case, $m = 1$, we notice that $\rf{n}{m} = n$, and the statement trivially follows from the definition of $\cc^1(E,k)$.
+  We will conduct a proof by induction over $m$. In the base case, $m = 1$, we notice that $\rf{n}{1} = n$, and the statement trivially follows from the definition of $\cc^1(E,k)$.
 
   Let us assume that the statement is proven for all choice functions of order $m-1$. Under closer inspection it is clear that the definition of $\cc^m(E, k)$ follows the scheme given in Proposition \ref{map}, with $\cc^1(E,-)$ standing for $f$ and $\cc^m(E', -)$ standing for $g$. The application of the proposition is not entirely trivial, and we encourage the reader to consider the caveats. Thus, we can utilize the statement of the proposition as follows:
   \begin{align*}
-    \spr{\cc^m(E,-)} \ge \spr{\cc^1(E, -)} \cdot \spr{\cc^{m-1}(E, -)} \ge n \cdot \rf{n-1}{m-1} = \rf{n}{m},
+    \spr{\cc^m(E,-)} \ge \spr{\cc^1(E, -)} \cdot \spr{\cc^{m-1}(E', -)} \ge n \cdot \rf{n-1}{m-1} = \rf{n}{m},
   \end{align*}
   q.e.d.
 \end{proof}
@@ -221,9 +236,9 @@ The choice function gives us a way to enumerate all possible ways to select a su
 \end{tabular}
 \end{center}
 
-There is, however, a serious problem. This selection method does not guarantee that the chosen 10 symbols will contain lower-case and upper-case characters, as well as digits and spacial symbols, all at the same time. Since the choice function is bijective, there is a key that produces the combination \texttt{"djaktpsnei"}, which will not be accepted as a password in many places, because it contains only one category of symbols.
+There is, however, a serious problem. This selection method does not guarantee that the chosen 10 symbols will contain lower-case and upper-case characters, as well as digits and special symbols, all at the same time. Since the choice function is bijective, there is a key that produces the combination \texttt{"djaktpsnei"}, which will not be accepted as a password in many places, because it contains only one category of symbols.
 
-\subsection{Elevating the choice function}
+\subsection{Elevating the Choice Function}
 
 \begin{definition}
   Let $\conf$ be list of pairs $(E_i, m_i)$, where $E_i$ are sources, $|E_i| = n_i,\ m_i \le n_i$, for $i \in (N)$. The \emph{elevated choice function} $\elv(\conf, -)$ corresponding to these data is defined for a key $k \in \N_0$ by means of the following recursion:
@@ -248,12 +263,12 @@ This solves the problem with lacking symbol categories --- now we can separate u
 
 \begin{itemize}
   \item The result of the elevated choice function will be something like \texttt{"amwYXT28@!"}, which is not a bad password, but it would be nice to be able to shuffle the individual selections between each other instead of lining them up one after another.
-  \item Despite the fact that the argument shift function makes the password selection chaotic, the function is a bijection, which means that it can be reversed. With sufficient knowledge of the algorithm, an attacker can write an inverse algorithm that retrieves the private key from the resulting password. This is a deal breaker for our function, because it defeats the purpose --- you may as well have one password for everything. The way to solve this problem is to make the choice function artificially non-injective, or non-collision-free, in a controlled way. In such case, many different keys will produce the same password, and it will be impossible to know which one of them is the correct one. This violates the common non-collision property of hash functions, but it is necessary given the nature of the function we are developing.
+  \item Despite the fact that the argument shift function makes the password selection chaotic, the function is a bijection, which means that it can be reversed. With sufficient knowledge of the algorithm, an attacker can write an inverse algorithm that retrieves the private key from the resulting password. This is a deal breaker for our function, because it defeats the purpose --- you may as well have one password for everything. The way to solve this problem is to make the choice function artificially non-injective, or non-collision-free, in a controlled way. In such case, many different keys will produce the same password, and it will be impossible to know which one of them is the correct one. This violates the common non-collision property of hash functions, but it is necessary given the nature of the function we are building.
 \end{itemize}
 
 We will solve one problem at a time.
 
-\subsection{The merge function}
+\subsection{The Merge Function}
 
 \begin{proposition}
   \label{comp}
@@ -322,7 +337,7 @@ We will solve one problem at a time.
 Using basic combinatorics, we can see that the number $(m_1 + m_2)!/(m_1 ! \cdot m_2 !)$ corresponds to the number of all possible ways to merge the lists $\alpha$ and $\beta$, which we will denote by $\#^\m (\alpha, \beta)$. It means that the function $\m^2 (\alpha, \beta, -)$ is in fact surjective, and therefore bijective, on the interval from zero to its spread. Now we will expand its definition to an arbitrary number of lists.\\
 
 \begin{definition}
-  Let $\overline{\alpha} = [\alpha_0, \alpha_1, ..., \alpha_{N-1}$ be a list of lists, where $N \ge 2$ and $\alpha_i \in [E_i]_{m_i}$. Define the \emph{merge function of order $N$} recursively as follows:
+  Let $\overline{\alpha} = [\alpha_0, \alpha_1, ..., \alpha_{N-1}]$ be a list of lists, where $N \ge 2$ and $\alpha_i \in [E_i]_{m_i}$. Define the \emph{merge function of order $N$} recursively as follows:
   \begin{align}
     \label{mNdef}
     \m^N (\overline{\alpha}, k) = \begin{cases}
@@ -344,7 +359,7 @@ Using basic combinatorics, we can see that the number $(m_1 + m_2)!/(m_1 ! \cdot
   We conduct a proof by induction over $N$. If $N = 2$, the result follows from Proposition \ref{sprm2}. Now, assume that the result holds for all merge functions of order $N-1$. Note that (\ref{mNdef}) follows the definition scheme assumed in Proposition \ref{comp}, and by applying its result, we see that (\ref{sprmN}) holds for $\m^N (\overline{\alpha}, -)$.
 \end{proof}
 
-\subsection{Merging the multiselection} \label{mergemult}
+\subsection{Merging the Multiselection} \label{mergemult}
 
 \begin{definition}
   Let $\conf$ be a source configuration of pairs $(E_i, m_i)$ for $i \in (N)$, and let $k$ be a non-negative integer. We define the \emph{merged choice function} corresponding to $\conf$, as follows:
@@ -365,17 +380,17 @@ In other words, the merged choice function selects $N$ lists from the configurat
   where $\overline{\alpha}$ is the multiselection arising from the application of $\elv$, while $n_i$ are the lengths of the sources $E_i$ in the configuration $\conf$.
 \end{proposition}
 \begin{proof}
-  Since the merge function $\m^N$ preserves the order of the lists it merges, we can see that it is absolutely injective with respect to its first argument, $\overline{\alpha}$. Indeed, no matter how the multiselection $\overline{\alpha}$ is merged, all elements of, say, $E_0$, can be read from the resulting merged list in the order that they were originally. In other words, the list $\alpha_0 \in \overline{\alpha}$ can be reconstructed from the output of $\m^N (\overline{\alpha}, k)$ for all $k$. And so can $\alpha_1$, $\alpha_2$, etc. Here we are actively using the fact that all elements across all sources $E_0, E_1, ..., E_{N-1}$ are distinct. Now that the absolute injectivity of $M^N$ has been established, the statement of the immediately follows from an application of Proposition \ref{comp}.
+  Since the merge function $\m^N$ preserves the order of the lists it merges, we can see that it is absolutely injective with respect to its first argument, $\overline{\alpha}$. Indeed, no matter how the multiselection $\overline{\alpha}$ is merged, all elements of, say, $E_0$, can be read from the resulting merged list in the order that they were originally. In other words, the list $\alpha_0 \in \overline{\alpha}$ can be reconstructed from the output of $\m^N (\overline{\alpha}, k)$ for all $k$. And so can $\alpha_1$, $\alpha_2$, etc. Here we are actively using the fact that all elements across all sources $E_0, E_1, ..., E_{N-1}$ are distinct. Now that the absolute injectivity of $M^N$ has been established, our statement immediately follows from an application of Proposition \ref{comp}.
 \end{proof}
 
-It can once again be shown using combinatorics, that the final expression in \ref{sprmc} is, in fact, the total number of ways to choose a multiselection from $\conf$ and merge it (the reader should not hesitate to check this). Therefore, we conclude that the function $\m(\conf, -)$ is bijective on the interval from zero to its spread, and therefore periodic with the period of its spread.
+It can once again be shown using combinatorics, that the final expression in (\ref{sprmc}) is, in fact, the total number of ways to choose a multiselection from $\conf$ and merge it (the reader should not hesitate to check this). Therefore, we conclude that the function $\m(\conf, -)$ is bijective on the interval from zero to its spread, and therefore periodic with the period of its spread.
 
-\subsection{Subverting invertibility}
+\subsection{Subverting Invertibility}
 
 We still have one problem left: our current pseudo-hash function is bijective, and it can be inverted relatively easily to retrieve the private key from the source configuration and the final pseudo-hash. To prevent this, we will have to make our function a bit less injective --- artificially add inputs that produce the same output, in order to make the function harder to invert.\\
 
 \begin{definition}
-  Let $\conf$ be a source configuration consisting of pairs $(E_i, m_i)$ for $i \in (N)$, with $n_i = |E_i|$. Let $k_1, k_2 \in \N_0$ be two numbers referred to as \emph{choice key} and \emph{shuffle key}. Define the \emph{hash} corresponding to these inputs as follows:
+  Let $\conf$ be a source configuration consisting of pairs $(E_i, m_i)$ for $i \in (N)$, with $n_i = |E_i|$. Let $k_1, k_2 \in \N_0$ be two numbers referred to as \emph{choice key} and \emph{shuffle key}. Define the \emph{pseudo-hash} corresponding to these inputs as follows:
   \[
     \h(\conf, k_1, k_2) = \cc^{\sum m_i} (\mc(\conf, k_1), k_2).
   \]
@@ -414,19 +429,19 @@ We call $\h(\conf, -, -)$ a ``pseudo-hash'' here because it does not adhere to t
     \]
 \end{itemize}
 
-With respect to each of the two keys, $\h$ is injective, but in combination they clash together and, in a sense, encrypt each other, erasing the trace to the original pair of keys. It does mean that the pseudo-hash function now requires two private keys instead of one, but it is a minor disadvantage.
+With respect to each of the two keys, $\h$ is injective, but in combination they clash together and, in a sense, encrypt each other, erasing the trace to the original pair of keys. It does mean that the pseudo-hash function now requires two private keys instead of one, but it is a minor disadvantage in our opinion.
 
-\subsection{Producing different hashes with the same private keys}
+\subsection{The Public Key}
 
-The premise of this entire discussion was that one requires many passwords for different purposes. Right now, the only way is to create a new primary-secondary key pair for every new occasion. Considering how large these numbers tend to be, you may as well try to remember the hashes themselves. This is where the public key comes into play. The public key, denoted $p$, is an integer defined by the particular context in which the algorithm is invoked. We will assume it to be the name of the website for which we require a password, like \texttt{"google"}, for example, converted into a number by treating the characters in the string as digits in base-128. This number acts on the choice private key by shifting it modulo $\#^\mc (\conf)$:
+At this stage, the only way is to create a new choice-shuffle key pair for every new occasion. This is where the public key comes into play. The public key, denoted $p$, is an integer defined by the particular context in which the algorithm is invoked. We will assume it to be the name of the website/organization for which we require a password, like \texttt{"google"}, for example, converted into a number by treating the characters in the string as digits in base-128. This number acts on the choice private key by shifting it modulo $\#^\mc (\conf)$:
 \[
   k'_1 = \li^{\#^\mc (\conf)}(k_1 + p)
 \]
-and then this new choice key is plugged into the pseudo-hash function along with the shuffle key. Due to the injectivity of $\h$ with respect to $k_1$, we see that different public keys produce different output hashes, as long as they remain in the interval $(\#^\mc (\conf))$. Its influence on $k_1$ is simple and predictable, but it doesn't have to be complex, since the public key is not directly responsible for any encryption. Instead it is designed to be easily remembered.
+and then this new choice key is plugged into the pseudo-hash function along with the shuffle key. Due to the injectivity of $\h$ with respect to $k_1$, we see that different public keys produce different output hashes, as long as they remain in the interval $(\#^\mc (\conf))$. The influence of $p$ on $k_1$ is simple and predictable, but it doesn't have to be complex, since the public key is not directly responsible for any encryption. Instead it is supposed to be plain and easily remembered.
 
-\subsection{Security properties}
+\section{Security Properties} \label{security}
 
-In this subsection, we will use a specific source configuration $\conf$, particularly the following:
+In this section, we will use a specific source configuration $\conf$, particularly the following:
 
 \begin{center}
   \renewcommand{\arraystretch}{1.5}
@@ -445,14 +460,18 @@ In this subsection, we will use a specific source configuration $\conf$, particu
 
 Therefore, every password produced with this configuration will contain a total of $25$ symbols, $8$, $8$, $5$ and $4$ from their respective categories.
 
-Now, suppose that an attacker with perfect knowledge of the pseudo-hashing algorithm and a supercomputer that can perform $10^{10}$ password checks per second, decides to crack the passwords produced with the above source configuration and a fixed choice-shuffle key pair $(k_1, k_2)$.
+We will also assume that an adversary can perform $10^{10}$ password checks per second, i.e. 0.1 nanosecond to perform one operation such as computing a pseudo-hash or computing a key pair that produces a given pseudo-hash value. This measure is in fact extremely conservative. For example, running \verb|openssl speed -evp sha256| to benchmark the speed of SHA256 on an 22-core Intel Ultra 9 185H CPU has yielded a speed of $10,000,000$ hashes per second, or 100 nanoseconds per hash. We assume here that \texttt{pshash} is $1,000$ times faster, whereas in fact it must be orders of magnitude slower, due to the fact that is must perform many arithmetic operations on arbitrary-precision integers. This conservative speed estimate serves as a guarantee of security for a long period of time, even when processors become a million times faster than they are today.
 
-First of all, they might try to brute-force a given password by iterating over all $25$-letter strings made of $8$ lower-case letters, $8$ upper-case letters, $5$ special characters, and $4$ digits. They would have to check $\#^\h (\conf)$ combinations, which in our case is
+We will now consider various attacks on the pseudo-hashes produced by \texttt{pshash}.
+
+\subsection{Brute-force Attacks on Pseudo-hashes}
+
+First of all, an adversary might try to brute-force a given password by iterating over all $25$-letter strings made of $8$ lower-case letters, $8$ upper-case letters, $5$ special characters, and $4$ digits. They would have to check $\#^\h (\conf)$ combinations, which in our case is
 \[
   \#^\h (\conf) = 
   6,296,585,738,425,733,189,152,569,035,980,800,000,000,000 > 2^{142}.
 \]
-Finding the correct string would take the supercomputer about
+Finding the correct string would take the adversary about
 \[
   9,976,338,090,389,847,753,239,424 > 10^{24}
 \]
@@ -462,7 +481,9 @@ years, or about
 \]
 ages of the Universe. Here we calculate the time it would take to find the correct entry with at least $50\%$ confidence, that is, the time to traverse half of the space of possible values.
 
-By examining the algorithm, the attacker might try to brute-force the choice-shuffle key pair instead of the final pseudo-hash. The number of all relevant key pairs for our configuration is
+\subsection{Attacks with a Known Pseudo-hash}
+
+Having examined the \texttt{pshash} algorithm further, an attacker might try to brute-force the choice-shuffle key pair instead of the final pseudo-hash. The number of all relevant key pairs for our configuration is
 \begin{align*}
   \#^{(k_1,k_2)} (\conf) =
     97,&667,663,944,563,885,279,694,955,400,689,334,\\
@@ -471,7 +492,7 @@ By examining the algorithm, the attacker might try to brute-force the choice-shu
 
 There is no possibility of traversing this number of values.
 
-Now let us assume that one of the passwords generated with $\conf$ and $(k_1, k_2)$ has been compromised, for example due to a security leak on a website it was used to log into. Denote this leaked password by $h$. The attacker knows that there are exactly $\#^\cap (\conf)$ different key pairs that generate the pseudo-hash $h$. They can generate any number of these key pairs at leisure (by substituting the intermediate layer $\alpha$ of their choosing). However, even if a key pair $(k'_1, k'_2)$ generates $h$, it need not generate any other pseudo-hash that was generated by the original key pair $(k_1,k_2)$. Therefore, the attacker still needs to identify the original key pair among the potential ones, of which there is
+Now let us assume that one of the passwords generated with $\conf$ and $(k_1, k_2)$ has been compromised, for example due to a security leak on a website it was used to log into. Denote this leaked password by $h$. The attacker knows that there are exactly $\#^\cap (\conf)$ different key pairs that generate the pseudo-hash $h$. They can generate any number of these key pairs at leisure (by choosing the intermediate layer $\alpha$ between $\mc$ and $\s$). However, even if a key pair $(k'_1, k'_2)$ generates $h$, it need not generate any other pseudo-hash that was generated by the original key pair $(k_1,k_2)$, and the pseudo-hash $h$ gives no preference to any of these pairs. Therefore, the attacker still needs to identify the original key pair among the potential ones, of which there is
 \[
   \#^\cap (\conf) = 15,511,210,043,330,985,984,000,000 > 2^{83}.
 \]
@@ -481,23 +502,70 @@ Traversing half of this number of key pairs would take about
 \]
 years. It is, of course, almost infinitely better than brute-forcing the final pseudo-hash (it won't even take a single age of the Universe), but it is still pretty much impossible. However, if this is an issue, one can always use a password with, say, $30$ symbols instead of $25$, and its security properties will be considerably stronger.
 
-\section{The implementation}
+\subsection{Multiple Known Pseudo-hashes}
 
-To implement the $\h(\conf, -, -)$ function, we have chosen the Haskell programming language. This choice is natural because the pseudo-hash algorithm does not involve any mutation and hence fits perfectly into the functional paradigm. Additionally, implementing it in a statically typed functional language ensures a degree of reliability due to a powerful type system and the inability to mutate values. Haskell also has a mature package ecosystem and first-class support for arbitrary-precision integers, which is necessary for computing the spreads of the functions involved in our algorithm.
+Now, suppose that multiple pseudo-hashes $h_1, h_2, ..., h_n$ have been made available to the adversary, all produced with the same choice-shuffle key pair $(k_1, k_2)$ and different public keys $p_1, p_2, ..., p_n$ which are also known. Denote the number $\#^\mc (\conf)$ by $N$. Essentially, the adversary needs to solve for $(k_1, k_2)$ the following system of equations:
+\begin{align*}
+  h_1 &= \h(\conf, \li^N (k_1 + p_1), k_2),\\
+  h_2 &= \h(\conf, \li^N (k_1 + p_2), k_2),\\
+  &\vdots\\
+  h_n &= \h(\conf, \li^N (k_1 + p_n), k_2).
+\end{align*}
 
-\subsection{The \texttt{pshash} program}
+Due to the argument shift function $T$, the pseudo-hash function is highly non-linear and cannot be described as an algebraic transformation of its inputs. Hence there is no way (as to our knowledge) to narrow down the space of possible solutions of the above system without simply traversing $\#^\cap (\conf)$ different key pairs and checking whether they produce all the given pseudo-hashes.
 
-\texttt{pshash} (from ``pseudo-hash'') is the name of the implementation of the algorithm specified in the previous section. The main program has no GUI, it is only a command-line utility. This decision was made for the sake of simplicity, speed, and portability. The Haskell source is available at \url{https://github.com/thornoar/pshash}, together with installation instructions and other details.
+In other words, we have seen that \texttt{pshash} is resistant to various brute-force attacks and dictionary attacks.
 
-The CLI accepts three arguments: the public key and two private keys, returning a hash using its builtin source configuration. On demand, the user may pass a different configuration using one of the \texttt{-k}, \texttt{-n}, and \texttt{-c} command-line options, but this is not recommended, since it will have to be done every time. Instead, it is suggested to download the source, change the default configuration in the code, and then compile it to a new executable. Alternatively, one can write a configuration file and invoke \texttt{pshash} with the \texttt{--impure} flag to read it. You can run \texttt{pshash --help} to see all available options and their behavior.
+\subsection{Supply Chain Attacks}
+
+Being a standalone program, \texttt{pshash} is not susceptible to supply chain attacks. However, this also means \texttt{pshash} does not protect from phishing and keyloggers, being completely unaware of them. Hence, \texttt{pshash} should be used with care, as it is only responsible for producing a password, and not for how it is used afterwards.
+
+\section{The Implementation} \label{impl}
+
+For the primary implementation of the $\h(-, -, -)$ function, we have chosen the Haskell programming language. This choice is natural because the \texttt{pshash} algorithm does not involve any mutation and hence fits perfectly into the functional paradigm. Additionally, implementing it in a statically typed functional language ensures a degree of reliability due to a powerful type system and the inability to mutate values. Haskell also has a mature package ecosystem and first-class support for arbitrary-precision integers, which is necessary for computing the spreads of the functions involved in our algorithm.
+
+The primary implementation is a CLI program running in the console. It was designed without any GUI in order to make it more lightweight and portable, as well as faster. It is fully open-source, with source code available on GitHub \cite{pshash-src}, together with installation instructions.
+
+The general invocation of \texttt{pshash} is \verb|$ pshash PUBLIC CHOICE SHUFFLE|, providing the public key and the choice-shuffle private key-pair. In addition, the program has many flags and options, all of which can be viewed by invoking \verb|$ pshash --help|.
+
+In the following subsections we will consider some important features of the implementation.
+
+\subsection{Simplified Key Input and Generation}
+
+One of the biggest disadvantages of \texttt{pshash} is the size of the private keys. For the source configuration given in Section \ref{security}, the maximum relevant choice key is on the order of $2^{142}$ and the maximum shuffle key on the order of $2^{83}$. Such long numbers are possible to remember using mnemonics, but they still take a lot of effort to commit to memory, and the cost of forgetting even a single digit is the permanent loss of all passwords derived from this key-pair. Additionally, even coming up with such big numbers is hard for a human to do. One would inevitably think of numbers relevant in their life, which makes them vulnerable to social analysis attacks.
+
+These problems are solved in the implementation of \texttt{pshash} as follows:
+
+\begin{itemize}
+  \item The program can generate random keys via invoking \verb|$ pshash --gen-keys|. The keys are automatically selected from the range corresponding to the source configuration in use (see Subsection \ref{conf} for more information on how they are specified). This ensures that the generated keys are uniformly distributed in the relevant range, and allows the passwords generated by these keys to enjoy the security properties discussed in Section \ref{security}.
+
+  \item The program supports alternative input methods for the keys. For example, it can evaluate arithmetic expressions involving addition, multiplication, and exponentiation. Instead of \texttt{52046849220153179918678225216} one may type \texttt{8234 * 91234 \^{} 5} which is much easier to remember. Of course, if this input method becomes mainstream, a brute-force attack on such passwords will be much easier, since it will be enough to check all numbers of the form $a + b$, $a * b$, $a ^ b$ and some basic combinations of these expressions, where $a,b < 100,000$. Hence the arithmetic input method is not preferred.\\
+    As a safer alternative, the \texttt{pshash} implementation offers an ``mnemonic incantation system''. By selecting the 100 most used English 2-letter syllables, we associate each 2-digit number with a syllable. For example, \texttt{00} corresponds to \texttt{or}, \texttt{37} corresponds to \texttt{mi}, and \texttt{99} corresponds to \texttt{je}. We can then apply this map to whole numbers, so \texttt{993700} becomes \texttt{jemior}, which sounds like an English word and is much easier to remember. Given the source configuration described in Section \ref{security}, the average choice key will have about 7 3-syllable words in its mnemonic incantation, while the average shuffle key will have about 4 words. An example would be
+    \begin{align*}
+      5925758263543757867984307717119455838590518 \ &\longleftrightarrow \ \mathtt{usjusu\ sodilo\ hiwewa\ quzihi\ agfefe\ riposo\ tobius\ li}\\
+      14597701819718601692712560 \ &\longleftrightarrow \ \mathtt{rebifu\ unpuja\ litule\ jufela\ tu}
+    \end{align*}
+    Remembering these incantations still requires effort, of course, but it is feasible, and the nature of \texttt{pshash} is such that the security properties of passwords rely directly on the amount of entropy in the keys.\\
+    To generate an incantation, the user may invoke \verb|$ pshash --gen-spell|. They will be prompted for the numeric key (which can be typed as an arithmetic expression), after which the incantation will be printed as output. The \verb|$ pshash --gen-keys| command will also automatically print corresponding incantations.
+\end{itemize}
+
+\subsection{Error Messages}
+
+The \texttt{pshash} implementation supports a state-of-the-art error message system. Whenever the algorithm fails at any step, a helpful error message with a stack trace will be printed. For example, 
+
+\subsection{Key Retrieval}
+
+\subsection{Specifying the Source Configuration} \label{conf}
+
+\subsection{File Encryption}
 
 \subsection{Other implementations}
 
-The pseudo-hash algorithm is implemented in other languages:
+The \texttt{pshash} algorithm is implemented in its rudimentary form in other languages and deployed on other platforms:
 
 \begin{itemize}
   \item \textbf{C} for the in-development desktop app, source at \url{https://github.com/thornoar/pshash-gui};
-  \item \textbf{JavaScript} for the web interface, available at \url{https://thornoar.github.io/pshash-web/app/};
+  \item \textbf{JavaScript} for the web interface \cite{pshash};
   \item \textbf{Kotlin} for the Android application, source at \url{https://github.com/thornoar/pshash-app}, with download links hosted at \url{https://thornoar.github.io/pshash-web/get/}.
 \end{itemize}
 
