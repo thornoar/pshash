@@ -34,7 +34,7 @@ performAction args (Content config)
   | member LIST args = passKeysToAction args (listPairsAction config)
   | member ENCRYPT args = encryptionAction False args procrypt (args ! ENCRYPT)
   | member DECRYPT args = encryptionAction True args procrypt (args ! DECRYPT)
-  | member GENKEYS args = keygenAction (map dropElementInfo config)
+  | member GENKEYS args = keygenAction (member PLAIN args) (map dropElementInfo config)
   | member GENSPELL args = spellgenAction args
   | otherwise = passKeysToAction args (hashAction config)
 

@@ -1,4 +1,8 @@
-# Revision history for pshash
+# Revision history for `pshash`
+
+## 0.1.17.2
+
+* Renamed `--no-prompts` to `--plain` and made it affect the output of `--gen-keys`.
 
 ## 0.1.17.1
 

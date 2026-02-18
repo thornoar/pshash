@@ -460,7 +460,7 @@ In this section, we will use a specific source configuration $\conf$, particular
 
 Therefore, every password produced with this configuration will contain a total of $25$ symbols, $8$, $8$, $5$ and $4$ from their respective categories.
 
-We will also assume that an adversary can perform $10^{10}$ password checks per second, i.e. 0.1 nanosecond to perform one operation such as computing a pseudo-hash or computing a key pair that produces a given pseudo-hash value. This measure is in fact extremely conservative. For example, running \verb|openssl speed -evp sha256| to benchmark the speed of SHA256 on an 22-core Intel Ultra 9 185H CPU has yielded a speed of $10,000,000$ hashes per second, or 100 nanoseconds per hash. We assume here that \texttt{pshash} is $1,000$ times faster, whereas in fact it must be orders of magnitude slower, due to the fact that is must perform many arithmetic operations on arbitrary-precision integers. This conservative speed estimate serves as a guarantee of security for a long period of time, even when processors become a million times faster than they are today.
+We will also assume that an adversary can perform $10^{10}$ password checks per second, i.e. 0.1 nanosecond to perform one operation such as computing a pseudo-hash or computing a key pair that produces a given pseudo-hash value. This measure is in fact extremely conservative. For example, running \verb|openssl speed -evp sha256| to benchmark the speed of SHA256 on an 22-core Intel Ultra 9 185H CPU has yielded a speed of $10,000,000$ hashes per second, or 100 nanoseconds per hash. We assume here that \texttt{pshash} is $1,000$ times faster, whereas in fact it must be orders of magnitude slower, due to the fact that it must perform many arithmetic operations on arbitrary-precision integers. This conservative speed estimate serves as a guarantee of security for a long period of time, even when processors become a million times faster than they are today.
 
 We will now consider various attacks on the pseudo-hashes produced by \texttt{pshash}.
 
@@ -526,9 +526,7 @@ For the primary implementation of the $\h(-, -, -)$ function, we have chosen the
 
 The primary implementation is a CLI program running in the console. It was designed without any GUI in order to make it more lightweight and portable, as well as faster. It is fully open-source, with source code available on GitHub \cite{pshash-src}, together with installation instructions.
 
-The general invocation of \texttt{pshash} is \verb|$ pshash PUBLIC CHOICE SHUFFLE|, providing the public key and the choice-shuffle private key-pair. In addition, the program has many flags and options, all of which can be viewed by invoking \verb|$ pshash --help|.
-
-In the following subsections we will consider some important features of the implementation.
+The general invocation of \texttt{pshash} is \verb|$ pshash PUBLIC CHOICE SHUFFLE|, providing the public key and the choice-shuffle private key-pair. To avoid passing secrets directly as command-line arguments, the user may omit any of the three arguments and provide them via \texttt{stdin}. In addition, the program has many flags and options, all of which can be viewed by invoking \verb|$ pshash --help|. We will expand on some of the most important features below.
 
 \subsection{Simplified Key Input and Generation}
 
@@ -559,20 +557,40 @@ ERROR:
   |_Trace while computing hash, getting the *choice* key:
   | |_Both numeric and mnemonic read methods failed:
   |   |_FAILED TO READ "*asd*" AS *integer*.
-  |   |_UNKNOWN MNEMONIC SYLLABLE: "*as*"
+  |   |_UNKNOWN MNEMONIC SYLLABLE: "*as*".
   |_Trace while computing hash, getting the *shuffle* key:
     |_Both numeric and mnemonic read methods failed:
       |_FAILED TO READ "*asd*" AS *integer*.
-      |_UNKNOWN MNEMONIC SYLLABLE: "*as*"
+      |_UNKNOWN MNEMONIC SYLLABLE: "*as*".
 \end{verbatim}
 
 On UNIX-based systems, the error output will also be colored to highlight the relevant parts. Such a detailed error output is achieved via the concept of monadic data structures prevalent in functional programming languages. In essence, most functions in the \texttt{pshash} implementation source code return may return either a value or an error object which keeps a trace of error messages. The error system makes \texttt{pshash} reliable in the sense that, if the program runs without errors, the user can be sure that all inputs were interpreted correctly and the resulting pseudo-hash can be safely used.
 
 \subsection{Key Retrieval}
 
+As mentioned before, if the final pseudo-hash $h$ and, say, the choice private key $k_1$ are given, one can solve the equation $h = \h(\conf, k_1, x)$ to find the shuffle key $k_2$ (modulo the spread of $\s$, of course). Similarly, the choice key (modulo the spread of $\mc$) can be retrieved from the shuffle key and the final pseudo-hash.
 
+Since this can be done, there is no reason why this functionality should not be included in the implementation of \texttt{pshash}. By invoking \verb|$ pshash -q KEYWORD|, where \verb|KEYWORD| is either \verb|public|, \verb|choice|, or \verb|shuffle|, the user will be prompted for the two remaining keys and the final pseudo-hash, after which the desired key will be printed to the console.
+
+This functionality is useful if the user forgets one key but not the other, and has access to one of the passwords produced with that key-pair. 
+
+Moreover, the \verb|--list| flag allows to print the first $N$ choice-shuffle key-pairs that produce a given pseudo-hash with a given public key.
 
 \subsection{Specifying the Source Configuration} \label{conf}
+
+The source configuration $\conf$ is not given to \texttt{pshash} as a direct argument, but optionally specified with one of the \verb|-k|, \verb|-n|, and \verb|-c| flags. See \verb|$ pshash --help| for more details.
+
+Since different websites have different password requirements, the implementation of \texttt{pshash} provides many built-in source configuration templates. The default is the one given in Section \ref{security}, and it will be used if no other is specified. The default configuration produces passwords that are accepted by most websites, but for rare cases there are purely alphanumeric templates of different sizes, as well as pin code templates.
+
+Additionally, the user can write a \emph{configuration file} which specifies source configurations for different public keys. This file can then be read from a standard location if the \verb|--impure| flag is passed to \texttt{pshash}. Note that the default behavior of \texttt{pshash} is to ignore all configuration files, to ensure that the program functions deterministically and gives the same outputs on any machine. The \verb|-f PATH| can also be passed, which automatically implies \verb|--impure| and will cause \texttt{pshash} to read the configuration file from \verb|PATH|. For details on the configuration file format, see \verb|$ pshash --help|.
+
+\subsection{Replacing Passwords}
+
+If one of the passwords produced by \texttt{pshash} is compromised, the safest option is to create a new random key-pair and change all passwords. However, this is obviously inconvenient. For this reason, the \texttt{pshash} implementation provides a ``public key patch'' mechanism. Patches can be specified with the \verb|-p| flag, as in \verb|$ pshash PUBLIC -p N|. This will shift all characters in \verb|PUBLIC| by \verb|N| modulo $128$, and then use the ``patched'' public key as usual.
+
+We readily see that \verb|$ pshash PUBLIC -p 0| is equivalent to \verb|$ pshash PUBLIC|, and that different patches produce different final pseudo-hashes, as long as \verb|N| is between $0$ and $128$.
+
+This way, a user who needs a new password for, say, \verb|spotify|, can invoke \verb|$ pshash spotify -p 1| instead of\\ \verb|$ pshash spotify|. In order not to keep all patch values in their head, the user may also save them in the configuration file.
 
 \subsection{File Encryption}
 

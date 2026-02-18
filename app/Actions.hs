@@ -20,7 +20,7 @@ import Info
 import Encryption
 
 currentVersion :: String
-currentVersion = "0.1.17.1"
+currentVersion = "0.1.17.2"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -110,7 +110,7 @@ infoAction config "help" = do
       let show' :: [([Char],Integer)] -> String
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"
       putStrLn . unlines $
-          "usage: pshash [ --help | --version | --list | --pure | --impure | --no-prompts ]"
+          "usage: pshash [ --help | --version | --list | --pure | --impure | --plain ]"
         : "              [ --ask-repeat | --show | --gen-keys | --gen-spell ]"
         : "              [ +color | +no-color ]"
         : "              [ -k|n|c|i|q|f|p|e|d|r ARGUMENT ]"
@@ -153,7 +153,8 @@ infoAction config "help" = do
         : ""
         : "  --impure            enable configuration file usage"
         : ""
-        : "  --no-prompts        omit prompts"
+        : "  --plain             omit prompts and other auxiliary output when"
+        : "                      appropriate"
         : ""
         : "  --ask-repeat        ask the user to repeat keys, which is useful when"
         : "                      generating passwords for the first time"
@@ -298,15 +299,19 @@ listPairsAction config publicStr limitStr hashStr =
         Error tr -> return (Error $ "Trace while reading number of pairs to print:" :=> [tr])
         Content limit -> sequence' $ take' limit $ map (handleWith putStrLn  . getPair) [0 .. numberOfShuffleKeys' config - 1]
 
-keygenAction :: [(Integer, Integer)] -> IO (Result ())
-keygenAction amts = do
+keygenAction :: Bool -> [(Integer, Integer)] -> IO (Result ())
+keygenAction plain amts = do
   g <- getStdGen
   let choice = fst $ randomR (0, numberOfChoiceKeys amts) g :: Integer
       shuffle = fst $ randomR (0, numberOfShuffleKeys $ map snd amts) g :: Integer
-  putStrLn $ "private choice key:  " ++ show choice
-  putStrLn $ "       incantation:  " ++ getMnemonic choice
-  putStrLn $ "private shuffle key: " ++ show shuffle
-  putStrLn $ "       incantation:  " ++ getMnemonic shuffle
+  if plain then do
+    print choice
+    print shuffle
+  else do
+    putStrLn $ "private choice key:  " ++ show choice
+    putStrLn $ "       incantation:  " ++ getMnemonic choice
+    putStrLn $ "private shuffle key: " ++ show shuffle
+    putStrLn $ "       incantation:  " ++ getMnemonic shuffle
   return (Content ())
 
 spellgenAction :: Map OptionName String -> IO (Result ())

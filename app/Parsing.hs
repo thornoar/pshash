@@ -12,7 +12,7 @@ import Data.List (intercalate)
 data OptionName =
     KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT | ROUNDS
   | CONFIGFILE
-  | PURE | IMPURE | LIST | NOPROMPTS | SHOW | ASKREPEAT | HELP | VERSION | GENKEYS | GENSPELL
+  | PURE | IMPURE | LIST | PLAIN | SHOW | ASKREPEAT | HELP | VERSION | GENKEYS | GENSPELL
   | FIRST | SECOND | THIRD
   | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
@@ -100,7 +100,7 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE [] <$> parseArgs trp rest
   "impure" -> insert' IMPURE [] <$> parseArgs trp rest
   "list" -> insert' LIST [] <$> parseArgs trp rest
-  "no-prompts" -> insert' NOPROMPTS [] <$> parseArgs trp rest
+  "plain" -> insert' PLAIN [] <$> parseArgs trp rest
   "ask-repeat" -> insert' ASKREPEAT [] <$> parseArgs trp rest
   "show" -> insert' SHOW [] <$> parseArgs trp rest
   "gen-keys" -> insert' GENKEYS [] <$> parseArgs trp rest
@@ -186,7 +186,7 @@ setEchoesAndPrompts args
   | member INFO args = args
   | member QUERY args =
       insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
-        if member NOPROMPTS args
+        if member PLAIN args
         then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
         else case args ! QUERY of
             "public" -> insert' P1 "CHOICE KEY: " . insert' P2 "SHUFFLE KEY: "
@@ -196,19 +196,19 @@ setEchoesAndPrompts args
           $ insert' P3 "FINAL HASH: " args
   | member LIST args =
       insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
-      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "NUMBER OF PAIRS: " . insert' P3 "FINAL HASH: ")
+      (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "NUMBER OF PAIRS: " . insert' P3 "FINAL HASH: ")
       args
   | member ENCRYPT args || member DECRYPT args =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
-      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "KEY 1: " . insert' P3 "KEY 2: ")
+      (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "KEY 1: " . insert' P3 "KEY 2: ")
       args
   | member GENSPELL args =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
-      ((if member NOPROMPTS args then insert' P1 "" else insert' P1 "NUMERIC KEY: ") . insert' P2 "" . insert' P3 "")
+      ((if member PLAIN args then insert' P1 "" else insert' P1 "NUMERIC KEY: ") . insert' P2 "" . insert' P3 "")
       args
   | otherwise =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
-      (if member NOPROMPTS args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: " . insert' P3 "SHUFFLE KEY: ")
+      (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: " . insert' P3 "SHUFFLE KEY: ")
       args
 
 parseArgs' :: (Bool, Bool, Bool) -> [String] -> IO (Result (Map OptionName String))

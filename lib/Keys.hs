@@ -43,7 +43,7 @@ commonCombinations = [
 readMnemonic :: [[Char]] -> Result [Char]
 readMnemonic [] = Content []
 readMnemonic (pt:rest) = case elemIndex pt commonCombinations of
-  Nothing -> Error $ ("<Unknown mnemonic syllable: \"{{" ++ pt ++ "}}\">") :=> []
+  Nothing -> Error $ ("<Unknown mnemonic syllable: \"{{" ++ pt ++ "}}\".>") :=> []
   Just n ->
     let sn = show n
      in fmap ((replicate (2 - length sn) '0' ++ sn) ++) (readMnemonic rest)
