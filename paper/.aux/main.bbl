@@ -5,6 +5,10 @@
 \newblock \url{https://1password.com/}.
 \newblock Accessed: 17 Feb 2026.
 
+\bibitem{gmp}
+{GNU Multiple Precision Arithmetic Library}.
+\newblock \url{https://gmplib.org/}.
+
 \bibitem{google}
 {Google}.
 \newblock \url{https://www.google.com/chrome/}.
@@ -22,6 +26,14 @@
 \bibitem{pshash-src}
 {Source code for the primary implementation of} \texttt{pshash}.
 \newblock \url{https://github.com/thornoar/pshash}.
+
+\bibitem{pshash-app-src}
+{Source code for the} \texttt{pshash} android application.
+\newblock \url{https://github.com/thornoar/pshash-app}.
+
+\bibitem{pshash-gui-src}
+{Source code for the} \texttt{pshash} desktop application.
+\newblock \url{https://github.com/thornoar/pshash-gui}.
 
 \bibitem{serious}
 J.~Aumasson.

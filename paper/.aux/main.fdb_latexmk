@@ -1,17 +1,17 @@
 # Fdb version 4
-["bibtex .aux/main"] 1771376302.13799 ".aux/main.aux" ".aux/main.bbl" ".aux/main" 1771376667.28077 0
-  "./main.bib" 1771334123.90522 4940 13f40d9eec122b5edac61ab7aeacdf11 ""
-  ".aux/main.aux" 1771376667.11467 4472 ca1867a23a41ed822e5bd3eaf3ae3aba "pdflatex"
+["bibtex .aux/main"] 1771386948.24051 ".aux/main.aux" ".aux/main.bbl" ".aux/main" 1771386948.91637 0
+  "./main.bib" 1771386905.38172 5391 633cc4f03d3f71c6c56e382a799ceadd ""
+  ".aux/main.aux" 1771386948.74459 4831 e384e93e16b60e57a34e5c25955b4b10 "pdflatex"
   "/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/bibtex/bst/base/abbrv.bst" 1 20329 b5fed53e10044d0f8112183785c759b1 ""
   (generated)
   ".aux/main.bbl"
   ".aux/main.blg"
   (rewritten before read)
-["pdflatex"] 1771376666.69038 "./main.tex" "main.pdf" "main" 1771376667.2809 0
-  "./main.tex" 1771376665.71673 52411 c031c824a4317882e90abb0d32e065f1 ""
-  ".aux/main.aux" 1771376667.11467 4472 ca1867a23a41ed822e5bd3eaf3ae3aba "pdflatex"
-  ".aux/main.bbl" 1771376302.18562 2118 c24e4bf1b7974ab8525526f6b27ac0ec "bibtex .aux/main"
-  ".aux/main.out" 1771376667.11467 3927 f18ba04225e399e9b9b534d939b5dbbf "pdflatex"
+["pdflatex"] 1771386948.29665 "./main.tex" "main.pdf" "main" 1771386948.91651 0
+  "./main.tex" 1771386947.44377 55995 3aa4c944d5e188b4404db2c405d28b1c ""
+  ".aux/main.aux" 1771386948.74459 4831 e384e93e16b60e57a34e5c25955b4b10 "pdflatex"
+  ".aux/main.bbl" 1771386948.29158 2497 dd2bacbc157e1891a5f54688d4acc219 "bibtex .aux/main"
+  ".aux/main.out" 1771386948.74559 4021 ca035a25594f88af155d6cf90e3ee1fe "pdflatex"
   "/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/enc/dvips/tex-gyre/q-rm.enc" 1 2409 c64dab22331c83731e970f6020b4448b ""
   "/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/enc/dvips/tex-gyre/q-ts1.enc" 1 3124 3813fd4c981d99822890a2861b0d274c ""
@@ -129,7 +129,7 @@
   "/nix/store/fkrvjv6sp5k6706r4iwsb8phwbjrlqfj-texlive-combined-2025/share/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1 5523635 ae7f280f9c87a20997cb858dffb8824e ""
   "/nix/store/fkrvjv6sp5k6706r4iwsb8phwbjrlqfj-texlive-combined-2025/share/texmf-var/web2c/pdftex/pdflatex.fmt" 1 3600242 8d4cd588a5a30bdf6b38d9762459dcba ""
   "/nix/store/fkrvjv6sp5k6706r4iwsb8phwbjrlqfj-texlive-combined-2025/share/texmf-var/web2c/texmf.cnf" 1 44007 d92b95bf14ec1447abe1b377328a62d3 ""
-  "main.tex" 1771376665.71673 52411 c031c824a4317882e90abb0d32e065f1 ""
+  "main.tex" 1771386947.44377 55995 3aa4c944d5e188b4404db2c405d28b1c ""
   (generated)
   ".aux/main.aux"
   ".aux/main.log"

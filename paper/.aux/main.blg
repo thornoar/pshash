@@ -7,52 +7,55 @@ Warning--to sort, need author or key in 1password
 Warning--to sort, need author or key in google
 Warning--to sort, need author or key in firefox
 Warning--to sort, need author or key in pshash-src
+Warning--to sort, need author or key in gmp
+Warning--to sort, need author or key in pshash-gui-src
 Warning--to sort, need author or key in pshash
+Warning--to sort, need author or key in pshash-app-src
 Warning--empty booktitle in large
 Warning--empty booktitle in gasti
 Warning--empty booktitle in conv
 Warning--empty booktitle in mirkovic
 Warning--empty booktitle in again
 Warning--empty journal in ross
-You've used 13 entries,
+You've used 16 entries,
             2118 wiz_defined-function locations,
-            557 strings with 5431 characters,
-and the built_in function-call counts, 4207 in all, are:
-= -- 392
-> -- 183
+            566 strings with 5732 characters,
+and the built_in function-call counts, 4684 in all, are:
+= -- 437
+> -- 186
 < -- 5
-+ -- 78
++ -- 81
 - -- 62
-* -- 253
-:= -- 620
-add.period$ -- 38
-call.type$ -- 13
-change.case$ -- 69
+* -- 268
+:= -- 671
+add.period$ -- 44
+call.type$ -- 16
+change.case$ -- 78
 chr.to.int$ -- 0
-cite$ -- 24
-duplicate$ -- 177
-empty$ -- 371
+cite$ -- 30
+duplicate$ -- 198
+empty$ -- 440
 format.name$ -- 62
-if$ -- 940
+if$ -- 1060
 int.to.chr$ -- 0
-int.to.str$ -- 13
+int.to.str$ -- 16
 missing$ -- 9
-newline$ -- 66
+newline$ -- 78
 num.names$ -- 16
-pop$ -- 130
+pop$ -- 154
 preamble$ -- 1
-purify$ -- 57
+purify$ -- 63
 quote$ -- 0
-skip$ -- 144
+skip$ -- 168
 stack$ -- 0
-substring$ -- 199
-swap$ -- 53
+substring$ -- 214
+swap$ -- 56
 text.length$ -- 5
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 50
-warning$ -- 11
+type$ -- 62
+warning$ -- 14
 while$ -- 27
-width$ -- 15
-write$ -- 124
-(There were 11 warnings)
+width$ -- 18
+write$ -- 145
+(There were 14 warnings)

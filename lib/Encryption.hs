@@ -41,7 +41,8 @@ processBlock !perm !blk = B.map (B.index blk . fromIntegral) perm
 buildStream :: Integer -> B.ByteString -> B.ByteString -> [B.ByteString]
 buildStream 0 _ _ = []
 buildStream n perm prev =
-  let cur = processBlock perm (xorbs prev defaultSeed) in cur : buildStream (n-1) perm cur
+  let cur = processBlock perm (xorbs prev defaultSeed)
+   in cur : buildStream (n-1) perm cur
 
 procrypt :: Int -> (B.ByteString, B.ByteString) -> Integer -> Integer -> B.ByteString
 procrypt r (iv, plaintext) k1 k2 =
