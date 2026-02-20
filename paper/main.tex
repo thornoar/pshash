@@ -50,7 +50,8 @@
   Roman Maksimovich\\
   \href{mailto:rmaksimovich@connect.ust.hk}{rmaksimovich@connect.ust.hk}
 }
-\date{March 26, 2024}
+% \date{March 26, 2024}
+\date{\today}
 
 \newcommand{\N}{\mathbb{N}}
 \newcommand{\wo}{\mathbin{!}}
@@ -77,26 +78,26 @@ The traditional model of password management has been failing for the past 25-30
 To combat this problem, we introduce \texttt{pshash} --- a deterministic ``on-the-fly'' password generation algorithm based on selecting characters from predefined sources. The selection of characters and their order are derived from two secret numbers (the "choice key" and "shuffle key") provided by the user, and the resulting character string can be used as a password. The algorithm resembles a hash function in many ways, however it is not cryptographically secure in the usual sense. Yet it still satisfies the conditions for being a \emph{universal hash function}, and we argue that this is sufficient for secure password generation. Its main benefits are simplicity (it is implemented in under 200 lines of code) and independence (it does not draw on any pre-existing algorithms or cryptographic notions). This comes at the cost of convenience, as the user is required to memorize a relatively large amount of entropy to achieve good security. However, we argue that practice can mitigate this drawback, and the benefits of security and minimalism are worth it.
 
 \textbf{Keywords:}
-Passwords, Authentication, Combinatorics, Functional Programming
+Passwords, Authentication, Combinatorics, Set Functions, Injectivity, Functional Programming
 
 \section{Introduction} \label{intro}
 
 In our time, the average computer user has more than 40 different accounts which require usernames and passwords \cite{mirkovic}. Overall, we can distinguish between three methods of managing them, in increasing levels of security and decreasing levels of convenience:
 
 \begin{itemize}
-  \item \textbf{Memorizing passwords directly.} Much like the one-time pad encryption scheme (\cite{serious}, page 40), this method theoretically provides the best possible security, assuming that all passwords are strong and have no connection to each other. Unfortunately, with a large number of passwords this assumption fails entirely. Statistical studies report that most people reuse their passwords between both important sites (e.g. banking, work-related) and less critical sites (e.g. forums, social media), and overall choose weak passwords for the sake of simplicity \cite{large}, \cite{mirkovic}, \cite{again}. Naturally, this leads to the idea of using computer-assisted password management.
+  \item \textbf{Memorizing passwords directly.} Much like the one-time pad encryption scheme (\cite{serious}, page 40), this method theoretically provides the best possible security, assuming that all passwords are strong and have no connection to each other. Unfortunately, with a large number of passwords this assumption fails entirely. Statistical studies report that most people reuse their passwords between both important sites (e.g. banking, work-related) and less critical sites (e.g. forums, social media), and overall choose weak passwords for the sake of simplicity \cite{large}, \cite{mirkovic}, \cite{again}. Naturally, this leads to the idea of computer-assisted password management.
 
   \item \textbf{Using a password manager.} These are software programs that can store a user's passwords in an encrypted database, allowing the user to decrypt it using a \emph{master password}. Examples include 1Password \cite{1password}, Google Chrome \cite{google}, and Mozilla Firefox \cite{firefox}. A great advantage of password managers is the ability to create random and provably strong passwords on behalf of the user. However, password managers have been criticised for insecure database storage formats \cite{gasti} and auto-fill policies \cite{attacks}, which both leave doors for various attacks. It appears that the sources of most vulnerabilities are 1) the fact that passwords are stored on disk, albeit in an encrypted form; and 2) the tight integration of password managers with browsers, provided for the sake of convenience and some security features such as defence against phishing and spoofing \cite{ross}. Additionally, many password managers are closed-source, which hinders one's trust that the password manager will not abuse the passwords it stores.
 
-  \item \textbf{Using a deterministic ``on-the-fly'' password generator.} These are programs that allow the user to derive a password from their identity and a secret master password, using a stateless (usually hash-based) function. An example is PwdHash \cite{ross}. This approach eliminates the problem of storage, since nothing is ever stored on disk. However, being based on well-known hash functions opens such schemes to dictionary attacks and brute-force attacks, although mitigated in \cite{conv}. Still, deterministic password generators are still more complicated than they could be, and they often require users to provide their identity, which hinders anonymity.
+  \item \textbf{Using a deterministic ``on-the-fly'' password generator.} These are programs that allow the user to derive a password from their identity and a secret master password, using a stateless (usually hash-based) function. An example is PwdHash \cite{ross}. This approach eliminates the problem of storage, since nothing is ever stored on disk. However, being based on well-known hash functions opens such schemes to dictionary attacks and brute-force attacks, although mitigated in \cite{conv}. In addition, deterministic password generators are still more complicated than they could be, and they often require users to provide their identity, a requirement that should not be necessary.
 \end{itemize}
 
-In this paper, we specify a new ``on-the-fly'' password generation algorithm \texttt{pshash} that differs from its alternatives in two important ways:
+In this paper, we describe a new ``on-the-fly'' password generation algorithm \texttt{pshash} that differs from its alternatives in two important ways:
 
 \begin{itemize}
-  \item \texttt{pshash} is extremely minimalistic (written in under 200 lines of code) and standalone, which makes it very portable and easy to implement on any platform and in any programming language that supports arbitrary-precision arithmetic (see Section \ref{impl} for a discussion of \texttt{pshash}'s implementation). The program is detached from any external service or browser, making it invulnerable to supply chain attacks.
+  \item \texttt{pshash} is extremely minimalistic (written in under 200 lines of code) and standalone, which makes it very portable and easy to implement on any platform and in any programming language that supports arbitrary-precision arithmetic (see Section \ref{impl} for a discussion of \texttt{pshash}'s implementation). The program is detached from any external service or browser.
 
-  \item Our algorithm uses a custom universal hash function instead of the ``industry standards'' of cryptographic hashing such as SHA-256 or Salsa20. This means that our algorithm is immune to attacks targeting these hash functions, such as dictionary attacks.
+  \item Our algorithm uses a custom universal hash function instead of the ``industry standards'' of cryptographic hashing such as SHA-256 or Salsa20. This means that our algorithm is immune to attacks targeting these hash functions, such as dictionary attacks which use pre-computed hash tables.
 \end{itemize}
 
 The above benefits come at the cost of convenience, which means that \texttt{pshash} is probably ill-suited for mass adoption. However, it fits perfectly for technically educated users who do not mind memorizing a couple of 20+ digit numbers for the sake of security.
@@ -106,12 +107,12 @@ The above benefits come at the cost of convenience, which means that \texttt{psh
 In this section, we give a full description of \texttt{pshash}. The algorithm is a pure stateless function that takes as input three values:
 
 \begin{itemize}
-  \item The domain name (or any other distinct identifier) of the website for which a password is required, called the \emph{public key} and denoted $p$;
+  \item The domain name (or any other distinct identifier, for that matter) of the website for which a password is required, called the \emph{public key} and denoted $p$;
   \item A secret non-negative integer $k_1$ which lies in a vast range (on the order of $2^{142}$, typically), called the \emph{choice private key};
   \item Another secret non-negative integer $k_2$, which lies in a smaller range of numbers (on the order of $2^{83}$, typically), called the \emph{shuffle private key}.
 \end{itemize}
 
-The function returns a string of characters which we call a ``pseudo-hash'' since it is not a full cryptographic hash but has some of its properties. \texttt{pshash} does not derive the characters from the keys directly, but instead uses them to select characters from predefined \emph{sources}, which makes it much easier to make sure the pseudo-hash complies with a website's password requirements. The algorithm also supports different password templates, called \emph{source configurations.} We will now consider the algorithm in detail.
+The function returns a string of characters which we call a ``pseudo-hash'' since it is not a full cryptographic hash but has some of its properties. \texttt{pshash} does not produce characters from the keys directly, but instead uses them to select characters from predefined strings, which makes it easier to naturally ensure that the pseudo-hash complies with a website's password requirements. The algorithm also supports different password templates, called \emph{source configurations.} We will now consider the algorithm in detail.
 
 \subsection{Preliminary Terminology and Notation}
 
@@ -123,19 +124,19 @@ The symbol ``$\#$'' will be used to denote the number of ways to make a combinat
 
 The expression $[A]$ will denote the set of all ordered lists composed from elements of the set $A$. We assume that all elements in a list are distinct. Every list can therefore be considered a source. The subset $[A]_m \subset [A]$ will include only the lists of length $m$. Extending this notation, we will define $[A_0, A_1, ..., A_{N-1}]$ as the set of lists $\alpha = [a_0, a_1, ..., a_{N-1}]$ of length $N$, where the first element is from $A_0$, the second from $A_1$, and so on, until the last one from $A_{N-1}$. Finally, if $\alpha \in [A]$ and $\beta \in [B]$, the list $\alpha \uplus \beta \in [A \cup B]$ will denote the concatenation of lists $\alpha$ and $\beta$.
 
-Let $\alpha$ be a list. By $|\alpha|$ we will denote its length, while $\alpha : i$ will represent its $i$-th element, with the enumeration starting from $i = 0$. By contrast, the expression $\alpha \wo i$ will denote the list $\alpha$ without its $i$-th element. All sources are associated with the ordered list of all their elements, and so expressions like $E : i$ and $|E|$ also have meaning for a source $E$.
+Let $\alpha$ be a list. By $|\alpha|$ we will denote its length, while $\alpha : i$ will represent its $i$-th element, with the enumeration starting from $i = 0$. By contrast, the expression $\alpha \wo i$ will denote the list $\alpha$ without its $i$-th element. All sources are also lists, since their elements are ordered, and so expressions like $E : i$ and $|E|$ also have meaning for a source $E$.
 
 Let $k \in \N_0, n \in \N$. The numbers $\li^n k, \li_n k \in \N_0$ are defined to be such that $0 \leq \li^n k < n$ and $\li_n k \cdot n + \li^n k = k$.  The number $\li^n k$ is the remainder after division by $n$, and $\li_n k$ is the result of division.
 
 For a number $n \in \N$, the expression $(n)$ will denote the semi-open integer interval from $0$ to $n$, $(n) = \{0, ..., n-1\}$.
 
-Let $n,m \in \N,\ m \leq n$. The quantity $n!/(n-m)!$ will be called a \emph{relative factorial} and denoted by $\rf{n}{m}$.
+Let $n,m \in \N,\ m \leq n$. The quantity $n!/(n-m)! = n \cdot (n-1) \cdot \ldots \cdot (n-m+1)$ will be called a \emph{relative factorial} and denoted by $\rf{n}{m}$. Note that $\rf{n}{1} = n$ and $\rf{n}{n} = n!$.
 
 Consider a function $f$ of many arguments $a_0, a_2, ..., a_{n-1}$. Then with the expression $f(a_0, ..., a_{i-1}, -, a_{i+1}, ..., a_{n-1})$ we will denote the function of one argument $a_i$ where all others are held constant.
 
 \subsection{Enumerating List Selections}
 
-The purpose of the public key $p$ is solely to allow the user to generate different passwords with the same set of private keys. Therefore, it need not be an integral part of the core \emph{pshash} algorithm. In this and the following subsections we will build the function $\h(\conf, k_1, k_2)$ which accepts a source configuration and two private keys to produce a pseudo-hash, and we will explain the origin of the decision to use two private keys instead of one.\\
+The purpose of the public key $p$ is solely to allow the user to generate different passwords with the same set of private keys. Therefore, it need not be an integral part of the core \texttt{pshash} algorithm. In this and the following subsections we will build the function $\h(\conf, k_1, k_2)$ which accepts a source configuration and two private keys to produce a pseudo-hash, and the public key will be introduced later.\\
 
 \begin{definition}[First-order choice function]
   \label{c1ek}
@@ -163,10 +164,10 @@ Trivially, if $\spr{f} \geq n$, then $f$ is injective on $(n)$, but the converse
   \[
     h(k) = [f(\li^n k),\ g(\li_n k + T(\li^n k))],
   \]
-  where $T \colon \N_0 \to \N_0$ is a fixed function, referred to as the \textbf{argument shift function.} It is then stated that $\spr{h} \geq n m$.
+  where $T \colon \N_0 \to \N_0$ is a fixed function, referred to as an \textbf{argument shift function.} It is then stated that $\spr{h} \geq n m$.
 \end{proposition}
 \begin{proof}
-  Assume that $k_1 \ne k_2$ and $h(k_1) = h(k_2)$. Since $h$ returns an ordered list, the equality of lists is equivalent to the equality of all their respective entries:
+  Assume that $k_1 \ne k_2$ and $h(k_1) = h(k_2)$. Since $h$ returns an ordered list, the equality of lists is equivalent to the equality of both their respective entries:
   \begin{align*}
     f(\li^n k_1) &= f(\li^n k_2),\\
     g(\li_n k_1 + T(\li^n k_1)) &= g(\li_n k_2 + T(\li^n k_2)).
@@ -189,7 +190,7 @@ With this proposition at hand, we have a natural way of extending the definition
   \[
     \cc^m (E,k) = [E : \li^n k] \uplus \cc^{m-1}(E', k'),
   \]
-  where $E' = E \wo \li^n k$ and $k' = \li_n k + T(\li^n k)$, while $T \colon \N_0 \to \N_0$ is a fixed argument shift function.\\
+  where $E' = E \wo \li^n k$ and $k' = \li_n k + T(\li^n k)$, while $T \colon \N_0 \to \N_0$ is some fixed argument shift function.\\
 \end{definition}
 
 \begin{proposition}
@@ -217,7 +218,7 @@ These properties make the choice function a fine candidate for a pseudo-hash map
   \text{\texttt{"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789!@\#\$\%"}}
 \]
 
-The choice function gives us a way to enumerate all possible ways to select a sub-list from $E$. What is more, these selections can be made more ``random'' and unpredictable by means of complicating the argument shift function $T$. A reasonable practice is to set $T(\li^n k)$ to the ASCII value of the character $E : \li^n k$. This way, each chosen character will influence the choice of the next, creating what is called a ``chaotic system'', where its behavior is fully determined, but even small changes to inputs eventually produce large changes in the output. Here is a little input-output table for the choice function of order 10 with the specified source and shift function:
+The choice function gives us a way to enumerate all possible ways to select a sub-list from $E$. What is more, these selections can be made more ``random'' and unpredictable by means of complicating the argument shift function $T$. For example, we may set $T(\li^n k)$ to the ASCII value of the character $E : \li^n k$. This way, each chosen character will influence the choice of the next, creating somewhat of a ``chaotic transformation'', where its behavior is fully determined, but even small changes to inputs produce large changes in the output. Here is a little input-output table for the choice function of order 10 with the specified source and shift function:
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
@@ -245,7 +246,7 @@ There is, however, a serious problem. This selection method does not guarantee t
   \[
     \elv(\conf, k) = \left[ \cc^{m_0}(E_0, \li^{n_0} k) \right] \uplus \elv(\conf \wo 0, \li_{n_0} k + T(\li^{n_0} k)),
   \]
-  where $T$ is an argument shift function. The base of the recursion is given when $\conf$ is empty, in which case $\elv([], k) = []$. Otherwise, for every key $k$, its image under $\elv(\conf, -)$ is an element of
+  where $T \colon \N_0 \to \N_0$ is an argument shift function. The base of the recursion is given when $\conf$ is empty, in which case $\elv([], k) = []$. Otherwise, for every key $k$, its image under $\elv(\conf, -)$ is an element of
   \[
     \operatorname{cod} \left( \elv(\conf, -) \right) = \left[ [E_0]_{m_0}, [E_1]_{m_1}, ..., [E_N]_{m_N} \right].
   \]
@@ -263,7 +264,7 @@ This solves the problem with lacking symbol categories --- now we can separate u
 
 \begin{itemize}
   \item The result of the elevated choice function will be something like \texttt{"amwYXT28@!"}, which is not a bad password, but it would be nice to be able to shuffle the individual selections between each other instead of lining them up one after another.
-  \item Despite the fact that the argument shift function makes the password selection chaotic, the function is a bijection, which means that it can be reversed. With sufficient knowledge of the algorithm, an attacker can write an inverse algorithm that retrieves the private key from the resulting password. This is a deal breaker for our function, because it defeats the purpose --- you may as well have one password for everything. The way to solve this problem is to make the choice function artificially non-injective, or non-collision-free, in a controlled way. In such case, many different keys will produce the same password, and it will be impossible to know which one of them is the correct one. This violates the common non-collision property of hash functions, but it is necessary given the nature of the function we are building.
+  \item Despite the fact that the argument shift function makes the password selection chaotic, the function is a bijection, which means that it can be reversed. With sufficient knowledge of the algorithm, an attacker can write an inverse algorithm that retrieves the private key from the resulting password. The way to solve this problem is to make the choice function artificially non-injective, or non-collision-free, in a controlled way. In such case, many different keys will produce the same password, and it will be impossible to know which one of them is the correct one. This violates the common non-collision property of hash functions, but it is necessary given the nature of the function we are building.
 \end{itemize}
 
 We will solve one problem at a time.
@@ -280,7 +281,7 @@ We will solve one problem at a time.
   \[
     h(a, k) = g(f(a, \li^n k), \li_n k + T(\li^n k)),
   \]
-  where $T$ is an argument shift function. It is then stated that $\spr{h} \ge n m$ with respect to $k$.
+  where $T \colon \N_0 \to \N_0$ is an argument shift function. It is then stated that $\spr{h} \ge n m$ with respect to $k$.
 \end{proposition}
 \begin{proof}
   Take an element $a \in A$ and let $k_1, k_2$ be distinct numbers such that $h(a, k_1) = h(a, k_2)$. It means that
@@ -299,6 +300,7 @@ We will solve one problem at a time.
 \end{proof}
 
 \begin{definition}
+  \label{m2def}
   Let $E_1, E_2$ be two sources, $m_1, m_2$ be numbers such that $m_i \le |E_i|$ for $i = 1,2$. Define the \emph{merge function of order 2},
   \[
     \m^2 \colon [E_1]_{m_1} \times [E_2]_{m_2} \times \N_0 \to [E_1 \cup E_2]_{m_1 + m_2},
@@ -306,20 +308,38 @@ We will solve one problem at a time.
   with the following recursive procedure: for $\alpha \in [E_1]_{m_1},\ \beta \in [E_2]_{m_2},\ k \in \N_0$, consider two cases:
   \begin{enumerate}
     \item Either $\alpha$ or $\beta$ is empty, that is, $m_1 = 0$ or $m_2 = 0$. Then we set $\m^2 (\alpha, \beta, k)$ to $\alpha \uplus \beta$.
-    \item Neither $\alpha$ nor $\beta$ is empty. Then we will assume that the merge function is already refined for $(\alpha \wo 0, \beta, -)$ and $(\alpha, \beta \wo 0, -)$. Let $s_1$ be the spread of the function $\m^2(\alpha \wo 0, \beta, -)$ and $s_2$ be the spread of $\m^2 (\alpha, \beta \wo 0, -)$. Finally, denote the remainder $\li^{(s_1+s_2)}k$ by $k'$. The merge of $\alpha$ and $\beta$ with key $k$ and an argument shift function $T$ is defined as
+    \item Neither $\alpha$ nor $\beta$ is empty. Then we will assume that the merge function is already refined for $(\alpha \wo 0, \beta, -)$ and $(\alpha, \beta \wo 0, -)$. Let $s_1$ be the spread of the function $\m^2(\alpha \wo 0, \beta, -)$ and $s_2$ be the spread of $\m^2 (\alpha, \beta \wo 0, -)$. Finally, denote the remainder $\li^{(s_1+s_2)}k$ by $k'$. The merge of $\alpha$ and $\beta$ with key $k$ and an argument shift function $T \colon \alpha \uplus \beta \to \N_0$ is defined as
       \[
         \m^2(\alpha, \beta, k) = \begin{cases}
-          [\alpha : 0] \uplus \m^2(\alpha \wo 0, \beta, k' + T(k')),\ \mathrm{if}\ k' < s_1,\\
-          [\beta : 0] \uplus \m^2(\alpha, \beta \wo 0, k' + T(k')),\ \mathrm{otherwise}.\\
+          [\alpha : 0] \uplus \m^2(\alpha \wo 0, \beta, k' + T(\alpha : 0)),\ \mathrm{if}\ k' < s_1,\\
+          [\beta : 0] \uplus \m^2(\alpha, \beta \wo 0, k' + T(\beta : 0)),\ \mathrm{otherwise}.\\
         \end{cases}
       \]
   \end{enumerate}
-  The merge function takes two lists and combines them together in one, in such a way that the order of elements in each of the two lists is not disturbed. For example, the merge of $[1,2,3]$ and $[a,b,c]$ with a certain key could be $[1,a,b,2,c,3]$. We will now derive some properties of $\m^2$. If $s_1$ and $s_2$ are as defined above, we immediately see that $\m^2(\alpha, \beta, -)$ is periodic with period $s_1 + s_2$, since it depends only on $k' = \li^{(s_1 + s_2)}k$. Moreover, it is clear from the definition that $\m^2 (\alpha, \beta, -)$ is injective on the interval $(s_1 + s_2)$, which means that its spread equals exactly $s_1 + s_2$:
-  \begin{align}
-    \label{recspr}
-    \spr{\m^2(\alpha, \beta, -)} = \spr{\m^2 (\alpha \wo 0, \beta, -)} + \spr{\m^2(\alpha, \beta \wo 0, -)}.
-  \end{align}
 \end{definition}
+The merge function takes two lists and combines them together in one, in such a way that the order of elements in each of the two lists is not disturbed. For example, the merge of $[1,2,3]$ and $[a,b,c]$ with a certain key could be $[1,a,b,2,c,3]$. We will now derive some properties of $\m^2$. If $s_1$ and $s_2$ are as defined above, we immediately see that $\m^2(\alpha, \beta, -)$ is periodic with period $s_1 + s_2$, since it depends only on $k' = \li^{(s_1 + s_2)}k$. Moreover, we have the following result:\\
+
+\begin{proposition}
+  \label{m2inj}
+  If $\alpha$ and $\beta$ are non-empty lists, the function $\m^2(\alpha, \beta, -)$ is injective on the interval $(s_1 + s_2)$, where $s_1, s_2$ are as given in Definition \ref{m2def}.
+\end{proposition}
+\begin{proof}
+  Consider two numbers $k_1, k_2 \in (s_1 + s_2)$ such that
+  \[
+    \m^2(\alpha, \beta, k_1) = \m^2(\alpha, \beta, k_2) =: \gamma.
+  \]
+  Since the lists $\alpha$ and $\beta$ have empty intersection (being taken from distinct sources $E_1$ and $E_2$), we see that either $k_1, k_2 < s_1$ or $k_1, k_2 \ge s_1$, since otherwise we would have $\alpha : 0 = \gamma : 0 = \beta : 0$. If $k_1, k_2 < s_1$, we see from Definition \ref{m2def} that
+  \[
+    \m^2 (\alpha \wo 0, \beta, k_1 + T(\alpha : 0)) = \m^2 (\alpha \wo 0, \beta, k_2 + T(\alpha : 0)).
+  \]
+  Since $|k_1 - k_2| < s_1 = \spr{\m^2(\alpha \wo 0, \beta)}$, we must have $k_1 = k_2$ by the definition of spread. The case $k_1, k_2 >= s_1$ is similar.
+\end{proof}
+
+The above proposition entails that the spread of $\m^2(\alpha, \beta, -)$ equals exactly $s_1 + s_2$, since, being periodic, this function will be injective on any interval of length $s_1 + s_2$. Therefore, we have the identity
+\begin{align}
+  \label{recspr}
+  \spr{\m^2(\alpha, \beta, -)} = \spr{\m^2 (\alpha \wo 0, \beta, -)} + \spr{\m^2(\alpha, \beta \wo 0, -)}.
+\end{align}
 
 \begin{proposition}
   \label{sprm2}
@@ -334,7 +354,17 @@ We will solve one problem at a time.
   q.e.d.
 \end{proof}
 
-Using basic combinatorics, we can see that the number $(m_1 + m_2)!/(m_1 ! \cdot m_2 !)$ corresponds to the number of all possible ways to merge the lists $\alpha$ and $\beta$, which we will denote by $\#^\m (\alpha, \beta)$. It means that the function $\m^2 (\alpha, \beta, -)$ is in fact surjective, and therefore bijective, on the interval from zero to its spread. Now we will expand its definition to an arbitrary number of lists.\\
+% \begin{proposition}
+%   \label{m2surj}
+%   For any lists $\alpha \in [E_1]_{m_1}$ and $\beta \in [E_2]_{m_2}$, the function $\m^2(\alpha, \beta, -)$ is surjective.
+% \end{proposition}
+% \begin{proof}
+%   We again employ induction over $m_1 + m_2$, with the base case being where either $m_1 = 0$ or $m_2 = 0$
+% \end{proof}
+%
+% Using basic combinatorics, we can see that the number $(m_1 + m_2)!/(m_1 ! \cdot m_2 !)$ corresponds to the number of all possible ways to merge the lists $\alpha$ and $\beta$, which we will denote by $\#^\m (\alpha, \beta)$. It means that the function $\m^2 (\alpha, \beta, -)$ is in fact surjective, and therefore bijective, on the interval from zero to its spread.
+
+Now we will expand the merge function to an arbitrary number of lists.\\
 
 \begin{definition}
   Let $\overline{\alpha} = [\alpha_0, \alpha_1, ..., \alpha_{N-1}]$ be a list of lists, where $N \ge 2$ and $\alpha_i \in [E_i]_{m_i}$. Define the \emph{merge function of order $N$} recursively as follows:
@@ -342,10 +372,10 @@ Using basic combinatorics, we can see that the number $(m_1 + m_2)!/(m_1 ! \cdot
     \label{mNdef}
     \m^N (\overline{\alpha}, k) = \begin{cases}
       \m^2 (\alpha_0, \alpha_1, k),\ \ N = 2,\\
-      \m^2 (\alpha_0, \m^{N-1} (\overline{\alpha} \wo 0, \li^s k), \li_s k + T(\li^s k)),\ \ N > 2,
+      \m^2 (\alpha_0, \m^{N-1} (\overline{\alpha} \wo 0, \li^s k), \li_s k + T(\alpha_0)),\ \ N > 2,
     \end{cases}
   \end{align}
-  where $s$ is the spread of the function $\m^{N-1} (\overline{\alpha} \wo 0, -)$, and $T$ is an argument shift function.\\
+  where $s$ is the spread of the function $\m^{N-1} (\overline{\alpha} \wo 0, -)$, and $T \colon \overline{\alpha} \to \N_0$ is an argument shift function.\\
 \end{definition}
 
 \begin{proposition}
@@ -366,16 +396,16 @@ Using basic combinatorics, we can see that the number $(m_1 + m_2)!/(m_1 ! \cdot
   \[
     \mc(\conf, k) = \m^N \left( \elv(\conf, \li^n k),\ \li_n k + T(\li^n k) \right),
   \]
-  where $n$ is the spread of the elevated choice function $\elv(\conf, -)$, while $T$ is a fixed argument shift function.\\
+  where $n$ is the spread of the elevated choice function $\elv(\conf, -)$, while $T \colon \N_0 \to \N_0$ is a fixed argument shift function.\\
 \end{definition}
 
 In other words, the merged choice function selects $N$ lists from the configuration via $\elv$, and then merges them together using $\m^N$. We have therefore solved our first problem --- the password resulting from this new pseudo-hash function will have different categories of characters mixed together. What is more important, there is no information lost in the process, which is illustrated by the following proposition:\\
 
 \begin{proposition}
-  Let $\conf$ be a source configuration of length $N$. The following lower bound takes place for the spread of the merged choice function:
+  Let $\conf$ be a source configuration of length $N$. The following equality takes place for the spread of the merged choice function:
   \begin{align}
     \label{sprmc}
-    \spr{\mc(\conf, -)} \ge \spr{\elv(\conf, -)} \cdot \spr{\m^N (\overline{\alpha}, -)} = \prod_{i = 0}^{N-1} \rf{n_i}{m_i} \cdot \frac{\left( \sum_{i = 0}^{N-1} m_i \right)!}{\prod_{i = 0}^{N-1} m_i !},
+    \spr{\mc(\conf, -)} = \spr{\elv(\conf, -)} \cdot \spr{\m^N (\overline{\alpha}, -)} = \prod_{i = 0}^{N-1} \rf{n_i}{m_i} \cdot \frac{\left( \sum_{i = 0}^{N-1} m_i \right)!}{\prod_{i = 0}^{N-1} m_i !},
   \end{align}
   where $\overline{\alpha}$ is the multiselection arising from the application of $\elv$, while $n_i$ are the lengths of the sources $E_i$ in the configuration $\conf$.
 \end{proposition}
@@ -383,7 +413,13 @@ In other words, the merged choice function selects $N$ lists from the configurat
   Since the merge function $\m^N$ preserves the order of the lists it merges, we can see that it is absolutely injective with respect to its first argument, $\overline{\alpha}$. Indeed, no matter how the multiselection $\overline{\alpha}$ is merged, all elements of, say, $E_0$, can be read from the resulting merged list in the order that they were originally. In other words, the list $\alpha_0 \in \overline{\alpha}$ can be reconstructed from the output of $\m^N (\overline{\alpha}, k)$ for all $k$. And so can $\alpha_1$, $\alpha_2$, etc. Here we are actively using the fact that all elements across all sources $E_0, E_1, ..., E_{N-1}$ are distinct. Now that the absolute injectivity of $M^N$ has been established, our statement immediately follows from an application of Proposition \ref{comp}.
 \end{proof}
 
-It can once again be shown using combinatorics, that the final expression in (\ref{sprmc}) is, in fact, the total number of ways to choose a multiselection from $\conf$ and merge it (the reader should not hesitate to check this). Therefore, we conclude that the function $\m(\conf, -)$ is bijective on the interval from zero to its spread, and therefore periodic with the period of its spread.
+Now, it is easy to check by definition that
+\[
+  \mc(\conf, 0) = \mc(\conf, \spr{\elv(\conf, -)} \cdot \spr{\m^N (\overline{\alpha}, -)}),
+\]
+which means that the inequality in (\ref{sprmc}) is in fact an equality.
+
+% It can once again be shown using combinatorics, that the final expression in (\ref{sprmc}) is, in fact, the total number of ways to choose a multiselection from $\conf$ and merge it (the reader should not hesitate to check this). Therefore, we conclude that the function $\m(\conf, -)$ is bijective on the interval from zero to its spread, and therefore periodic with the period of its spread.
 
 \subsection{Subverting Invertibility} \label{subv}
 
@@ -528,7 +564,7 @@ The primary implementation is a CLI program running in the console. It was desig
 
 The general invocation of \texttt{pshash} is \verb|$ pshash PUBLIC CHOICE SHUFFLE|, providing the public key and the choice-shuffle private key-pair. To avoid passing secrets directly as command-line arguments, the user may omit any of the three arguments and provide them via \texttt{stdin}. In addition, the program has many flags and options, all of which can be viewed by invoking \verb|$ pshash --help|. We will expand on some of the most important features below.
 
-\subsection{Simplified Key Input and Generation}
+\subsection{Simplified Key Input and Generation} \label{input}
 
 One of the biggest disadvantages of \texttt{pshash} is the size of the private keys. For the source configuration given in Section \ref{security}, the maximum relevant choice key is on the order of $2^{142}$ and the maximum shuffle key on the order of $2^{83}$. Such long numbers are possible to remember using mnemonics, but they still take a lot of effort to commit to memory, and the cost of forgetting even a single digit is the permanent loss of all passwords derived from this key-pair. Additionally, even coming up with such big numbers is hard for a human to do. One would inevitably think of numbers relevant in their life, which makes them vulnerable to social analysis attacks.
 
@@ -635,8 +671,10 @@ The \texttt{pshash} algorithm is implemented (at least in its skeleton form) in 
 
   \item In \textbf{JavaScript}, to facilitate the \texttt{pshash} web interface \cite{pshash}. This is a very important deployment location since it allows users to generate passwords from any machine that has internet access, without installing anything locally. The web interface is a static HTML page hosted via GitHub Pages, with no server-side interaction. The passwords are generated by JavaScript on the client side and can then be either displayed or copied to the clipboard;
 
-  \item In \textbf{Kotlin} for the \texttt{pshash }Android application \cite{pshash-app-src}.
+  \item In \textbf{Kotlin} for the \texttt{pshash} Android application \cite{pshash-app-src}.
 \end{itemize}
+
+All these implementations support the additional key input methods described in Subsection \ref{input}.
 
 \section{Conclusion}
 

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/nixos.org) (preloaded format=pdflatex 1980.1.1)  19 FEB 2026 19:03
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/nixos.org) (preloaded format=pdflatex 1980.1.1)  20 FEB 2026 21:56
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -403,7 +403,7 @@ Package: amsthm 2020/05/29 v2.20.6
 \c@theorem=\count315
 \c@corollary=\count316
 LaTeX Font Info:    Trying to load font information for OT1+qcs on input line 7
-1.
+2.
 
 (/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
 x/latex/tex-gyre/ot1qcs.fd
@@ -411,25 +411,25 @@ File: ot1qcs.fd 2009/09/25 v1.2 font definition file for OT1/qcs
 ) (.aux/main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 71.
-LaTeX Font Info:    ... okay on input line 71.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 71.
-LaTeX Font Info:    ... okay on input line 71.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 71.
-LaTeX Font Info:    ... okay on input line 71.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 71.
-LaTeX Font Info:    ... okay on input line 71.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 71.
-LaTeX Font Info:    ... okay on input line 71.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 71.
-LaTeX Font Info:    ... okay on input line 71.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 71.
-LaTeX Font Info:    ... okay on input line 71.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 71.
-LaTeX Font Info:    ... okay on input line 71.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 71.
-LaTeX Font Info:    ... okay on input line 71.
-Package hyperref Info: Link coloring OFF on input line 71.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+Package hyperref Info: Link coloring OFF on input line 72.
  (.aux/main.out) (.aux/main.out)
 \@outlinefile=\write3
 \openout3 = `main.out'.
@@ -496,14 +496,14 @@ Couldn't patch \deferred@thm@head!
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 74.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 75.
 
 
 (/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
 x/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 74.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 75.
 
 
 (/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
@@ -511,7 +511,7 @@ x/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 LaTeX Font Info:    Trying to load font information for TS1+qcs on input line 8
-7.
+8.
 
 (/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
 x/latex/tex-gyre/ts1qcs.fd
@@ -525,41 +525,41 @@ var/fonts/map/pdftex/updmap/pdftex.map}{/nix/store/60l31nr7ikg0ysgy760wzx2xcax7
 ngkx-texlive-combined-2025-texmfdist/fonts/enc/dvips/tex-gyre/q-rm.enc}{/nix/st
 ore/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/enc/
 dvips/tex-gyre/q-ts1.enc}]
-LaTeX Font Info:    Trying to load font information for U+euf on input line 138
+LaTeX Font Info:    Trying to load font information for U+euf on input line 139
 .
 
 (/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
 x/latex/amsfonts/ueuf.fd
 File: ueuf.fd 2013/01/14 v3.01 Euler Fraktur
 )
-Underfull \hbox (badness 10000) in paragraph at lines 138--139
+Underfull \hbox (badness 10000) in paragraph at lines 139--140
 
  []
 
 
 
 [2]
-Underfull \hbox (badness 10000) in paragraph at lines 148--149
+Underfull \hbox (badness 10000) in paragraph at lines 149--150
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 154--156
+Underfull \hbox (badness 10000) in paragraph at lines 155--157
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 158--159
+Underfull \hbox (badness 10000) in paragraph at lines 159--160
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 185--186
+Underfull \hbox (badness 10000) in paragraph at lines 186--187
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 191--193
+Underfull \hbox (badness 10000) in paragraph at lines 192--194
 
  []
 
@@ -569,47 +569,53 @@ Underfull \hbox (badness 10000) in paragraph at lines 191--193
 
 [4{/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/
 fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
+Underfull \hbox (badness 10000) in paragraph at lines 320--321
+
+ []
+
+
 
 [5]
-Underfull \hbox (badness 10000) in paragraph at lines 337--338
+Underfull \hbox (badness 10000) in paragraph at lines 367--368
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 347--349
+Underfull \hbox (badness 10000) in paragraph at lines 377--379
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 368--370
+Underfull \hbox (badness 10000) in paragraph at lines 398--400
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 372--373
+Underfull \hbox (badness 10000) in paragraph at lines 402--403
 
  []
 
 
 
 [6]
-Underfull \hbox (badness 10000) in paragraph at lines 390--391
+Underfull \hbox (badness 10000) in paragraph at lines 426--427
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 400--402
+Underfull \hbox (badness 10000) in paragraph at lines 436--438
 
  []
-
-
-Package amsmath Warning: Foreign command \atopwithdelims;
-(amsmath)                \frac or \genfrac should be used instead
-(amsmath)                 on input line 423.
 
 
 
 [7]
+
+Package amsmath Warning: Foreign command \atopwithdelims;
+(amsmath)                \frac or \genfrac should be used instead
+(amsmath)                 on input line 459.
+
+
 
 [8]
 
@@ -617,9 +623,9 @@ Package amsmath Warning: Foreign command \atopwithdelims;
 
 [10]
 
-[11] (.aux/main.bbl
+[11]
 
-[12])
+[12] (.aux/main.bbl)
 
 [13] (.aux/main.aux)
  ***********
@@ -630,13 +636,13 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: CA035A25594F88AF155D6CF90E3EE1FE;4021.
  ) 
 Here is how much of TeX's memory you used:
- 11335 strings out of 467888
- 181499 string characters out of 5412697
- 599689 words of memory out of 5000000
- 39653 multiletter control sequences out of 15000+600000
+ 11339 strings out of 467888
+ 181532 string characters out of 5412697
+ 600817 words of memory out of 5000000
+ 39656 multiletter control sequences out of 15000+600000
  669211 words of font info for 87 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 73i,21n,79p,1119b,601s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 73i,21n,79p,1119b,609s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/
 fonts/type1/public/amsfonts/cm/cmex10.pfb></nix/store/60l31nr7ikg0ysgy760wzx2xc
 ax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cmextra/cme
@@ -669,10 +675,10 @@ texmfdist/fonts/type1/public/tex-gyre/qcsr.pfb></nix/store/60l31nr7ikg0ysgy760w
 zx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/tex-gyre/qcsri.
 pfb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdis
 t/fonts/type1/public/cm-super/sftt1000.pfb>
-Output written on .aux/main.pdf (13 pages, 338508 bytes).
+Output written on .aux/main.pdf (13 pages, 339800 bytes).
 PDF statistics:
- 373 PDF objects out of 1000 (max. 8388607)
- 311 compressed objects within 4 object streams
- 76 named destinations out of 1000 (max. 500000)
+ 377 PDF objects out of 1000 (max. 8388607)
+ 315 compressed objects within 4 object streams
+ 77 named destinations out of 1000 (max. 500000)
  185 words of extra memory for PDF output out of 10000 (max. 10000000)
 
