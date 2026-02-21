@@ -7,9 +7,8 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as B (readFile, writeFile, putStr, pack, splitAt, append)
 import System.Random (getStdGen, randomR, genByteString)
 import Data.Char (ord)
-import System.IO (stdin, stderr, hGetEcho, hSetEcho, hPutStr, hPutChar, hPutStrLn)
-import Control.Exception (bracket_)
-import Control.Monad (unless)
+import System.IO (stderr, hPutStr, hPutChar, hPutStrLn)
+import Control.Monad (unless, when)
 
 import Algorithm
 import Error
@@ -41,33 +40,40 @@ getFinalHash config publicStr choiceStr shuffleStr =
 -- │ HELPER FUNCTIONS │
 -- └──────────────────┘
 
-readChar :: Bool -> Int -> IO String
-readChar hideNum num = do
-  unless hideNum $ hPutStr stderr $ "(" ++ show num ++ " letters)"
+readChar :: Bool -> Bool -> Int -> IO String
+readChar echo hideNum num = do
+  let numstr = "(" ++ show num ++ " letters)"
+      bs = replicate (length numstr) '\b'
+  unless hideNum $ hPutStr stderr numstr
   ch <- getChar
-  let bs = replicate (length ("(" ++ show (num) ++ " letters)")) '\b'
-  if ch == '\n' then return "" else do
+  if ch == '\n' then return ""
+  else if ch == '\b' || ch == '\DEL' then do
     unless hideNum $ hPutStr stderr bs
-    rest <- readChar hideNum (num + 1)
-    return (ch : rest)
-
-withEcho :: Bool -> IO a -> IO a
-withEcho echo action = do
-  old <- hGetEcho stdin
-  bracket_ (hSetEcho stdin echo) (hSetEcho stdin old) action
+    if num == 0 then readChar echo hideNum num else do
+      when echo $ hPutStr stderr "\b \b"
+      rest <- readChar echo hideNum (num - 1)
+      return (ch : rest)
+  else do
+    when echo $ hPutChar stderr ch
+    unless hideNum $ hPutStr stderr bs
+    rest <- readChar echo hideNum (num + 1)
+    return $ case rest of
+      '\b' : rest' -> rest'
+      '\DEL' : rest' -> rest'
+      _ -> ch : rest
 
 getInput :: Bool -> Bool -> String -> IO String
 getInput echo askRepeat prompt = do
   hPutStr stderr prompt
-  input <- withEcho echo $ readChar (echo || null prompt) 0
-  unless (echo || null prompt) $ hPutChar stderr '\n'
+  input <- readChar echo (echo || null prompt) 0
+  unless (null prompt && not echo) $ hPutChar stderr '\n'
   if askRepeat then do
     unless (null prompt) $ hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
-    inputRepeat <- withEcho echo getLine
-    unless echo $ hPutChar stderr '\n'
+    inputRepeat <- readChar echo (echo || null prompt) 0
+    unless (null prompt && not echo) $ hPutChar stderr '\n'
     if input == inputRepeat then return input
     else do
-      hPutStrLn stderr "Keys do not match. Try again."
+      unless (null prompt) $ hPutStrLn stderr "Keys do not match. Try again."
       getInput echo askRepeat prompt
   else return input
 
