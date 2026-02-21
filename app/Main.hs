@@ -1,6 +1,6 @@
 module Main where
 
-import System.IO (stderr, hPutStrLn)
+import System.IO (stderr, hPutStrLn, hSetBuffering, stdin, BufferMode (NoBuffering))
 import Data.Map (Map, member, (!))
 import System.Environment (getArgs)
 import System.Info (os)
@@ -58,4 +58,5 @@ main :: IO ()
 main = do
   rawArgs <- getArgs
   parsedArgs <- parseArgs' (False, False, False) rawArgs
+  hSetBuffering stdin NoBuffering
   toIO rawArgs $ raiseH' (raise2' performAction <*> getConfig) parsedArgs

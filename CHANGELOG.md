@@ -1,5 +1,9 @@
 # Revision history for `pshash`
 
+## 0.1.17.3
+
+* Improved the key input process.
+
 ## 0.1.17.2
 
 * Renamed `--no-prompts` to `--plain` and made it affect the output of `--gen-keys`.

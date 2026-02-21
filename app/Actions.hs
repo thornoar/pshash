@@ -20,7 +20,7 @@ import Info
 import Encryption
 
 currentVersion :: String
-currentVersion = "0.1.17.2"
+currentVersion = "0.1.17.3"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -41,6 +41,16 @@ getFinalHash config publicStr choiceStr shuffleStr =
 -- │ HELPER FUNCTIONS │
 -- └──────────────────┘
 
+readChar :: Bool -> Int -> IO String
+readChar hideNum num = do
+  unless hideNum $ hPutStr stderr $ "(" ++ show num ++ " letters)"
+  ch <- getChar
+  let bs = replicate (length ("(" ++ show (num) ++ " letters)")) '\b'
+  if ch == '\n' then return "" else do
+    unless hideNum $ hPutStr stderr bs
+    rest <- readChar hideNum (num + 1)
+    return (ch : rest)
+
 withEcho :: Bool -> IO a -> IO a
 withEcho echo action = do
   old <- hGetEcho stdin
@@ -48,9 +58,9 @@ withEcho echo action = do
 
 getInput :: Bool -> Bool -> String -> IO String
 getInput echo askRepeat prompt = do
-  unless (null prompt) $ hPutStr stderr prompt
-  input <- withEcho echo getLine
-  unless echo $ hPutChar stderr '\n'
+  hPutStr stderr prompt
+  input <- withEcho echo $ readChar (echo || null prompt) 0
+  unless (echo || null prompt) $ hPutChar stderr '\n'
   if askRepeat then do
     unless (null prompt) $ hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
     inputRepeat <- withEcho echo getLine
