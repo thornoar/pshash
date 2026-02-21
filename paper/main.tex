@@ -379,14 +379,24 @@ Now we will expand the merge function to an arbitrary number of lists.\\
 \end{definition}
 
 \begin{proposition}
-  Let $\overline{\alpha} = [\alpha_0, \alpha_1, ..., \alpha_N]$ be a list of lists with $\alpha_i \in [E_i]_{m_i}$. Then we have
+  Let $\overline{\alpha} = [\alpha_0, \alpha_1, ..., \alpha_N]$ be a list of lists with $N \ge 2$ and $\alpha_i \in [E_i]_{m_i}$. Then the function $\m^N (\overline{\alpha}, -)$ is periodic with the period of its spread, and we have
   \begin{align}
     \label{sprmN}
-    \spr{\m^N (\overline{\alpha}, -)} = \frac{\left( \sum_{i = 0}^{N-1} m_i \right)}{\prod_{i = 0}^{N-1} m_i !}.
+    \spr{\m^N (\overline{\alpha}, -)} = \frac{\left( \sum_{i = 0}^{N-1} m_i \right)!}{\prod_{i = 0}^{N-1} m_i !}.
   \end{align}
 \end{proposition}
 \begin{proof}
-  We conduct a proof by induction over $N$. If $N = 2$, the result follows from Proposition \ref{sprm2}. Now, assume that the result holds for all merge functions of order $N-1$. Note that (\ref{mNdef}) follows the definition scheme assumed in Proposition \ref{comp}, and by applying its result, we see that (\ref{sprmN}) holds for $\m^N (\overline{\alpha}, -)$.
+  We conduct a proof by induction over $N$. If $N = 2$, the result follows from Proposition \ref{sprm2}. Now, assume that the result holds for all merge functions of order $N-1$. Note that (\ref{mNdef}) follows the definition scheme assumed in Proposition \ref{comp}. Moreover, observe the recursive relation
+  \[
+    \frac{\left( \sum_{i = 0}^{N-1} m_i \right)!}{\prod_{i = 0}^{N-1} m_i !} = \frac{\left( m_0 + \sum_{i=1}^{N-1} m_i \right )!}{m_0! \cdot \left( \sum_{i=1}^{N-1} m_i \right)! } \cdot \frac{\left( \sum_{i = 1}^{N-1} m_i \right)!}{\prod_{i = 1}^{N-1} m_i !} = \spr{\m^2 (\alpha_0, \m^{N-1}(\overline{\alpha} \wo 0, x), -)} \cdot \spr{\m^{N-1}(\overline{\alpha} \wo 0, -)},
+  \]
+  where $x \in \N_0$ is any fixed number. Then, applying Proposition \ref{comp}, we see that the $\ge$ sign in (\ref{sprmN}) holds for $\m^N (\overline{\alpha}, -)$.\\
+  Now, denoting $m = \spr{\m^2 (\alpha_0, \m^{N-1}(\overline{\alpha} \wo 0, x), -)}$ and $n = \spr{\m^{N-1}(\overline{\alpha} \wo 0, -)}$, for all $k \in \N_0$ we have
+  \begin{align*}
+    \m^N(\overline{\alpha}, k + mn) &= \m^2(\alpha_0, \m^{N-1}(\overline{\alpha} \wo 0, \li^n (k + mn)), \li_n (k + mn) + T(\alpha_0))\\
+    &= \m^2(\alpha_0, \m^{N-1}(\overline{\alpha} \wo 0, \li^n k), m + \li_n k + T(\alpha_0)) = \m^N (\overline{\alpha}, k),
+  \end{align*}
+  so the function $\m^N(\overline{\alpha}, -)$ is periodic with period $mn$, which means that its spread is equal to $mn$, as desired.
 \end{proof}
 
 \subsection{Merging the Multiselection} \label{mergemult}
@@ -407,23 +417,22 @@ In other words, the merged choice function selects $N$ lists from the configurat
     \label{sprmc}
     \spr{\mc(\conf, -)} = \spr{\elv(\conf, -)} \cdot \spr{\m^N (\overline{\alpha}, -)} = \prod_{i = 0}^{N-1} \rf{n_i}{m_i} \cdot \frac{\left( \sum_{i = 0}^{N-1} m_i \right)!}{\prod_{i = 0}^{N-1} m_i !},
   \end{align}
-  where $\overline{\alpha}$ is the multiselection arising from the application of $\elv$, while $n_i$ are the lengths of the sources $E_i$ in the configuration $\conf$.
+  where $\overline{\alpha}$ is the multiselection arising from the application of $\elv$, while $n_i$ are the lengths of the sources $E_i$ in the configuration $\conf$. Moreover, the function $\mc(\conf, -)$ is periodic with the period of its spread.
 \end{proposition}
 \begin{proof}
-  Since the merge function $\m^N$ preserves the order of the lists it merges, we can see that it is absolutely injective with respect to its first argument, $\overline{\alpha}$. Indeed, no matter how the multiselection $\overline{\alpha}$ is merged, all elements of, say, $E_0$, can be read from the resulting merged list in the order that they were originally. In other words, the list $\alpha_0 \in \overline{\alpha}$ can be reconstructed from the output of $\m^N (\overline{\alpha}, k)$ for all $k$. And so can $\alpha_1$, $\alpha_2$, etc. Here we are actively using the fact that all elements across all sources $E_0, E_1, ..., E_{N-1}$ are distinct. Now that the absolute injectivity of $M^N$ has been established, our statement immediately follows from an application of Proposition \ref{comp}.
+  Since the merge function $\m^N$ preserves the order of the lists it merges, we can see that it is absolutely injective with respect to its first argument, $\overline{\alpha}$. Indeed, no matter how the multiselection $\overline{\alpha}$ is merged, all elements of, say, $E_0$, can be read from the resulting merged list in the order that they were originally. In other words, the list $\alpha_0 \in \overline{\alpha}$ can be reconstructed from the output of $\m^N (\overline{\alpha}, k)$ for all $k$. And so can $\alpha_1$, $\alpha_2$, etc. Here we are actively using the fact that all elements across all sources $E_0, E_1, ..., E_{N-1}$ are distinct. Now that the absolute injectivity of $M^N$ has been established, the $\ge$ sign in (\ref{sprmc}) immediately follows from an application of Proposition \ref{comp}. 
+  Now, it is easy to check by definition and using the periodicity of $\m^N(\overline{\alpha}, -)$, that for all $k \in \N_0$, we have
+  \[
+    \mc(\conf, k) = \mc(\conf, k + m n),
+  \]
+  where $n = \spr{\elv(\conf, -)},\ m = \spr{\m^N (\overline{\alpha}, -)}$. This means that $\mc(\conf, -)$ is periodic with period $m n$, and the inequality in (\ref{sprmc}) is in fact an equality.
 \end{proof}
-
-Now, it is easy to check by definition that
-\[
-  \mc(\conf, 0) = \mc(\conf, \spr{\elv(\conf, -)} \cdot \spr{\m^N (\overline{\alpha}, -)}),
-\]
-which means that the inequality in (\ref{sprmc}) is in fact an equality.
 
 % It can once again be shown using combinatorics, that the final expression in (\ref{sprmc}) is, in fact, the total number of ways to choose a multiselection from $\conf$ and merge it (the reader should not hesitate to check this). Therefore, we conclude that the function $\m(\conf, -)$ is bijective on the interval from zero to its spread, and therefore periodic with the period of its spread.
 
 \subsection{Subverting Invertibility} \label{subv}
 
-We still have one problem left: our current pseudo-hash function is bijective, and it can be inverted relatively easily to retrieve the private key from the source configuration and the final pseudo-hash. To prevent this, we will have to make our function a bit less injective --- artificially add inputs that produce the same output, in order to make the function harder to invert.\\
+We still have one problem left: our current pseudo-hash function is bijective on its spread, and it can be inverted relatively easily to retrieve the private key from the source configuration and the final pseudo-hash. To prevent this, we will have to make our function a bit less injective --- artificially add inputs that produce the same output, in order to make the function harder to invert.\\
 
 \begin{definition}
   Let $\conf$ be a source configuration consisting of pairs $(E_i, m_i)$ for $i \in (N)$, with $n_i = |E_i|$. Let $k_1, k_2 \in \N_0$ be two numbers referred to as \emph{choice key} and \emph{shuffle key}. Define the \emph{pseudo-hash} corresponding to these inputs as follows:
@@ -496,7 +505,7 @@ In this section, we will use a specific source configuration $\conf$, particular
 
 Therefore, every password produced with this configuration will contain a total of $25$ symbols, $8$, $8$, $5$ and $4$ from their respective categories.
 
-We will also assume that an adversary can perform $10^{10}$ password checks per second, i.e. 0.1 nanosecond to perform one operation such as computing a pseudo-hash or computing a key pair that produces a given pseudo-hash value. This measure is in fact extremely conservative. For example, running \verb|openssl speed -evp sha256| to benchmark the speed of SHA256 on an 22-core Intel Ultra 9 185H CPU has yielded a speed of $10,000,000$ hashes per second, or 100 nanoseconds per hash. We assume here that \texttt{pshash} is $1,000$ times faster, whereas in fact it must be orders of magnitude slower, due to the fact that it must perform many arithmetic operations on arbitrary-precision integers. This conservative speed estimate serves as a guarantee of security for a long period of time, even when processors become a million times faster than they are today.
+We will also assume that an adversary can perform $10^{10}$ password checks per second, i.e. 0.1 nanosecond to perform one operation such as computing a pseudo-hash or computing a key pair that produces a given pseudo-hash value. This measure is in fact extremely conservative. For example, running \verb|openssl speed -evp sha256| to benchmark the speed of SHA-256 on an 22-core Intel Ultra 9 185H CPU has yielded a speed of $10,000,000$ hashes per second (performed on 16-byte blocks), or 100 nanoseconds per hash. We assume here that \texttt{pshash} is $1,000$ times faster, whereas in fact it must be orders of magnitude slower, due to the fact that it must perform many multiplications and divisions on arbitrary-precision integers. This conservative speed estimate serves as a guarantee of security for a long period of time, even when processors become a million times faster than they are today.
 
 We will now consider various attacks on the pseudo-hashes produced by \texttt{pshash}.
 
@@ -554,7 +563,7 @@ In other words, we have seen that \texttt{pshash} is resistant to various brute-
 
 \subsection{Supply Chain Attacks}
 
-Being a standalone program, \texttt{pshash} is not susceptible to supply chain attacks. However, this also means \texttt{pshash} does not protect from phishing and keyloggers, being completely unaware of them. Hence, \texttt{pshash} should be used with care, as it is only responsible for producing a password, and not for how it is used afterwards.
+Being a standalone original algorithm, \texttt{pshash} is very resistant to supply chain attacks. However, this also means \texttt{pshash} does not protect from phishing and keyloggers, being completely unaware of them. Hence, \texttt{pshash} should be used with care, as it is only responsible for producing a password, and not for how it is used afterwards.
 
 \section{The Implementation} \label{impl}
 
@@ -566,7 +575,7 @@ The general invocation of \texttt{pshash} is \verb|$ pshash PUBLIC CHOICE SHUFFL
 
 \subsection{Simplified Key Input and Generation} \label{input}
 
-One of the biggest disadvantages of \texttt{pshash} is the size of the private keys. For the source configuration given in Section \ref{security}, the maximum relevant choice key is on the order of $2^{142}$ and the maximum shuffle key on the order of $2^{83}$. Such long numbers are possible to remember using mnemonics, but they still take a lot of effort to commit to memory, and the cost of forgetting even a single digit is the permanent loss of all passwords derived from this key-pair. Additionally, even coming up with such big numbers is hard for a human to do. One would inevitably think of numbers relevant in their life, which makes them vulnerable to social analysis attacks.
+One of the biggest disadvantages of \texttt{pshash} is the size of the private keys. For the source configuration given in Section \ref{security}, the maximum relevant choice key is on the order of $2^{142}$ and the maximum shuffle key on the order of $2^{83}$. Such long numbers are possible to remember using mnemonics, but they still take a lot of effort to commit to memory, and the cost of forgetting even a single digit is the permanent loss of all passwords derived from this key-pair. Additionally, even coming up with such big numbers is hard for a human to do. One would inevitably think of numbers relevant in their life, which makes them vulnerable to attacks through social analysis.
 
 These problems are solved in the implementation of \texttt{pshash} as follows:
 
@@ -574,7 +583,7 @@ These problems are solved in the implementation of \texttt{pshash} as follows:
   \item The program can generate random keys via invoking \verb|$ pshash --gen-keys|. The keys are automatically selected from the range corresponding to the source configuration in use (see Subsection \ref{conf} for more information on how they are specified). This ensures that the generated keys are uniformly distributed in the relevant range, and allows the passwords generated by these keys to enjoy the security properties discussed in Section \ref{security}.
 
   \item The program supports alternative input methods for the keys. For example, it can evaluate arithmetic expressions involving addition, multiplication, and exponentiation. Instead of \texttt{52046849220153179918678225216} one may type \texttt{8234 * 91234 \^{} 5} which is much easier to remember. Of course, if this input method becomes mainstream, a brute-force attack on such passwords will be much easier, since it will be enough to check all numbers of the form $a + b$, $a * b$, $a ^ b$ and some basic combinations of these expressions, where $a,b < 100,000$. Hence the arithmetic input method is not preferred.\\
-    As a safer alternative, the \texttt{pshash} implementation offers an ``mnemonic incantation system''. By selecting the 100 most used English 2-letter syllables, we associate each 2-digit number with a syllable. For example, \texttt{00} corresponds to \texttt{or}, \texttt{37} corresponds to \texttt{mi}, and \texttt{99} corresponds to \texttt{je}. We can then apply this map to whole numbers, so \texttt{993700} becomes \texttt{jemior}, which sounds like an English word and is much easier to remember. Given the source configuration described in Section \ref{security}, the average choice key will have about 7 three-syllable words in its mnemonic incantation, while the average shuffle key will have about 4 words. An example would be
+    As a safer alternative, the \texttt{pshash} implementation offers a ``mnemonic incantation system''. By selecting the 100 most used English 2-letter syllables, we associate each 2-digit number with a syllable. For example, \texttt{00} corresponds to \texttt{'or'}, \texttt{37} corresponds to \texttt{'mi'}, and \texttt{99} corresponds to \texttt{'je'}. We can then apply this map to whole numbers, so \texttt{993700} becomes \texttt{jemior}, which sounds like an English word and is much easier to remember. Given the source configuration described in Section \ref{security}, the average choice key will have about 7 three-syllable words in its mnemonic incantation, while the average shuffle key will have about 4 words. An example would be
     \begin{align*}
       5925758263543757867984307717119455838590518 \ &\longleftrightarrow \ \mathtt{usjusu\ sodilo\ hiwewa\ quzihi\ agfefe\ riposo\ tobius\ li}\\
       14597701819718601692712560 \ &\longleftrightarrow \ \mathtt{rebifu\ unpuja\ litule\ jufela\ tu}
