@@ -75,17 +75,12 @@ getPowerOf b n
   | otherwise = 1 + getPowerOf b (div n b)
 
 printTimes :: String -> (Integer, Integer) -> String
-printTimes pr (inY, inAoU) = pr
-  ++ (if inY < 1000
-     then show inY
-     else "> 10^" ++ show (getPowerOf 10 inY))
+printTimes pr (inY, inAoU) = pr ++ "\n| "
+  ++ show inY ++ " > 10^" ++ show (getPowerOf 10 inY) 
   ++ " years"
   ++ (if inAoU > 0
-     then "\n"
-          ++ "                                             or "
-          ++ (if inAoU < 1000
-             then show inAoU
-             else "> 10^" ++ show (getPowerOf 10 inAoU))
+     then "\n| or "
+          ++ show inAoU ++ " > 10^" ++ show (getPowerOf 10 inAoU)
           ++ " ages of the Universe"
      else "")
 

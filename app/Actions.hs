@@ -19,7 +19,7 @@ import Info
 import Encryption
 
 currentVersion :: String
-currentVersion = "0.1.17.4"
+currentVersion = "0.1.17.5"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -275,23 +275,23 @@ infoAction config "numbers" =
       numShuffle = numberOfShuffleKeys $ map snd amts
       numRepetitions = numberOfRepetitions $ map snd amts
    in do
-  putStrLn $ "using the following configuration distribution: " ++ show amts
+  putStrLn $ "using the following configuration distribution:\n| " ++ show amts
   putStrLn ""
-  putStrLn $ "total theoretical number of hashes:         > " ++ printBits numHashes
-  putStrLn $ "number of choice keys:                      > " ++ printBits numChoice
-  putStrLn $ "number of shuffle keys:                     > " ++ printBits numShuffle
-  putStrLn $ "number of key pairs with the same hash:     > " ++ printBits numRepetitions
-  putStrLn $ "total hash length:                          " ++ show ((sum . map snd) amts) ++ " symbols"
-  putStrLn $ "maximum relevant length of the public key:  " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
+  putStrLn $ "total theoretical number of hashes:\n| " ++ show numHashes ++ " > " ++ printBits numHashes
+  putStrLn $ "number of choice keys:\n| " ++ show numChoice ++ " > " ++ printBits numChoice
+  putStrLn $ "number of shuffle keys:\n| " ++ show numShuffle ++ " > " ++ printBits numShuffle
+  putStrLn $ "number of key pairs with the same hash:\n| " ++ show numRepetitions ++ " > " ++ printBits numRepetitions
+  putStrLn $ "\ntotal hash length:\n| " ++ show ((sum . map snd) amts) ++ " symbols"
+  putStrLn $ "maximum relevant length of the public key:\n| " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
   return (Content ())
 infoAction config "times" = let amts = map dropElementInfo config in do
-  putStrLn $ "using the following configuration distribution: " ++ show amts
-  putStrLn $ "assumed number of password checks per second:   " ++ "10 billion = 10^10"
-  putStrLn $ "time to check one password:                     " ++ "10^(" ++ show timeToCheckPower ++ ") s = " ++ show timeToCheckPicos ++ " picoseconds"
+  putStrLn $ "using the following configuration distribution:\n| " ++ show amts
   putStrLn ""
-  putStrLn $ printTimes "time to brute-force your password:              " (timeToCrack $ numberOfHashes amts)
+  putStrLn $ "assumed number of password checks per second:\n| " ++ "10 billion = 10^10"
+  putStrLn $ "time to check one password:\n| " ++ "10^(" ++ show timeToCheckPower ++ ") s = " ++ show timeToCheckPicos ++ " picoseconds"
   putStrLn ""
-  putStrLn $ printTimes "time to retrieve the keys based on a hash:      " (timeToCrack $ numberOfRepetitions $ map snd amts)
+  putStrLn $ printTimes "time to brute-force your password:" (timeToCrack $ numberOfHashes amts)
+  putStrLn $ printTimes "time to retrieve the keys based on a hash:" (timeToCrack $ numberOfRepetitions $ map snd amts)
   return (Content ())
 infoAction _ cmd = return . Error $ ("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []
 
