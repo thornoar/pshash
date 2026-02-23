@@ -43,7 +43,8 @@ getFinalHash config publicStr choiceStr shuffleStr =
 readChar :: Bool -> Bool -> Int -> IO String
 readChar echo hideNum num = do
   let numstr = "(" ++ show num ++ " letters)"
-      bs = replicate (length numstr) '\b'
+      lns = length numstr
+      bs = replicate lns '\b' ++ replicate lns ' ' ++ replicate lns '\b'
   unless hideNum $ hPutStr stderr numstr
   ch <- getChar
   if ch == '\n' then return ""
