@@ -589,7 +589,8 @@ These problems are solved in the implementation of \texttt{pshash} as follows:
       14597701819718601692712560 \ &\longleftrightarrow \ \mathtt{rebifu\ unpuja\ litule\ jufela\ tu}
     \end{align*}
     Remembering these incantations still requires effort, of course, but it is feasible, and the nature of \texttt{pshash} is such that the security properties of passwords rely directly on the amount of entropy in the keys.\\
-    To generate an incantation, the user may invoke \verb|$ pshash --gen-spell|. They will be prompted for the numeric key (which can be typed as an arithmetic expression), after which the incantation will be printed as output. The \verb|$ pshash --gen-keys| command will also automatically print corresponding incantations.
+    To generate an incantation, the user may invoke \verb|$ pshash --gen-spell|. They will be prompted for the numeric key (which can be typed as an arithmetic expression), after which the incantation will be printed as output. The \verb|$ pshash --gen-keys| command will also automatically print corresponding incantations.\\
+    The user can also convert incantations back to numeric keys with the \verb|--gen-num| flag.
 \end{itemize}
 
 \subsection{Error Messages}
