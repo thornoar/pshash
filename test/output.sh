@@ -43,3 +43,4 @@ compare "$cmd -r 24 -d test/data.enc stdout 2345^45 123^322" "$(cat "test/data.t
 compare "$cmd -k anlong puuub uskehaunpicadopebewokabeitagelelcavemuduunba tifijalierfumeterotejoquve" "K4QEmk0hx5uYB3vFb187S"
 compare "$cmd -n (24,13,10,7) magiiiic 1234^247+1237*123 ityilereorbafafapijahofemefule" "ecdwLxq@^IayFC2SEb%-nr8Blvz*6#O1mZAhg!5o?ut+psj9\$QiW7X"
 compare "$cmd --gen-spell 123^11" "yudayi tikipu higogi suwaca"
+compare "$cmd --gen-num hahamuhamuha 6969" "$(printf "4473\nhabu")"
