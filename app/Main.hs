@@ -36,6 +36,7 @@ performAction args (Content config)
   | member DECRYPT args = encryptionAction True args procrypt (args ! DECRYPT)
   | member GENKEYS args = keygenAction (member PLAIN args) (map dropElementInfo config)
   | member GENSPELL args = spellgenAction args
+  | member GENNUM args = numgenAction args
   | otherwise = passKeysToAction args (hashAction config)
 
 toIO :: [String] -> IO (Result ()) -> IO ()

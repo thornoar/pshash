@@ -1,5 +1,9 @@
 # Revision history for `pshash`
 
+## 0.1.17.4
+
+* Added a `--gen-num` option to generate numeric keys from mnemonics
+
 ## 0.1.17.3
 
 * Improved the key input process.

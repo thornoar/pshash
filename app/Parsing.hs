@@ -12,7 +12,7 @@ import Data.List (intercalate)
 data OptionName =
     KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT | ROUNDS
   | CONFIGFILE
-  | PURE | IMPURE | LIST | PLAIN | SHOW | ASKREPEAT | HELP | VERSION | GENKEYS | GENSPELL
+  | PURE | IMPURE | LIST | PLAIN | SHOW | ASKREPEAT | HELP | VERSION | GENKEYS | GENSPELL | GENNUM
   | FIRST | SECOND | THIRD
   | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
@@ -105,6 +105,7 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "show" -> insert' SHOW [] <$> parseArgs trp rest
   "gen-keys" -> insert' GENKEYS [] <$> parseArgs trp rest
   "gen-spell" -> insert' GENSPELL [] <$> parseArgs trp rest
+  "gen-num" -> insert' GENNUM [] <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
   str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
@@ -200,11 +201,15 @@ setEchoesAndPrompts args
       args
   | member ENCRYPT args || member DECRYPT args =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
-      (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "KEY 1: " . insert' P3 "KEY 2: ")
+      (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "CHOCE KEY: " . insert' P3 "SHUFFLE KEY: ")
       args
   | member GENSPELL args =
-      insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
+      (if member SHOW args then insert' E1 "" . insert' E2 "" . insert' E3 "" else id) $
       ((if member PLAIN args then insert' P1 "" else insert' P1 "NUMERIC KEY: ") . insert' P2 "" . insert' P3 "")
+      args
+  | member GENNUM args =
+      (if member SHOW args then insert' E1 "" . insert' E2 "" . insert' E3 "" else id) $
+      ((if member PLAIN args then insert' P1 "" . insert' P2 "" else insert' P1 "MNEMONIC SPELL: " . insert' P2 "MODULO: ") . insert' P3 "")
       args
   | otherwise =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $

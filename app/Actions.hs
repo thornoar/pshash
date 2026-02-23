@@ -19,7 +19,7 @@ import Info
 import Encryption
 
 currentVersion :: String
-currentVersion = "0.1.17.3"
+currentVersion = "0.1.17.4"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -128,7 +128,7 @@ infoAction config "help" = do
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"
       putStrLn . unlines $
           "usage: pshash [ --help | --version | --list | --pure | --impure | --plain ]"
-        : "              [ --ask-repeat | --show | --gen-keys | --gen-spell ]"
+        : "              [ --ask-repeat | --show | --gen-keys | --gen-spell | --gen-num ]"
         : "              [ +color | +no-color ]"
         : "              [ -k|n|c|i|q|f|p|e|d|r ARGUMENT ]"
         : "              [ ARG_1 ARG_2 ARG_3 ]"
@@ -184,6 +184,10 @@ infoAction config "help" = do
         : "  --gen-spell         prompt for a numeric key (e.g. `34+78^3` or `453656`)"
         : "                      and print the mnemonic spell corresponding to this"
         : "                      key"
+        : ""
+        : "  --gen-num           prompt for a mnemonic spell (e.g. `mahasu` or `kufoni`)"
+        : "                      and a number M, printing the corresponding numeric key"
+        : "                      modulo M, as well as its mnemonic spell"
         : ""
         : "  +color              enable colors in error messages"
         : ""
@@ -337,6 +341,20 @@ spellgenAction args = do
   case getPrivateKeyNum key of
     Error tr -> return $ Error $ "Trace while generating mnemonic incantation:" :=> [tr]
     Content n -> putStrLn (getMnemonic n) >> return (Content ())
+
+numgenAction :: Map OptionName String -> IO (Result ())
+numgenAction args = do
+  mnem <- getKeyStr args FIRST E1 P1
+  mdstr <- getKeyStr args SECOND E2 P2
+  case (getPrivateKeyMnemonic mnem, getPrivateKeyNum mdstr) of
+    (Error tr1, Error tr2) -> return $ Error $ "Double trace while generating numeric key from incantation:" :=> [tr1, tr2]
+    (Error tr, _) -> return $ Error $ "Trace while generating numeric key, reading the incantation:" :=> [tr]
+    (_, Error tr) -> return $ Error $ "Trace while generating numeric key, reading the modulus:" :=> [tr]
+    (Content k, Content md) -> do
+      let fin = if (md == 0) then k else mod k md
+      print fin
+      unless (md == 0) $ putStrLn (getMnemonic fin)
+      return (Content ())
 
 encryptionAction ::
   Bool ->
