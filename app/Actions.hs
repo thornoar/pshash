@@ -7,7 +7,8 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as B (readFile, writeFile, putStr, pack, splitAt, append)
 import System.Random (getStdGen, randomR, genByteString)
 import Data.Char (ord)
-import System.IO (stderr, hPutStr, hPutChar, hPutStrLn)
+import System.IO (stderr, hPutStr, hPutChar, hPutStrLn, stdin, hSetEcho)
+import System.Info (os)
 import Control.Monad (unless, when)
 
 import Algorithm
@@ -63,8 +64,29 @@ readChar echo hideNum num = do
       '\DEL' : rest' -> rest'
       _ -> ch : rest
 
-getInput :: Bool -> Bool -> String -> IO String
-getInput echo askRepeat prompt = do
+-- withEcho :: Bool -> IO a -> IO a
+-- withEcho echo action = do
+--   old <- hGetEcho stdin
+--   bracket_ (hSetEcho stdin echo) (hSetEcho stdin old) action
+
+getInputSimple :: Bool -> Bool -> String -> IO String
+getInputSimple echo askRepeat prompt = do
+  hSetEcho stdin echo
+  unless (null prompt) $ hPutStr stderr prompt
+  input <- getLine
+  unless echo $ hPutChar stderr '\n'
+  if askRepeat then do
+    unless (null prompt) $ hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
+    inputRepeat <- getLine
+    unless echo $ hPutChar stderr '\n'
+    if input == inputRepeat then return input
+    else do
+      hPutStrLn stderr "Keys do not match. Try again."
+      getInputSimple echo askRepeat prompt
+  else return input
+
+getInputFancy :: Bool -> Bool -> String -> IO String
+getInputFancy echo askRepeat prompt = do
   hPutStr stderr prompt
   input <- readChar echo (echo || null prompt) 0
   unless (null prompt && not echo) $ hPutChar stderr '\n'
@@ -75,13 +97,14 @@ getInput echo askRepeat prompt = do
     if input == inputRepeat then return input
     else do
       unless (null prompt) $ hPutStrLn stderr "Keys do not match. Try again."
-      getInput echo askRepeat prompt
+      getInputFancy echo askRepeat prompt
   else return input
 
 getKeyStr :: Map OptionName String -> OptionName -> OptionName -> OptionName -> IO String
 getKeyStr args opt echoOpt promptOpt
   | member opt args = return $ args ! opt
   | otherwise = getInput (member echoOpt args) (member ASKREPEAT args) (args ! promptOpt)
+    where getInput = if (os == "linux") then getInputFancy else getInputSimple
 
 -- ┌─────────────────┐
 -- │ QUERY FUNCTIONS │
