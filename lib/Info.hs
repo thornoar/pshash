@@ -63,26 +63,29 @@ psInYear = 31557600000000000000
 ageOfUniverseYears :: Integer
 ageOfUniverseYears = 13787000000
 
-timeToCrack :: Integer -> (Integer, Integer)
-timeToCrack num = (inYears, inAgesOfUniverse)
-  where
-    inYears = div (timeToCheckPicos * num) (2 * psInYear)
-    inAgesOfUniverse = div inYears ageOfUniverseYears
+timeToCrack :: Integer -> Integer
+timeToCrack num = div (timeToCheckPicos * num) (2 * psInYear)
+  -- where
+  --   inYears = div (timeToCheckPicos * num) (2 * psInYear)
+  --   inAgesOfUniverse = div inYears ageOfUniverseYears
 
 getPowerOf :: Integer -> Integer -> Integer
 getPowerOf b n
   | n < b = 0
   | otherwise = 1 + getPowerOf b (div n b)
 
-printTimes :: String -> (Integer, Integer) -> String
-printTimes pr (inY, inAoU) = pr ++ "\n| "
-  ++ show inY ++ " > 10^" ++ show (getPowerOf 10 inY) 
-  ++ " years"
-  ++ (if inAoU > 0
-     then "\n| or "
-          ++ show inAoU ++ " > 10^" ++ show (getPowerOf 10 inAoU)
-          ++ " ages of the Universe"
-     else "")
+printTimes :: String -> Integer -> String
+printTimes pr inY = pr ++ " : "
+  ++ if (inY == 0) then "< 1 year"
+     else if (inY < 1000) then show inY ++ " years"
+     else show inY ++ " > 10^" ++ show (getPowerOf 10 inY) ++ " years"
+  -- ++ show inY ++ " > 10^" ++ show (getPowerOf 10 inY) 
+  -- ++ " years"
+  -- ++ (if inAoU > 0
+  --    then "\n| or "
+  --         ++ show inAoU ++ " > 10^" ++ show (getPowerOf 10 inAoU)
+  --         ++ " ages of the Universe"
+  --    else "")
 
 printBits :: Integer -> String
 printBits num = "2^" ++ show (getPowerOf 2 num)

@@ -46,4 +46,4 @@ run "$cmd arg1 arg2 arg3 arg4" 30
 run "$cmd asd 234^2-+-3 uffff" 30
 run "$cmd -i hahahha" 30
 run "$cmd --gen-spell 123&&&123123" 30
-run "$cmd --gen-num freeerreer not-a-number" 30
+run "$cmd --gen-mod freeerreer not-a-number" 30

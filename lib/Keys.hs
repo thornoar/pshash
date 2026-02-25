@@ -66,7 +66,7 @@ getPrivateKey s = case getPrivateKeyNum s of
   Content n -> Content n
   Error tr1 -> case getPrivateKeyMnemonic s of
     Content n -> Content n
-    Error tr2 -> Error $ "Both numeric and mnemonic read methods failed:" :=> [tr1, tr2]
+    Error tr2 -> Error $ "Both arithmetic and mnemonic read methods failed:" :=> [tr1, tr2]
 
 -- ┌────────────────────────┐
 -- │ CONSTRUCTING MNEMONICS │

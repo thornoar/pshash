@@ -30,13 +30,14 @@ performAction :: Map OptionName String -> Result [([Char], Integer)] -> IO (Resu
 performAction _ (Error tr) = return (Error $ "Trace in configuration argument:" :=> [tr])
 performAction args (Content config)
   | member INFO args = infoAction config (args ! INFO)
-  | member QUERY args = passKeysToAction args (queryAction config (args ! QUERY))
-  | member LIST args = passKeysToAction args (listPairsAction config)
-  | member ENCRYPT args = encryptionAction False args procrypt (args ! ENCRYPT)
-  | member DECRYPT args = encryptionAction True args procrypt (args ! DECRYPT)
+  | member QUERY args = passKeysToAction args (queryAction (member PLAIN args) config (args ! QUERY))
+  | member LIST args = passKeysToAction args (listPairsAction (member PLAIN args) config)
+  | member ENCRYPT args = encryptionAction False args procrypt
+  | member DECRYPT args = encryptionAction True args procrypt
   | member GENKEYS args = keygenAction (member PLAIN args) (map dropElementInfo config)
   | member GENSPELL args = spellgenAction args
   | member GENNUM args = numgenAction args
+  | member GENMOD args = modgenAction args (map dropElementInfo config)
   | otherwise = passKeysToAction args (hashAction config)
 
 toIO :: [String] -> IO (Result ()) -> IO ()

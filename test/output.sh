@@ -18,7 +18,7 @@ function compare {
     fi
 }
 
-compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.17.5"
+compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.17.6"
 compare "$cmd zxc-%-vbn 89^45 9045^4557" "FkPw=p+VyMjdv6XN\$2^3i@QW4"
 compare "$cmd -k long AAA0-=~!@ 123 123" "@&FjQ*34kzZu1O\$IGncBb%5Hy"
 compare "$cmd -k medium ##### 9^900*30*99 125^125" "5y=D06Zw*K\$N%8k@1raX"
@@ -43,4 +43,4 @@ compare "$cmd -r 24 -d test/data.enc stdout 2345^45 123^322" "$(cat "test/data.t
 compare "$cmd -k anlong puuub uskehaunpicadopebewokabeitagelelcavemuduunba tifijalierfumeterotejoquve" "K4QEmk0hx5uYB3vFb187S"
 compare "$cmd -n (24,13,10,7) magiiiic 1234^247+1237*123 ityilereorbafafapijahofemefule" "ecdwLxq@^IayFC2SEb%-nr8Blvz*6#O1mZAhg!5o?ut+psj9\$QiW7X"
 compare "$cmd --gen-spell 123^11" "yudayi tikipu higogi suwaca"
-compare "$cmd --gen-num hahamuhamuha 6969" "$(printf "4473\nhabu")"
+compare "$cmd --gen-mod hahamuhamuha 6969" "$(printf "4473\nhabu")"

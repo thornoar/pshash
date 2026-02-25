@@ -20,7 +20,7 @@ import Info
 import Encryption
 
 currentVersion :: String
-currentVersion = "0.1.17.5"
+currentVersion = "0.1.17.6"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -63,11 +63,6 @@ readChar echo hideNum num = do
       '\b' : rest' -> rest'
       '\DEL' : rest' -> rest'
       _ -> ch : rest
-
--- withEcho :: Bool -> IO a -> IO a
--- withEcho echo action = do
---   old <- hGetEcho stdin
---   bracket_ (hSetEcho stdin echo) (hSetEcho stdin old) action
 
 getInputSimple :: Bool -> Bool -> String -> IO String
 getInputSimple echo askRepeat prompt = do
@@ -150,8 +145,9 @@ infoAction config "help" = do
       let show' :: [([Char],Integer)] -> String
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"
       putStrLn . unlines $
-          "usage: pshash [ --help | --version | --list | --pure | --impure | --plain ]"
-        : "              [ --ask-repeat | --show | --gen-keys | --gen-spell | --gen-num ]"
+          "usage: pshash [ --help | --version | --list | --pure | --impure ]"
+        : "              [ --ask-repeat | --show | --plain ]"
+        : "              [ --gen-keys | --gen-spell | --gen-num | --gen-mod ]"
         : "              [ +color | +no-color ]"
         : "              [ -k|n|c|i|q|f|p|e|d|r ARGUMENT ]"
         : "              [ ARG_1 ARG_2 ARG_3 ]"
@@ -171,7 +167,7 @@ infoAction config "help" = do
         : ("                      between 0 and 10^" ++ show (getPowerOf 10 (numberOfShuffleKeys $ map snd config)))
         : ""
         : "the two keys can each be given in two formats:"
-        : "  * numeric: an expression with numbers and `^`, `*`, `+`"
+        : "  * arithmetic: an expression with numbers and `^`, `*`, `+`"
         : "    symbols. This expression will be evaluated as usual."
         : "    For example, `6543 + 67^3^2 * 9888 + 23`."
         : "  * mnemonic (spell incantation): a gibberish-looking"
@@ -204,13 +200,16 @@ infoAction config "help" = do
         : "  --gen-keys          generate a random choice-shuffle keypair. The"
         : "                      key range depends on the configuration used"
         : ""
-        : "  --gen-spell         prompt for a numeric key (e.g. `34+78^3` or `453656`)"
+        : "  --gen-spell         prompt for a arithmetic key (e.g. `34+78^3` or `456`)"
         : "                      and print the mnemonic spell corresponding to this"
         : "                      key"
         : ""
-        : "  --gen-num           prompt for a mnemonic spell (e.g. `mahasu` or `kufoni`)"
-        : "                      and a number M, printing the corresponding numeric key"
-        : "                      modulo M, as well as its mnemonic spell"
+        : "  --gen-num           prompt for a mnemonic key (e.g. `mufasa` or `begepo`)"
+        : "                      and print the numeric value of this key"
+        : ""
+        : "  --gen-mod           prompt for a key K (in either arithmetic or mnemonic"
+        : "                      form) and a number M, printing the value of K modulo"
+        : "                      M, both in numeric and mnemonic forms"
         : ""
         : "  +color              enable colors in error messages"
         : ""
@@ -298,64 +297,73 @@ infoAction config "numbers" =
       numShuffle = numberOfShuffleKeys $ map snd amts
       numRepetitions = numberOfRepetitions $ map snd amts
    in do
-  putStrLn $ "using the following configuration distribution:\n| " ++ show amts
-  putStrLn ""
-  putStrLn $ "total theoretical number of hashes:\n| " ++ show numHashes ++ " > " ++ printBits numHashes
-  putStrLn $ "number of choice keys:\n| " ++ show numChoice ++ " > " ++ printBits numChoice
-  putStrLn $ "number of shuffle keys:\n| " ++ show numShuffle ++ " > " ++ printBits numShuffle
-  putStrLn $ "number of key pairs with the same hash:\n| " ++ show numRepetitions ++ " > " ++ printBits numRepetitions
-  putStrLn $ "\ntotal hash length:\n| " ++ show ((sum . map snd) amts) ++ " symbols"
-  putStrLn $ "maximum relevant length of the public key:\n| " ++ show (maxLengthOfPublicKey amts) ++ " symbols"
+  putStr $ "\n" ++
+    "   symbol distribution : " ++ show amts ++ "\n" ++
+    "      number of hashes : " ++ show numHashes ++ " > " ++ printBits numHashes ++ "\n" ++
+    "     total hash length : " ++ show ((sum . map snd) amts) ++ " symbols\n\n" ++
+    "number of choice  keys : " ++ show numChoice ++ " > " ++ printBits numChoice ++ "\n" ++
+    "number of shuffle keys : " ++ show numShuffle ++ " > " ++ printBits numShuffle ++ "\n" ++
+    "       hash collisions : " ++ show numRepetitions ++ " > " ++ printBits numRepetitions ++ "\n\n" ++
+    " max public key length : " ++ show (maxLengthOfPublicKey amts) ++ " symbols\n\n"
   return (Content ())
 infoAction config "times" = let amts = map dropElementInfo config in do
-  putStrLn $ "using the following configuration distribution:\n| " ++ show amts
-  putStrLn ""
-  putStrLn $ "assumed number of password checks per second:\n| " ++ "10 billion = 10^10"
-  putStrLn $ "time to check one password:\n| " ++ "10^(" ++ show timeToCheckPower ++ ") s = " ++ show timeToCheckPicos ++ " picoseconds"
-  putStrLn ""
-  putStrLn $ printTimes "time to brute-force your password:" (timeToCrack $ numberOfHashes amts)
-  putStrLn $ printTimes "time to retrieve the keys based on a hash:" (timeToCrack $ numberOfRepetitions $ map snd amts)
+  putStr $ "\n" ++
+    "   symbol distribution : " ++ show amts ++ "\n" ++
+    "  assumed attack speed : " ++ "10 billion operations per second\n" ++
+    printTimes " hash brute-force time" (timeToCrack $ numberOfHashes amts) ++ "\n" ++
+    printTimes "known hash attack time" (timeToCrack $ numberOfRepetitions $ map snd amts) ++ "\n\n"
   return (Content ())
 infoAction _ cmd = return . Error $ ("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []
 
-queryAction :: [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Result ())
-queryAction config "public" choiceStr shuffleStr hashStr = handleWith print $ retrievePublicKey config choiceStr shuffleStr hashStr
-queryAction config "choice" publicStr shuffleStr hashStr = handleWith print $ retrieveChoiceKey config publicStr shuffleStr hashStr
-queryAction config "shuffle" publicStr choiceStr hashStr = handleWith print $ retrieveShuffleKey config publicStr choiceStr hashStr
-queryAction _ kw _ _ _ = return . Error $ ("<Query keyword not recognized: \"{{" ++ kw ++ "}}\".>") :=> []
+queryAction :: Bool -> [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Result ())
+queryAction plain config kwd arg1 arg2 arg3 =
+  let printPublic = if plain then print else \s -> putStr $ "\npublic key : " ++ show s ++ "\n\n"
+      printPrivate :: Integer -> IO ()
+      printPrivate = if plain then print else \n -> putStr $ "\n" ++
+        replicate (7 - length kwd) ' ' ++ kwd ++ " key : " ++ show n ++ "\n" ++
+        "incantation : " ++ getMnemonic n ++ "\n\n"
+   in case kwd of
+    "public" -> handleWith printPublic $ retrievePublicKey config arg1 arg2 arg3
+    "choice" -> handleWith printPrivate $ retrieveChoiceKey config arg1 arg2 arg3
+    "shuffle" -> handleWith printPrivate $ retrieveShuffleKey config arg1 arg2 arg3
+    _ -> return . Error $ ("<Query keyword not recognized: \"{{" ++ kwd ++ "}}\".>") :=> []
 
-listPairsAction :: [([Char], Integer)] -> String -> String -> [Char] -> IO (Result ())
-listPairsAction config publicStr limitStr hashStr =
+listPairsAction :: Bool -> [([Char], Integer)] -> String -> String -> [Char] -> IO (Result ())
+listPairsAction plain config publicStr limitStr hashStr =
   let publicKey = getPublicKey publicStr
       mlimit = readResult "integer" limitStr :: Result Integer
-      format :: Integer -> Integer -> String
-      format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show shuffleKey
-      getPair :: Integer -> Result String
-      getPair shuffleKey = fmap (format shuffleKey) (getHashI' config hashStr shuffleKey)
       sequence' :: [IO (Result ())] -> IO (Result ())
       sequence' [] = return (Content ())
-      sequence' (io : rest) = do
-        res <- io
-        case res of
-          Error tr -> return (Error tr)
-          Content () -> sequence' rest
+      sequence' (io : rest) = io >>= \res -> case res of
+        Error tr -> return (Error tr)
+        Content () -> sequence' rest
    in case mlimit of
         Error tr -> return (Error $ "Trace while reading number of pairs to print:" :=> [tr])
-        Content limit -> sequence' $ take' limit $ map (handleWith putStrLn  . getPair) [0 .. numberOfShuffleKeys' config - 1]
+        Content limit -> if plain then do
+          let format :: Integer -> Integer -> String
+              format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show shuffleKey
+              getPair :: Integer -> Result String
+              getPair shuffleKey = fmap (format shuffleKey) (getHashI' config hashStr shuffleKey)
+          sequence' $ map (handleWith putStrLn  . getPair) [0 .. limit - 1]
+        else do
+          let 
+              format :: Integer -> Integer -> String
+              format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show shuffleKey
+              getPair :: Integer -> Result String
+              getPair shuffleKey = fmap (format shuffleKey) (getHashI' config hashStr shuffleKey)
+          return (Content ())
 
 keygenAction :: Bool -> [(Integer, Integer)] -> IO (Result ())
 keygenAction plain amts = do
   g <- getStdGen
   let choice = fst $ randomR (0, numberOfChoiceKeys amts) g :: Integer
       shuffle = fst $ randomR (0, numberOfShuffleKeys $ map snd amts) g :: Integer
-  if plain then do
-    print choice
-    print shuffle
-  else do
-    putStrLn $ "private choice key:  " ++ show choice
-    putStrLn $ "       incantation:  " ++ getMnemonic choice
-    putStrLn $ "private shuffle key: " ++ show shuffle
-    putStrLn $ "       incantation:  " ++ getMnemonic shuffle
+  if plain then print choice >> print shuffle
+  else putStr $ "\n" ++
+    "choice key  : " ++ show choice ++ "\n" ++
+    "incantation : " ++ getMnemonic choice ++ "\n\n" ++
+    "shuffle key : " ++ show shuffle ++ "\n" ++
+    "incantation : " ++ getMnemonic shuffle ++ "\n\n"
   return (Content ())
 
 spellgenAction :: Map OptionName String -> IO (Result ())
@@ -368,25 +376,42 @@ spellgenAction args = do
 numgenAction :: Map OptionName String -> IO (Result ())
 numgenAction args = do
   mnem <- getKeyStr args FIRST E1 P1
-  mdstr <- getKeyStr args SECOND E2 P2
-  case (getPrivateKeyMnemonic mnem, getPrivateKeyNum mdstr) of
-    (Error tr1, Error tr2) -> return $ Error $ "Double trace while generating numeric key from incantation:" :=> [tr1, tr2]
-    (Error tr, _) -> return $ Error $ "Trace while generating numeric key, reading the incantation:" :=> [tr]
-    (_, Error tr) -> return $ Error $ "Trace while generating numeric key, reading the modulus:" :=> [tr]
-    (Content k, Content md) -> do
-      let fin = if (md == 0) then k else mod k md
-      print fin
-      unless (md == 0) $ putStrLn (getMnemonic fin)
+  case getPrivateKeyMnemonic mnem of
+    Error tr -> return $ Error $ "Trace while generating numeric key:" :=> [tr]
+    Content k -> print k >> return (Content ())
+
+modgenAction :: Map OptionName String -> [(Integer, Integer)] -> IO (Result ())
+modgenAction args amts = do
+  choiceStr <- getKeyStr args FIRST E1 P1
+  shuffleStr <- getKeyStr args SECOND E2 P2
+  case (getPrivateKey choiceStr, getPrivateKey shuffleStr) of
+    (Error tr1, Error tr2) -> return $ Error $ "Double trace while performing modulus operation:" :=> [tr1, tr2]
+    (Error tr, _) -> return $ Error $ "Trace while performing modulus operation, reading the choice key:" :=> [tr]
+    (_, Error tr) -> return $ Error $ "Trace while performing modulus operation, reading the shuffle key:" :=> [tr]
+    (Content choice, Content shuffle) -> do
+      let choiceSpr = numberOfChoiceKeys amts
+          shuffleSpr = numberOfShuffleKeys (map snd amts)
+          newChoice = mod choice choiceSpr
+          newShuffle = mod shuffle shuffleSpr
+      if member PLAIN args then print newChoice >> print newShuffle
+      else putStr $ "\n" ++
+        "symbol distribution : " ++ show amts ++ "\n" ++
+        " choice key modulus : " ++ show choiceSpr ++ "\n" ++
+        "shuffle key modulus : " ++ show shuffleSpr ++ "\n\n" ++
+        " shorter choice key : " ++ show newChoice ++ "\n" ++
+        "        incantation : " ++ getMnemonic newChoice ++ "\n\n" ++
+        "shorter shuffle key : " ++ show newShuffle ++ "\n" ++
+        "        incantation : " ++ getMnemonic newShuffle ++ "\n\n"
       return (Content ())
 
 encryptionAction ::
   Bool ->
   Map OptionName String ->
   (Int -> (ByteString, ByteString) -> Integer -> Integer -> ByteString) ->
-  FilePath ->
   IO (Result ())
-encryptionAction dec args func fname = do
+encryptionAction dec args func = do
   let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
+      fname = args ! if dec then DECRYPT else ENCRYPT
   outfile <- getKeyStr args FIRST E1 P1
   mkey1 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
   mkey2 <- getPrivateKey <$> getKeyStr args THIRD E3 P3

@@ -571,7 +571,7 @@ For the primary implementation of the $\h(-, -, -)$ function, we have chosen the
 
 The primary implementation is a CLI program running in the console. It was designed without any GUI in order to make it more lightweight and portable, as well as faster. It is fully open-source, with source code available on GitHub \cite{pshash-src}, together with installation instructions.
 
-The general invocation of \texttt{pshash} is \verb|$ pshash PUBLIC CHOICE SHUFFLE|, providing the public key and the choice-shuffle private key-pair. To avoid passing secrets directly as command-line arguments, the user may omit any of the three arguments and provide them via \texttt{stdin}. In addition, the program has many flags and options, all of which can be viewed by invoking \verb|$ pshash --help|. We will expand on some of the most important features below.
+The general invocation of \texttt{pshash} is \verb|$ pshash PUBLIC CHOICE SHUFFLE|, providing the public key and the choice-shuffle private key-pair. To avoid passing secrets directly as command-line arguments, the user may omit any of the three arguments and provide them via \texttt{stdin}. In addition, the program has many flags and options, all of which can be viewed by invoking \verb|$ pshash --help|. We will expand on some of the most important features below. Note that some of the details may differ depending on the version of \texttt{pshash}. Here we consider version \texttt{0.1.17.5}.
 
 \subsection{Simplified Key Input and Generation} \label{input}
 
@@ -589,8 +589,7 @@ These problems are solved in the implementation of \texttt{pshash} as follows:
       14597701819718601692712560 \ &\longleftrightarrow \ \mathtt{rebifu\ unpuja\ litule\ jufela\ tu}
     \end{align*}
     Remembering these incantations still requires effort, of course, but it is feasible, and the nature of \texttt{pshash} is such that the security properties of passwords rely directly on the amount of entropy in the keys.\\
-    To generate an incantation, the user may invoke \verb|$ pshash --gen-spell|. They will be prompted for the numeric key (which can be typed as an arithmetic expression), after which the incantation will be printed as output. The \verb|$ pshash --gen-keys| command will also automatically print corresponding incantations.\\
-    The user can also convert incantations back to numeric keys with the \verb|--gen-num| flag.
+    To generate an incantation, the user may invoke \verb|$ pshash --gen-spell|. They will be prompted for the arithmetic key (which can be typed as an arithmetic expression), after which the incantation will be printed as output. The \verb|$ pshash --gen-keys| command will also automatically print corresponding incantations.\\
 \end{itemize}
 
 \subsection{Error Messages}
@@ -601,11 +600,11 @@ The \texttt{pshash} implementation supports a state-of-the-art error message sys
 ERROR:
 |_Double trace:
   |_Trace while computing hash, getting the *choice* key:
-  | |_Both numeric and mnemonic read methods failed:
+  | |_Both arithmetic and mnemonic read methods failed:
   |   |_FAILED TO READ "*asd*" AS *integer*.
   |   |_UNKNOWN MNEMONIC SYLLABLE: "*as*".
   |_Trace while computing hash, getting the *shuffle* key:
-    |_Both numeric and mnemonic read methods failed:
+    |_Both arithmetic and mnemonic read methods failed:
       |_FAILED TO READ "*asd*" AS *integer*.
       |_UNKNOWN MNEMONIC SYLLABLE: "*as*".
 \end{verbatim}

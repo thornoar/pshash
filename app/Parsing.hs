@@ -12,7 +12,8 @@ import Data.List (intercalate)
 data OptionName =
     KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT | ROUNDS
   | CONFIGFILE
-  | PURE | IMPURE | LIST | PLAIN | SHOW | ASKREPEAT | HELP | VERSION | GENKEYS | GENSPELL | GENNUM
+  | PURE | IMPURE | LIST | PLAIN | SHOW | ASKREPEAT | HELP | VERSION
+  | GENKEYS | GENSPELL | GENNUM | GENMOD
   | FIRST | SECOND | THIRD
   | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
@@ -106,6 +107,7 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "gen-keys" -> insert' GENKEYS [] <$> parseArgs trp rest
   "gen-spell" -> insert' GENSPELL [] <$> parseArgs trp rest
   "gen-num" -> insert' GENNUM [] <$> parseArgs trp rest
+  "gen-mod" -> insert' GENMOD [] <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
   str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
@@ -145,7 +147,7 @@ getArgsFromContents keywordM contents = case keywordM of
 
 getConfigArgs :: Map OptionName String -> IO (Result (Map OptionName String))
 getConfigArgs args
-  | any (`member` args) [PURE, INFO, QUERY, LIST] = return (Content args)
+  | any (`member` args) [PURE, QUERY, LIST, GENSPELL, GENNUM, ENCRYPT, DECRYPT] = return (Content args)
   | member CONFIGFILE args = do
       fileContentsH <- readFileResult readFile (args ! CONFIGFILE)
       case fileContentsH of
@@ -209,7 +211,11 @@ setEchoesAndPrompts args
       args
   | member GENNUM args =
       (if member SHOW args then insert' E1 "" . insert' E2 "" . insert' E3 "" else id) $
-      ((if member PLAIN args then insert' P1 "" . insert' P2 "" else insert' P1 "MNEMONIC SPELL: " . insert' P2 "MODULO: ") . insert' P3 "")
+      ((if member PLAIN args then insert' P1 "" else insert' P1 "MNEMONIC SPELL: ") . insert' P2 "" . insert' P3 "")
+      args
+  | member GENMOD args =
+      (if member SHOW args then insert' E1 "" . insert' E2 "" . insert' E3 "" else id) $
+      ((if member PLAIN args then insert' P1 "" . insert' P2 "" else insert' P1 "CHOICE KEY: " . insert' P2 "SHUFFLE KEY: ") . insert' P3 "")
       args
   | otherwise =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $

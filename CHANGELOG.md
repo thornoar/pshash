@@ -1,6 +1,10 @@
 # Revision history for `pshash`
 
-## 0.1.17.4
+## 0.1.17.6
+
+* 
+
+## 0.1.17.5
 
 * Improved the output of `-i numbers` and `-i times`.
 
