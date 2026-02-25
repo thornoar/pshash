@@ -18,7 +18,7 @@ function compare {
     fi
 }
 
-compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.17.6"
+compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.17.5"
 compare "$cmd zxc-%-vbn 89^45 9045^4557" "FkPw=p+VyMjdv6XN\$2^3i@QW4"
 compare "$cmd -k long AAA0-=~!@ 123 123" "@&FjQ*34kzZu1O\$IGncBb%5Hy"
 compare "$cmd -k medium ##### 9^900*30*99 125^125" "5y=D06Zw*K\$N%8k@1raX"

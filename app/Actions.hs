@@ -20,7 +20,7 @@ import Info
 import Encryption
 
 currentVersion :: String
-currentVersion = "0.1.17.6"
+currentVersion = "0.1.17.5"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
