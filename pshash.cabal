@@ -41,5 +41,5 @@ executable pshash
         -O2
         -fwrite-ide-info
         -hiedir=.hie
-        -rtsopts=all
-        -with-rtsopts=--io-manager=native
+        -- -rtsopts=all
+        -- -with-rtsopts=--io-manager=native
