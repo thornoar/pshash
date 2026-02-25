@@ -11,7 +11,8 @@ build-type:         Simple
 extra-doc-files:    CHANGELOG.md
 
 common warnings
-    ghc-options: -Wall
+    ghc-options:
+        -Wall
 
 library pshash-lib
     import:           warnings
@@ -40,3 +41,5 @@ executable pshash
         -O2
         -fwrite-ide-info
         -hiedir=.hie
+        -rtsopts=all
+        -with-rtsopts=--io-manager=native
