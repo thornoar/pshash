@@ -127,7 +127,7 @@ getArgsFromContents :: Maybe String -> String -> Result (Map OptionName String)
 getArgsFromContents keywordM contents = case keywordM of
   Nothing -> Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
     [
-      ("Disable configuration files by removing the " ++ "{--impure}" ++ " option, or") :=> [],
+      ("Disable configuration files by removing the " ++ "{--impure/-f}" ++ " options, or") :=> [],
       ("Pass the " ++ "{--pure}" ++ " option for the same effect, or") :=> [],
       ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
       ("{Remove}" ++ " the configuration files.") :=> []
@@ -186,9 +186,9 @@ patchArgs args
 
 setEchoesAndPrompts :: Map OptionName String -> Map OptionName String
 setEchoesAndPrompts args
-  | member INFO args = args
+  | member INFO args || member GENKEYS args = args
   | member QUERY args =
-      insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
+      (if member SHOW args then insert' E1 "" . insert' E2 "" . insert' E3 "" else id) $
         if member PLAIN args
         then insert' P1 "" $ insert' P2 "" $ insert' P3 "" args
         else case args ! QUERY of
@@ -198,24 +198,24 @@ setEchoesAndPrompts args
             _ -> insert' P1 "INPUT 1: " . insert' P2 "INPUT 2: "
           $ insert' P3 "FINAL HASH: " args
   | member LIST args =
-      insert' E1 "" $ insert' E2 "" $ insert' E3 "" $
+      (insert' E1 "" . insert' E2 "" . if member SHOW args then insert' E3 "" else id) $
       (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "NUMBER OF PAIRS: " . insert' P3 "FINAL HASH: ")
       args
   | member ENCRYPT args || member DECRYPT args =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
-      (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "CHOCE KEY: " . insert' P3 "SHUFFLE KEY: ")
+      (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "WRITE TO: " . insert' P2 "CHOICE KEY: " . insert' P3 "SHUFFLE KEY: ")
       args
   | member GENSPELL args =
-      (if member SHOW args then insert' E1 "" . insert' E2 "" . insert' E3 "" else id) $
-      ((if member PLAIN args then insert' P1 "" else insert' P1 "NUMERIC KEY: ") . insert' P2 "" . insert' P3 "")
+      (if member SHOW args then insert' E1 "" else id) $
+      (if member PLAIN args then insert' P1 "" else insert' P1 "NUMERIC KEY: ")
       args
   | member GENNUM args =
-      (if member SHOW args then insert' E1 "" . insert' E2 "" . insert' E3 "" else id) $
-      ((if member PLAIN args then insert' P1 "" else insert' P1 "MNEMONIC SPELL: ") . insert' P2 "" . insert' P3 "")
+      (if member SHOW args then insert' E1 "" else id) $
+      (if member PLAIN args then insert' P1 "" else insert' P1 "MNEMONIC SPELL: ")
       args
   | member GENMOD args =
-      (if member SHOW args then insert' E1 "" . insert' E2 "" . insert' E3 "" else id) $
-      ((if member PLAIN args then insert' P1 "" . insert' P2 "" else insert' P1 "CHOICE KEY: " . insert' P2 "SHUFFLE KEY: ") . insert' P3 "")
+      (if member SHOW args then insert' E1 "" . insert' E2 "" else id) $
+      (if member PLAIN args then insert' P1 "" . insert' P2 "" else insert' P1 "CHOICE KEY: " . insert' P2 "SHUFFLE KEY: ")
       args
   | otherwise =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $

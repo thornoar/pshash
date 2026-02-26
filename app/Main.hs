@@ -29,7 +29,7 @@ passKeysToAction args act = do
 performAction :: Map OptionName String -> Result [([Char], Integer)] -> IO (Result ())
 performAction _ (Error tr) = return (Error $ "Trace in configuration argument:" :=> [tr])
 performAction args (Content config)
-  | member INFO args = infoAction config (args ! INFO)
+  | member INFO args = infoAction (member PLAIN args) config (args ! INFO)
   | member QUERY args = passKeysToAction args (queryAction (member PLAIN args) config (args ! QUERY))
   | member LIST args = passKeysToAction args (listPairsAction (member PLAIN args) config)
   | member ENCRYPT args = encryptionAction False args procrypt

@@ -76,7 +76,7 @@ getInputSimple echo askRepeat prompt = do
     unless echo $ hPutChar stderr '\n'
     if input == inputRepeat then return input
     else do
-      hPutStrLn stderr "Keys do not match. Try again."
+      hPutStrLn stderr "Inputs do not match. Try again."
       getInputSimple echo askRepeat prompt
   else return input
 
@@ -98,8 +98,10 @@ getInputFancy echo askRepeat prompt = do
 getKeyStr :: Map OptionName String -> OptionName -> OptionName -> OptionName -> IO String
 getKeyStr args opt echoOpt promptOpt
   | member opt args = return $ args ! opt
-  | otherwise = getInput (member echoOpt args) (member ASKREPEAT args) (args ! promptOpt)
-    where getInput = if (os == "linux") then getInputFancy else getInputSimple
+  | otherwise = getInput echo (member ASKREPEAT args && not echo) (args ! promptOpt)
+    where
+      echo = member echoOpt args
+      getInput = if (os == "linux") then getInputFancy else getInputSimple
 
 -- ┌─────────────────┐
 -- │ QUERY FUNCTIONS │
@@ -140,9 +142,9 @@ handleWith f ma = case ma of
   Error tr -> return (Error tr)
   Content a -> f a >> return (Content ())
 
-infoAction :: [([Char], Integer)] -> String -> IO (Result ())
-infoAction config "help" = do
-      let show' :: [([Char],Integer)] -> String
+infoAction :: Bool -> [([Char], Integer)] -> String -> IO (Result ())
+infoAction _ config "help" = do
+      let show' :: [([Char], Integer)] -> String
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"
       putStrLn . unlines $
           "usage: pshash [ --help | --version | --list | --pure | --impure ]"
@@ -289,39 +291,48 @@ infoAction config "help" = do
         : show' config
         : []
       return (Content ())
-infoAction _ "version" = putStrLn ("The pshash pseudo-hash password manager, version " ++ currentVersion) >> return (Content ())
-infoAction config "numbers" =
+infoAction plain _ "version" = do
+  unless plain $ putStr "The pshash pseudo-hash password manager, version "
+  putStrLn currentVersion
+  return (Content ())
+infoAction plain config "numbers" =
   let amts = map dropElementInfo config
       numHashes = numberOfHashes amts
       numChoice = numberOfChoiceKeys amts
       numShuffle = numberOfShuffleKeys $ map snd amts
       numRepetitions = numberOfRepetitions $ map snd amts
    in do
-  putStr $ "\n" ++
-    "   symbol distribution : " ++ show amts ++ "\n" ++
-    "      number of hashes : " ++ show numHashes ++ " > " ++ printBits numHashes ++ "\n" ++
-    "     total hash length : " ++ show ((sum . map snd) amts) ++ " symbols\n\n" ++
-    "number of choice  keys : " ++ show numChoice ++ " > " ++ printBits numChoice ++ "\n" ++
-    "number of shuffle keys : " ++ show numShuffle ++ " > " ++ printBits numShuffle ++ "\n" ++
-    "       hash collisions : " ++ show numRepetitions ++ " > " ++ printBits numRepetitions ++ "\n\n" ++
-    " max public key length : " ++ show (maxLengthOfPublicKey amts) ++ " symbols\n\n"
+  if plain then print numChoice >> print numShuffle >> print numRepetitions
+  else putStr $ "\n" ++
+    "    symbol distribution : " ++ show amts ++ "\n" ++
+    "       number of hashes : " ++ show numHashes ++ " > " ++ printBits numHashes ++ "\n" ++
+    "      total hash length : " ++ show ((sum . map snd) amts) ++ " symbols\n\n" ++
+    " number of choice  keys : " ++ show numChoice ++ " > " ++ printBits numChoice ++ "\n" ++
+    " number of shuffle keys : " ++ show numShuffle ++ " > " ++ printBits numShuffle ++ "\n" ++
+    "        hash collisions : " ++ show numRepetitions ++ " > " ++ printBits numRepetitions ++ "\n\n" ++
+    "  max public key length : " ++ show (maxLengthOfPublicKey amts) ++ " symbols\n\n"
   return (Content ())
-infoAction config "times" = let amts = map dropElementInfo config in do
-  putStr $ "\n" ++
-    "   symbol distribution : " ++ show amts ++ "\n" ++
-    "  assumed attack speed : " ++ "10 billion operations per second\n" ++
-    printTimes " hash brute-force time" (timeToCrack $ numberOfHashes amts) ++ "\n" ++
-    printTimes "known hash attack time" (timeToCrack $ numberOfRepetitions $ map snd amts) ++ "\n\n"
+infoAction plain config "times" =
+  let amts = map dropElementInfo config
+      bfTime = timeToCrack (numberOfHashes amts)
+      khTime = timeToCrack (numberOfRepetitions $ map snd amts)
+   in do
+  if plain then print bfTime >> print khTime
+  else putStr $ "\n" ++
+    "    symbol distribution : " ++ show amts ++ "\n" ++
+    "   assumed attack speed : " ++ "10 billion operations per second\n" ++
+    printTimes "  hash brute-force time" bfTime ++ "\n" ++
+    printTimes " known hash attack time" khTime ++ "\n\n"
   return (Content ())
-infoAction _ cmd = return . Error $ ("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []
+infoAction _ _ cmd = return . Error $ ("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []
 
 queryAction :: Bool -> [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Result ())
 queryAction plain config kwd arg1 arg2 arg3 =
-  let printPublic = if plain then print else \s -> putStr $ "\npublic key : " ++ show s ++ "\n\n"
+  let printPublic = if plain then print else \s -> putStr $ "\n public key : " ++ show s ++ "\n\n"
       printPrivate :: Integer -> IO ()
       printPrivate = if plain then print else \n -> putStr $ "\n" ++
-        replicate (7 - length kwd) ' ' ++ kwd ++ " key : " ++ show n ++ "\n" ++
-        "incantation : " ++ getMnemonic n ++ "\n\n"
+        replicate (8 - length kwd) ' ' ++ kwd ++ " key : " ++ show n ++ "\n" ++
+        " incantation : " ++ getMnemonic n ++ "\n\n"
    in case kwd of
     "public" -> handleWith printPublic $ retrievePublicKey config arg1 arg2 arg3
     "choice" -> handleWith printPrivate $ retrieveChoiceKey config arg1 arg2 arg3
@@ -330,7 +341,9 @@ queryAction plain config kwd arg1 arg2 arg3 =
 
 listPairsAction :: Bool -> [([Char], Integer)] -> String -> String -> [Char] -> IO (Result ())
 listPairsAction plain config publicStr limitStr hashStr =
-  let publicKey = getPublicKey publicStr
+  let mnc = numberOfChoiceKeys' config
+      mns = numberOfShuffleKeys' config
+      publicKey = getPublicKey publicStr
       mlimit = readResult "integer" limitStr :: Result Integer
       sequence' :: [IO (Result ())] -> IO (Result ())
       sequence' [] = return (Content ())
@@ -341,17 +354,25 @@ listPairsAction plain config publicStr limitStr hashStr =
         Error tr -> return (Error $ "Trace while reading number of pairs to print:" :=> [tr])
         Content limit -> if plain then do
           let format :: Integer -> Integer -> String
-              format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show shuffleKey
+              format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) mnc) ++ " " ++ show shuffleKey
               getPair :: Integer -> Result String
               getPair shuffleKey = fmap (format shuffleKey) (getHashI' config hashStr shuffleKey)
-          sequence' $ map (handleWith putStrLn  . getPair) [0 .. limit - 1]
+          sequence' $ map (handleWith putStrLn  . getPair) [0 .. min limit mns - 1]
         else do
-          let 
+          let ml = max 11 $ 2 + length (show mnc)
+              sl = max 12 $ length (show mns)
               format :: Integer -> Integer -> String
-              format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)) ++ " " ++ show shuffleKey
+              format shuffleKey preChoiceKey =
+                let nstr = show $ mod (preChoiceKey - publicKey) (numberOfChoiceKeys' config)
+                 in " " ++ nstr ++ replicate (ml - length nstr) ' ' ++ "| " ++ show shuffleKey
               getPair :: Integer -> Result String
               getPair shuffleKey = fmap (format shuffleKey) (getHashI' config hashStr shuffleKey)
-          return (Content ())
+          putStrLn $
+            "\n choice key" ++ replicate (ml - 10) ' ' ++ "| shuffle key\n " ++
+            replicate ml '-' ++ "+" ++ replicate sl '-'
+          res <- sequence' $ map (handleWith putStrLn  . getPair) [0 .. min limit mns - 1]
+          putStrLn ""
+          return res
 
 keygenAction :: Bool -> [(Integer, Integer)] -> IO (Result ())
 keygenAction plain amts = do
@@ -360,10 +381,10 @@ keygenAction plain amts = do
       shuffle = fst $ randomR (0, numberOfShuffleKeys $ map snd amts) g :: Integer
   if plain then print choice >> print shuffle
   else putStr $ "\n" ++
-    "choice key  : " ++ show choice ++ "\n" ++
-    "incantation : " ++ getMnemonic choice ++ "\n\n" ++
-    "shuffle key : " ++ show shuffle ++ "\n" ++
-    "incantation : " ++ getMnemonic shuffle ++ "\n\n"
+    "  choice key : " ++ show choice ++ "\n" ++
+    " incantation : " ++ getMnemonic choice ++ "\n\n" ++
+    " shuffle key : " ++ show shuffle ++ "\n" ++
+    " incantation : " ++ getMnemonic shuffle ++ "\n\n"
   return (Content ())
 
 spellgenAction :: Map OptionName String -> IO (Result ())
@@ -371,14 +392,20 @@ spellgenAction args = do
   key <- getKeyStr args FIRST E1 P1
   case getPrivateKeyNum key of
     Error tr -> return $ Error $ "Trace while generating mnemonic incantation:" :=> [tr]
-    Content n -> putStrLn (getMnemonic n) >> return (Content ())
+    Content n -> do
+      if (member PLAIN args) then putStrLn (getMnemonic n)
+      else putStr $ "\n incantation : " ++ getMnemonic n ++ "\n\n"
+      return (Content ())
 
 numgenAction :: Map OptionName String -> IO (Result ())
 numgenAction args = do
   mnem <- getKeyStr args FIRST E1 P1
   case getPrivateKeyMnemonic mnem of
     Error tr -> return $ Error $ "Trace while generating numeric key:" :=> [tr]
-    Content k -> print k >> return (Content ())
+    Content k -> do
+      if (member PLAIN args) then print k
+      else putStr $ "\n numeric key : " ++ show k ++ "\n\n"
+      return (Content ())
 
 modgenAction :: Map OptionName String -> [(Integer, Integer)] -> IO (Result ())
 modgenAction args amts = do
@@ -395,13 +422,13 @@ modgenAction args amts = do
           newShuffle = mod shuffle shuffleSpr
       if member PLAIN args then print newChoice >> print newShuffle
       else putStr $ "\n" ++
-        "symbol distribution : " ++ show amts ++ "\n" ++
-        " choice key modulus : " ++ show choiceSpr ++ "\n" ++
-        "shuffle key modulus : " ++ show shuffleSpr ++ "\n\n" ++
-        " shorter choice key : " ++ show newChoice ++ "\n" ++
-        "        incantation : " ++ getMnemonic newChoice ++ "\n\n" ++
-        "shorter shuffle key : " ++ show newShuffle ++ "\n" ++
-        "        incantation : " ++ getMnemonic newShuffle ++ "\n\n"
+        " symbol distribution : " ++ show amts ++ "\n" ++
+        "  choice key modulus : " ++ show choiceSpr ++ "\n" ++
+        " shuffle key modulus : " ++ show shuffleSpr ++ "\n\n" ++
+        "  shorter choice key : " ++ show newChoice ++ "\n" ++
+        "         incantation : " ++ getMnemonic newChoice ++ "\n\n" ++
+        " shorter shuffle key : " ++ show newShuffle ++ "\n" ++
+        "         incantation : " ++ getMnemonic newShuffle ++ "\n\n"
       return (Content ())
 
 encryptionAction ::
