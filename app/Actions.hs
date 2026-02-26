@@ -143,17 +143,17 @@ handleWith f ma = case ma of
   Content a -> f a >> return (Content ())
 
 infoAction :: Bool -> [([Char], Integer)] -> String -> IO (Result ())
-infoAction _ config "help" = do
+infoAction plain config "help" = do
       let show' :: [([Char], Integer)] -> String
-          show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"
-      putStrLn . unlines $
+          show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"    
+      putStr . unlines $
           "usage: pshash [ --help | --version | --list | --pure | --impure ]"
         : "              [ --ask-repeat | --show | --plain ]"
         : "              [ --gen-keys | --gen-spell | --gen-num | --gen-mod ]"
         : "              [ +color | +no-color ]"
         : "              [ -k|n|c|i|q|f|p|e|d|r ARGUMENT ]"
         : "              [ ARG_1 ARG_2 ARG_3 ]"
-        : ""
+        : if plain then [] else ""
         : "the three arguments ARG_1, ARG_2, ARG_3 can be passed directly on the"
         : "command line, or via standard input. Depending on the options passed"
         : "to pshash, they can have different meanings. Without any flags, these"
