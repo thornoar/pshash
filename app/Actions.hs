@@ -5,7 +5,7 @@ module Actions where
 import Data.Map (Map, member, (!))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B (readFile, writeFile, putStr, pack, splitAt, append)
-import System.Random (getStdGen, randomR, genByteString)
+import System.Random (getStdGen, randomR, uniformByteString)
 import Data.Char (ord)
 import System.IO (stderr, hPutStr, hPutChar, hPutStrLn, stdin, hSetEcho)
 import System.Info (os)
@@ -453,7 +453,7 @@ encryptionAction dec args func = do
     (_, _, Error tr, _) -> Error $ (pref ++ "{second key}:") :=> [tr]
     (_, _, _, Error tr) -> Error $ (pref ++ "{plaintext}:") :=> [tr]
     (Content rounds, Content k1, Content k2, Content msg) ->
-      let (iv, msg') = if dec then B.splitAt defaultSize msg else (fst $ genByteString defaultSize g, msg)
+      let (iv, msg') = if dec then B.splitAt defaultSize msg else (fst $ uniformByteString defaultSize g, msg)
       in Content $ (if dec then id else B.append iv) $ func rounds (iv,msg') k1 k2
     where pref = "Trace while performing encryption/decryption, reading the "
 
