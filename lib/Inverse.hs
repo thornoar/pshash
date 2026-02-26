@@ -18,9 +18,9 @@ mapHashingI fI spr (a:as) (b:bs) =
       curKeyH = fI a b
       restPreKeyH = mapHashingI fI spr as bs -- - shift b
    in case (curKeyH, restPreKeyH) of
-        (Error tr1, Error (msg :=> [])) -> Error ("Double trace while mapping hash reversal:" :=> [tr1, msg :=> []])
-        (Error tr1, Error (_ :=> trss)) -> Error ("Branching trace while mapping hash reversal:" :=> (tr1 : trss))
-        (Error tr, _) -> Error ("Trace while mapping hash reversal:" :=> [tr])
+        (Error tr1, Error (msg :=> [])) -> Error ("Double trace while mapping pseudo-hash reversal:" :=> [tr1, msg :=> []])
+        (Error tr1, Error (_ :=> trss)) -> Error ("Branching trace while mapping pseudo-hash reversal:" :=> (tr1 : trss))
+        (Error tr, _) -> Error ("Trace while mapping pseudo-hash reversal:" :=> [tr])
         (_, Error tr) -> Error tr
         (Content curKey, Content nextPreKey) -> Content $ curKey + curSpr * mod (nextPreKey - shift b) restSpr
 
@@ -45,9 +45,9 @@ chooseOrderedI :: (Shifting a, Eq a, Show a) => ([a], Integer) -> [a] -> Result 
 chooseOrderedI (_,0) [] = Content 0
 chooseOrderedI (src,num) hash
   | num /= length' hash = Error $
-      "<Invalid hash: length should match source configuration.>" :=>
+      "<Invalid pseudo-hash: length should match source configuration.>" :=>
       [
-        ("Reversing hash: {" ++ show hash ++ "} with length {" ++ show (length hash) ++ "}") :=> [],
+        ("Reversing pseudo-hash: {" ++ show hash ++ "} with length {" ++ show (length hash) ++ "}") :=> [],
         ("With source: {" ++ show (src,num) ++ "}") :=> []
       ]
 chooseOrderedI (src, num) (a:as) =
@@ -57,10 +57,10 @@ chooseOrderedI (src, num) (a:as) =
       keyDivH = chooseOrderedI (filter (/= a) src, num-1) as
    in case keyModM of
         Nothing -> Error $
-          ("<Invalid hash: element {{" ++ show a ++ "}} could not be found in source.>") :=>
+          ("<Invalid pseudo-hash: element {{" ++ show a ++ "}} could not be found in source.>") :=>
           [
-            ("Maybe the element {" ++ show a ++ "} is " ++ "{repeated}" ++ " in the hash,") :=> [],
-            ("Or the hash " ++ "{is incompatible}" ++ " with the choice key?") :=> []
+            ("Maybe the element {" ++ show a ++ "} is " ++ "{repeated}" ++ " in the pseudo-hash,") :=> [],
+            ("Or the pseudo-hash " ++ "{is incompatible}" ++ " with the choice key?") :=> []
           ]
         Just keyMod -> case keyDivH of
           Error tr -> Error tr
@@ -82,17 +82,17 @@ mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Result Inte
 mergeTwoListsI ([], src) hash
   | src == hash = Content 0
   | otherwise = Error $
-      "<Invalid hash: element mismatch.>" :=>
+      "<Invalid pseudo-hash: element mismatch.>" :=>
       [
-        ("Reversing hash: {" ++ show hash ++ "}") :=> [],
+        ("Reversing pseudo-hash: {" ++ show hash ++ "}") :=> [],
         ("Using source: {" ++ show src ++ "}") :=> []
       ]
 mergeTwoListsI (src, []) hash
   | src == hash = Content 0
   | otherwise = Error $
-      "<Invalid hash: element mismatch.>" :=>
+      "<Invalid pseudo-hash: element mismatch.>" :=>
       [
-        ("Reversing hash: {" ++ show hash ++ "}") :=> [],
+        ("Reversing pseudo-hash: {" ++ show hash ++ "}") :=> [],
         ("Using source: {" ++ show src ++ "}") :=> []
       ]
 mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
@@ -103,17 +103,17 @@ mergeTwoListsI (e1:rest1, e2:rest2) (m:ms)
       Error tr -> Error tr
       Content prevKey -> Content $ spr1 + mod (prevKey - shift m) spr2
   | otherwise = Error $
-      ("<Invalid hash: element {{" ++ show m ++ "}} does not match either source.>") :=>
+      ("<Invalid pseudo-hash: element {{" ++ show m ++ "}} does not match either source.>") :=>
       [
-        ("Reversing hash: {" ++ show (m:ms) ++ "}") :=> [],
+        ("Reversing pseudo-hash: {" ++ show (m:ms) ++ "}") :=> [],
         ("First source list: {" ++ show (e1:rest1) ++ "}") :=> [],
         ("Second source list: {" ++ show (e2:rest2) ++ "}") :=> [],
-        ("The head of the hash should be either {" ++ show e1 ++ "} or {" ++ show e2 ++ "}") :=> []
+        ("The head of the pseudo-hash should be either {" ++ show e1 ++ "} or {" ++ show e2 ++ "}") :=> []
       ]
   where
     spr1 = mergeTwoListsSpread (length' rest1, 1 + length' rest2)
     spr2 = mergeTwoListsSpread (1 + length' rest1, length' rest2)
-mergeTwoListsI (_, _) [] = Error $ "<Invalid hash: too few elements.>" :=> []
+mergeTwoListsI (_, _) [] = Error $ "<Invalid pseudo-hash: too few elements.>" :=> []
 
 mergeListsI :: (Shifting a, Eq a, Show a) => [[a]] -> [a] -> Result Integer
 mergeListsI [] [] = Content 0
@@ -121,9 +121,9 @@ mergeListsI [] _  = Error $ "<A bug in the Matrix.>" :=> []
 mergeListsI [src] lst
   | lst == src = Content 0
   | otherwise = Error $
-    "<Invalid hash: element mismatch.>" :=>
+    "<Invalid pseudo-hash: element mismatch.>" :=>
       [
-        ("Reversing hash: {" ++ show lst ++ "}") :=> [],
+        ("Reversing pseudo-hash: {" ++ show lst ++ "}") :=> [],
         ("Current source: {" ++ show src ++ "}") :=> []
       ]
 mergeListsI [l1, l2] res = mergeTwoListsI (l1,l2) res

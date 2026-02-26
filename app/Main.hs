@@ -38,6 +38,7 @@ performAction args (Content config)
   | member GENSPELL args = spellgenAction args
   | member GENNUM args = numgenAction args
   | member GENMOD args = modgenAction args (map dropElementInfo config)
+  | member INSPECT args = inspectAction args
   | otherwise = passKeysToAction args (hashAction config)
 
 toIO :: [String] -> IO (Result ()) -> IO ()

@@ -18,6 +18,7 @@ import Keys
 import Inverse
 import Info
 import Encryption
+import System.Directory (getHomeDirectory)
 
 currentVersion :: String
 currentVersion = "0.1.17.5"
@@ -29,8 +30,8 @@ currentVersion = "0.1.17.5"
 getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Result [Char]
 getFinalHash config publicStr choiceStr shuffleStr =
   liftH2
-    ("Trace while computing hash, getting the " ++ "{choice}" ++ " key:")
-    ("Trace while computing hash, getting the " ++ "{shuffle}" ++ " key:")
+    ("Trace while computing pseudo-hash, getting the " ++ "{choice}" ++ " key:")
+    ("Trace while computing pseudo-hash, getting the " ++ "{shuffle}" ++ " key:")
     (getHash config) choiceKey shuffleKey
   where
     publicKey = getPublicKey publicStr
@@ -148,8 +149,8 @@ infoAction plain config "help" = do
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"    
       putStr . unlines $
           "usage: pshash [ --help | --version | --list | --pure | --impure ]"
-        : "              [ --ask-repeat | --show | --plain ]"
         : "              [ --gen-keys | --gen-spell | --gen-num | --gen-mod ]"
+        : "              [ --ask-repeat | --show | --plain ]"
         : "              [ +color | +no-color ]"
         : "              [ -k|n|c|i|q|f|p|e|d|r ARGUMENT ]"
         : "              [ ARG_1 ARG_2 ARG_3 ]"
@@ -182,7 +183,7 @@ infoAction plain config "help" = do
         : "  --version           print the current version of pshash"
         : ""
         : "  --list              print the list of (choice, shuffle) pairs that would"
-        : "                      produce the given hash. Treats the three arguments as"
+        : "                      produce the given pseudo-hash. Treats the arguments as"
         : "                       * the PUBLIC key,"
         : "                       * the NUMBER of pairs to compute, and"
         : "                       * the final HASH"
@@ -246,7 +247,7 @@ infoAction plain config "help" = do
         : "                      the output will depend on the source configuration"
         : "                      used"
         : ""
-        : "  -q KEYWORD          retrieve one of the keys from a final hash and"
+        : "  -q KEYWORD          retrieve one of the keys from a final pseudo-hash and"
         : "                      two remaining keys. KEYWORD can be one of:"
         : "                       * public (followed by CHOICE SHUFFLE HASH as keys)"
         : "                       * choice (followed by PUBLIC SHUFFLE HASH as keys)"
@@ -260,7 +261,7 @@ infoAction plain config "help" = do
           ""
         : "                      each line of the file should follow the format"
         : "                         PUBLIC1, PUBLIC2, ... : ARGS"
-        : "                      (other lines will be ignored)"
+        : "                      (a syntax error will be reported for incorrect lines)"
         : ""
         : "                      a line with the keyword \"+all\" as PUBLIC will apply"
         : "                      to all public keys"
@@ -304,13 +305,13 @@ infoAction plain config "numbers" =
    in do
   if plain then print numChoice >> print numShuffle >> print numRepetitions
   else putStr $ "\n" ++
-    "    symbol distribution : " ++ show amts ++ "\n" ++
-    "       number of hashes : " ++ show numHashes ++ " > " ++ printBits numHashes ++ "\n" ++
-    "      total hash length : " ++ show ((sum . map snd) amts) ++ " symbols\n\n" ++
-    " number of choice  keys : " ++ show numChoice ++ " > " ++ printBits numChoice ++ "\n" ++
-    " number of shuffle keys : " ++ show numShuffle ++ " > " ++ printBits numShuffle ++ "\n" ++
-    "        hash collisions : " ++ show numRepetitions ++ " > " ++ printBits numRepetitions ++ "\n\n" ++
-    "  max public key length : " ++ show (maxLengthOfPublicKey amts) ++ " symbols\n\n"
+    "      symbol distribution : " ++ show amts ++ "\n" ++
+    "  number of pseudo-hashes : " ++ show numHashes ++ " > " ++ printBits numHashes ++ "\n" ++
+    " total pseudo-hash length : " ++ show ((sum . map snd) amts) ++ " symbols\n\n" ++
+    "   number of choice  keys : " ++ show numChoice ++ " > " ++ printBits numChoice ++ "\n" ++
+    "   number of shuffle keys : " ++ show numShuffle ++ " > " ++ printBits numShuffle ++ "\n" ++
+    "   pseudo-hash collisions : " ++ show numRepetitions ++ " > " ++ printBits numRepetitions ++ "\n\n" ++
+    "    max public key length : " ++ show (maxLengthOfPublicKey amts) ++ " symbols\n\n"
   return (Content ())
 infoAction plain config "times" =
   let amts = map dropElementInfo config
@@ -319,10 +320,10 @@ infoAction plain config "times" =
    in do
   if plain then print bfTime >> print khTime
   else putStr $ "\n" ++
-    "    symbol distribution : " ++ show amts ++ "\n" ++
-    "   assumed attack speed : " ++ "10 billion operations per second\n" ++
-    printTimes "  hash brute-force time" bfTime ++ "\n" ++
-    printTimes " known hash attack time" khTime ++ "\n\n"
+    "        symbol distribution : " ++ show amts ++ "\n" ++
+    "       assumed attack speed : " ++ "10 billion operations per second\n" ++
+    printTimes "  password brute-force time" bfTime ++ "\n" ++
+    printTimes " known password attack time" khTime ++ "\n\n"
   return (Content ())
 infoAction _ _ cmd = return . Error $ ("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []
 
@@ -456,6 +457,39 @@ encryptionAction dec args func = do
       let (iv, msg') = if dec then B.splitAt defaultSize msg else (fst $ uniformByteString defaultSize g, msg)
       in Content $ (if dec then id else B.append iv) $ func rounds (iv,msg') k1 k2
     where pref = "Trace while performing encryption/decryption, reading the "
+
+inspectAction :: Map OptionName String -> IO (Result ())
+inspectAction args = do
+  pub <- getKeyStr args FIRST E1 P1
+  let findArgs :: [String] -> Maybe String
+      findArgs [] = Nothing
+      findArgs (line : rest) = case splitBy ':' line of
+        [keywords, argStr] ->
+          if keywords == "+all" || pub `elem` splitBy ',' (filter (/= ' ') keywords)
+          then Just argStr
+          else findArgs rest
+        _ -> Nothing
+      unprefix :: Char -> String -> String
+      unprefix c (c':rest)
+        | c == c' = unprefix c rest
+      unprefix _ str = str
+      processContents :: [Maybe String] -> IO ()
+      processContents [] = if member PLAIN args then return () else putStr $ "\n no configuration files could be read"
+      processContents (Nothing : rest) = processContents rest
+      processContents (Just cnts : _) = case findArgs (lines cnts) of
+        Nothing -> if member PLAIN args then return () else putStr $ "\n arguments for public key \"" ++ pub ++ "\" are not configured\n\n"
+        Just argStr -> if member PLAIN args then putStrLn (unprefix ' ' argStr) else putStr $
+          "\n preset for public key \"" ++ pub ++ "\": " ++ unprefix ' ' argStr ++ "\n\n"
+  if (member CONFIGFILE args) then do
+    let path = args ! CONFIGFILE
+    fileContentsH <- readFileResult readFile path
+    case fileContentsH of
+      Error tr -> return (Error $ ("Trace while reading contents from {" ++ path ++ "}:") :=> [tr])
+      Content cnt -> processContents [Just cnt] >> return (Content ())
+  else do
+    homeDir <- getHomeDirectory
+    processContents =<< mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
+    return (Content ())
 
 hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Result ())
 hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr

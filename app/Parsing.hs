@@ -11,7 +11,7 @@ import Data.List (intercalate)
 
 data OptionName =
     KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT | ROUNDS
-  | CONFIGFILE
+  | CONFIGFILE | INSPECT
   | PURE | IMPURE | LIST | PLAIN | SHOW | ASKREPEAT | HELP | VERSION
   | GENKEYS | GENSPELL | GENNUM | GENMOD
   | FIRST | SECOND | THIRD
@@ -100,6 +100,7 @@ parseArgs _ [['-', ch]] = Error $ ("<A short option ({{-" ++ [ch] ++ "}}) requir
 parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE [] <$> parseArgs trp rest
   "impure" -> insert' IMPURE [] <$> parseArgs trp rest
+  "inspect" -> insert' INSPECT [] <$> parseArgs trp rest
   "list" -> insert' LIST [] <$> parseArgs trp rest
   "plain" -> insert' PLAIN [] <$> parseArgs trp rest
   "ask-repeat" -> insert' ASKREPEAT [] <$> parseArgs trp rest
@@ -132,18 +133,24 @@ getArgsFromContents keywordM contents = case keywordM of
       ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
       ("{Remove}" ++ " the configuration files.") :=> []
     ]
-  Just publicStr -> process $ map (splitBy ':') (filter (elem ':') (lines contents))
+  Just publicStr -> findArgs $ map (splitBy ':') (lines contents)
     where
-      process :: [[String]] -> Result (Map OptionName String)
-      process [] = Content empty
-      process ([keywords, argStr] : rest) =
+      findArgs :: [[String]] -> Result (Map OptionName String)
+      findArgs [] = Content empty
+      findArgs ([keywords, argStr] : rest) =
         if keywords == "+all" || publicStr `elem` splitBy ',' (filter (/= ' ') keywords)
         then addTrace ("Trace while parsing options for {" ++ keywords ++ "}:") $ parseArgs (True, True, True) (words argStr)
-        else process rest
-      process (lst:_) = Error $ "<Cannot use configuration file: incorrect syntax:>" :=>
+        else findArgs rest
+      findArgs (lst : _) = Error $ "<Cannot use configuration file: incorrect syntax:>" :=>
         [
           ("In line {" ++ intercalate ":" lst ++ "}") :=> []
         ]
+
+replaceChar :: Char -> String -> String -> String
+replaceChar _ _ "" = ""
+replaceChar old new (ch : rest)
+  | ch == old = new ++ replaceChar old new rest
+  | otherwise = ch : replaceChar old new rest
 
 getConfigArgs :: Map OptionName String -> IO (Result (Map OptionName String))
 getConfigArgs args
@@ -151,22 +158,16 @@ getConfigArgs args
   | member CONFIGFILE args = do
       fileContentsH <- readFileResult readFile (args ! CONFIGFILE)
       case fileContentsH of
-        Error tr -> return (Error $ ("Trace while reading contents from {" ++ args ! CONFIGFILE ++ "}:") :=> [tr])
+        Error tr -> return (Error $ ("Trace while reading configuration from {" ++ args ! CONFIGFILE ++ "}:") :=> [tr])
         Content contents -> return $ getArgsFromContents (DM.lookup FIRST args) contents
   | not (member IMPURE args) = return (Content args)
   | otherwise = do
-      let replaceChar :: Char -> String -> String -> String
-          replaceChar _ _ "" = ""
-          replaceChar old new (ch : rest)
-            | ch == old = new ++ replaceChar old new rest
-            | otherwise = ch : replaceChar old new rest
+      let processContents :: [Maybe String] -> Result (Map OptionName String)
+          processContents [] = Content args
+          processContents (Nothing : rest) = processContents rest
+          processContents (Just contents : _) = getArgsFromContents (DM.lookup FIRST args) contents
       homeDir <- getHomeDirectory
-      fileContentsM <- mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
-      let findContents :: [Maybe String] -> Result (Map OptionName String)
-          findContents [] = Content args
-          findContents (Nothing : rest) = findContents rest
-          findContents (Just contents : _) = getArgsFromContents (DM.lookup FIRST args) contents
-      return $ findContents fileContentsM
+      return . processContents =<< mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
 
 patchArgs :: Map OptionName String -> Result (Map OptionName String)
 patchArgs args
@@ -227,7 +228,4 @@ parseArgs' trp rawArgs = case parseArgs trp rawArgs of
   Error tr -> return . Error $ "Trace while parsing command-line arguments:" :=> [tr]
   Content args -> do
     configArgs <- getConfigArgs args
-    return $
-      addTrace "Trace while parsing configuration file arguments:" .
-      fmap setEchoesAndPrompts $
-      (configArgs >>= patchArgs . DM.union args)
+    return $ fmap setEchoesAndPrompts $ (configArgs >>= patchArgs . DM.union args)
