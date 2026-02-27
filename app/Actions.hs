@@ -21,7 +21,7 @@ import Encryption
 import System.Directory (getHomeDirectory)
 
 currentVersion :: String
-currentVersion = "0.1.17.5"
+currentVersion = "0.1.20.0"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -33,7 +33,7 @@ getFinalHash config publicStr choiceStr shuffleStr = mergeTrace "Computing pseud
   (addTrace ("Getting the " ++ "{shuffle}" ++ " key:") shuffleKey)
   where
     publicKey = getPublicKey publicStr
-    choiceKey = mergeTrace "@choiceKey" mod ((+publicKey) <$> getPrivateKey choiceStr) $ return (chooseAndMergeSpread' config)
+    choiceKey = fmap2 mod ((+publicKey) <$> getPrivateKey choiceStr) (chooseAndMergeSpread' config)
     shuffleKey = getPrivateKey shuffleStr
 
 -- ┌──────────────────┐
@@ -111,8 +111,7 @@ retrievePublicKey config choiceStr shuffleStr hashStr =
   let shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = getPrivateKey choiceStr
       choiceKey = shuffleKey >>= getHashI' config hashStr
-   in addTrace "Retrieving public key:" $
-      getPublicStr <$> fmap2 mod (mergeTrace "@getPublicStr" (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
+   in getPublicStr <$> fmapMsg2 "Retrieving public key:" mod (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
 
 retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =
@@ -120,8 +119,7 @@ retrieveChoiceKey config publicStr shuffleStr hashStr =
       shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = shuffleKey >>= getHashI' config hashStr
       choiceMergeSpr = chooseAndMergeSpread' config
-   in addTrace "Retrieving choice key:" $
-      fmap2 mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
+   in fmapMsg2 "Retrieving choice key:" mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
 
 retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveShuffleKey config publicStr choiceStr hashStr =
@@ -129,8 +127,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
       preChoiceKey = getPrivateKey choiceStr
       choiceKey = fmap2 mod (fmap (+ publicKey) preChoiceKey) (numberOfChoiceKeys' config)
       preHash = fmap (chooseAndMerge config) choiceKey
-   in addTrace "Retrieving shuffle key:" $
-      raise2 shuffleListI preHash hashStr
+   in raiseMsg2 "Retrieving shuffle key:" shuffleListI preHash hashStr
 
 -- ┌─────────┐
 -- │ ACTIONS │
@@ -436,11 +433,11 @@ encryptionAction dec args func = do
     (Error tr, _, _, _) -> genError "{number of rounds}" tr
     (_, Error tr, _, _) -> genError "{choice key}" tr
     (_, _, Error tr, _) -> genError "{shuffle key}" tr
-    (_, _, _, Error tr) -> genError "{plaintext}" tr
+    (_, _, _, Error tr) -> genError (if dec then "{ciphertext}" else "{plaintext}") tr
     (Content rounds, Content k1, Content k2, Content msg) ->
       let (iv, msg') = if dec then B.splitAt defaultSize msg else (fst $ uniformByteString defaultSize g, msg)
       in Content $ (if dec then id else B.append iv) $ func rounds (iv,msg') k1 k2
-    where genError kw tr = Error $ ("Performing encryption/decryption, reading the " ++ kw) :=> [tr]
+    where genError kw tr = Error $ ("Performing " ++ if dec then "decryption" else "encryption" ++ ", reading the " ++ kw) :=> [tr]
 
 unprefix :: Char -> String -> String
 unprefix c (c':rest)
