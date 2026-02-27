@@ -64,9 +64,9 @@ composeHashing f spr g a key = g b nextKey
     b = f a keyMod
     nextKey = keyDiv + shift b
 
--- ┌─────────────────────────────────────────────────────┐
--- │ PRE-DEFINED STRINGS FROM WHICH HASHES WILL BE DRAWN │
--- └─────────────────────────────────────────────────────┘
+-- ┌────────────────────────────────────────────────────────────┐
+-- │ PRE-DEFINED STRINGS FROM WHICH PSEUDO-HASHES WILL BE DRAWN │
+-- └────────────────────────────────────────────────────────────┘
 
 sourceLower :: [Char]
 sourceLower = "ckapzfitqdxnwehrolmbyvsujg"
@@ -111,11 +111,10 @@ longPinCodeConfiguration = [(sourceNumbers, 8)]
 chooseOrdered :: (Eq a, Shifting a) => ([a], Integer) -> Integer -> [a]
 chooseOrdered (_, 0) _ = []
 chooseOrdered ([], _) _ = []
-chooseOrdered (src, m) key = curElt : chooseOrdered (filter (/= curElt) src, m - 1) nextKey
+chooseOrdered (src, m) key = curElt : chooseOrdered (filter (/= curElt) src, m - 1) (keyDiv + shift curElt)
   where
     (keyDiv, keyMod) = divMod key $ length' src
     curElt = src !! fromIntegral keyMod
-    nextKey = keyDiv + shift curElt
 
 shuffleList :: (Eq a, Shifting a) => [a] -> Integer -> [a]
 shuffleList src = chooseOrdered (src, length' src)
@@ -153,10 +152,8 @@ mergeLists :: (Shifting a) => [[a]] -> Integer -> [a]
 mergeLists [] _ = []
 mergeLists [l] _ = l
 mergeLists [l1, l2] key = mergeTwoLists (l1, l2) key
-mergeLists (l:ls) key = mergeTwoLists (l, mergeLists ls keyMod) nextKey
-  where
-    (keyDiv, keyMod) = divMod key $ mergeListsSpread $ map length' ls
-    nextKey = keyDiv + shift l
+mergeLists (l:ls) key = mergeTwoLists (l, mergeLists ls keyMod) (keyDiv + shift l)
+  where (keyDiv, keyMod) = divMod key $ mergeListsSpread $ map length' ls
 
 mergeListsSpread :: [Integer] -> Integer
 mergeListsSpread amts = div (factorial $ sum amts) (product $ map factorial amts)

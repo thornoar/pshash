@@ -7,10 +7,8 @@ import Algorithm
 -- └───────────────────────────┘
 
 numberOfHashes :: [(Integer, Integer)] -> Integer
-numberOfHashes amts = product (zipWith cnk fsts snds) * factorial (sum snds)
-  where
-    fsts = map fst amts
-    snds = map snd amts
+numberOfHashes amts = product (zipWith cnk (map fst amts) snds) * factorial (sum snds)
+  where snds = map snd amts
 
 numberOfHashes' :: [([Char], Integer)] -> Integer
 numberOfHashes' = numberOfHashes . map dropElementInfo
@@ -60,14 +58,8 @@ timeToCheckPicos = 10 ^ (timeToCheckPower + 12)
 psInYear :: Integer
 psInYear = 31557600000000000000
 
-ageOfUniverseYears :: Integer
-ageOfUniverseYears = 13787000000
-
 timeToCrack :: Integer -> Integer
 timeToCrack num = div (timeToCheckPicos * num) (2 * psInYear)
-  -- where
-  --   inYears = div (timeToCheckPicos * num) (2 * psInYear)
-  --   inAgesOfUniverse = div inYears ageOfUniverseYears
 
 getPowerOf :: Integer -> Integer -> Integer
 getPowerOf b n
@@ -79,13 +71,6 @@ printTimes pr inY = pr ++ " : "
   ++ if (inY == 0) then "< 1 year"
      else if (inY < 1000) then show inY ++ " years"
      else show inY ++ " > 10^" ++ show (getPowerOf 10 inY) ++ " years"
-  -- ++ show inY ++ " > 10^" ++ show (getPowerOf 10 inY) 
-  -- ++ " years"
-  -- ++ (if inAoU > 0
-  --    then "\n| or "
-  --         ++ show inAoU ++ " > 10^" ++ show (getPowerOf 10 inAoU)
-  --         ++ " ages of the Universe"
-  --    else "")
 
 printBits :: Integer -> String
 printBits num = "2^" ++ show (getPowerOf 2 num)

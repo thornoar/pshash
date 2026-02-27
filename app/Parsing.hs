@@ -44,9 +44,7 @@ checkConfigValidity [(lst, num)]
         ("Demanded: {" ++ show num ++ "}") :=> []
       ]
   | otherwise = Content [(lst, num)]
-checkConfigValidity (src : rest) = case checkConfigValidity [src] of
-  Error tr -> Error tr
-  Content src' -> (src' ++) <$> checkConfigValidity rest
+checkConfigValidity (src : rest) = mergeTrace "@checkConfigValidity" (++) (checkConfigValidity [src]) (checkConfigValidity rest)
 
 safeReadWithHandler :: (Monad m) => (FilePath -> IO a) -> (IOException -> IO (m a)) -> FilePath -> IO (m a)
 safeReadWithHandler rf handler path = (return <$> rf path) `catch` handler
@@ -111,7 +109,7 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "gen-mod" -> insert' GENMOD [] <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
-  str -> Error $ ("<Unsupported option: {{--" ++ str ++ "}}.>") :=> []
+  str -> Error $ ("<Unsupported long option: {{--" ++ str ++ "}}.>") :=> []
 parseArgs _ (['-'] : _) = Error $ "<All dashes should be followed by command line options.>" :=> []
 parseArgs _ (('-':ch:opt) : _) = Error $ "<Violation of command line option format. Try:>" :=>
   [
@@ -119,32 +117,34 @@ parseArgs _ (('-':ch:opt) : _) = Error $ "<Violation of command line option form
     ("{" ++ ['-',ch] ++ "} for short option.") :=> []
   ]
 parseArgs (b1, b2, b3) (s : rest)
-  | b3 = Error $ ("<Excessive argument: {{" ++ s ++ "}}. All three keys were already provided.>") :=> []
+  | b3 = Error $ ("<Excessive argument: {{" ++ s ++ "}}. All three were already provided.>") :=> []
   | b2 = insert' THIRD s <$> parseArgs (True, True, True) rest
   | b1 = insert' SECOND s <$> parseArgs (True, True, False) rest
   | otherwise = insert' FIRST s <$> parseArgs (True, False, False) rest
 
-getArgsFromContents :: Maybe String -> String -> Result (Map OptionName String)
-getArgsFromContents keywordM contents = case keywordM of
-  Nothing -> Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
-    [
-      ("Disable configuration files by removing the " ++ "{--impure/-f}" ++ " options, or") :=> [],
-      ("Pass the " ++ "{--pure}" ++ " option for the same effect, or") :=> [],
-      ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
-      ("{Remove}" ++ " the configuration files.") :=> []
-    ]
-  Just publicStr -> findArgs $ map (splitBy ':') (lines contents)
-    where
-      findArgs :: [[String]] -> Result (Map OptionName String)
-      findArgs [] = Content empty
-      findArgs ([keywords, argStr] : rest) =
-        if keywords == "+all" || publicStr `elem` splitBy ',' (filter (/= ' ') keywords)
-        then addTrace ("Trace while parsing options for {" ++ keywords ++ "}:") $ parseArgs (True, True, True) (words argStr)
-        else findArgs rest
-      findArgs (lst : _) = Error $ "<Cannot use configuration file: incorrect syntax:>" :=>
-        [
-          ("In line {" ++ intercalate ":" lst ++ "}") :=> []
-        ]
+getArgsFromContents :: String -> String -> Result (Map OptionName String)
+getArgsFromContents publicStr contents = findArgs $ map (splitBy ':') (lines contents)
+  where
+    findArgs :: [[String]] -> Result (Map OptionName String)
+    findArgs [] = Content empty
+    findArgs ([keywords, argStr] : rest) =
+      if keywords == "+all" || publicStr `elem` splitBy ',' (filter (/= ' ') keywords)
+      then addTrace ("Parsing options for {" ++ keywords ++ "}:") $ parseArgs (True, True, True) (words argStr)
+      else findArgs rest
+    findArgs (lst : _) = Error $ "<Incorrect syntax:>" :=>
+      [
+        ("In line {" ++ intercalate ":" lst ++ "}") :=> []
+      ]
+
+getArgsFromContentsMaybe :: Maybe String -> String -> Result (Map OptionName String)
+getArgsFromContentsMaybe Nothing = \_ -> Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
+  [
+    ("Disable configuration files by removing the " ++ "{--impure/-f}" ++ " options, or") :=> [],
+    ("Pass the " ++ "{--pure}" ++ " option for the same effect, or") :=> [],
+    ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
+    ("{Remove}" ++ " the configuration files.") :=> []
+  ]
+getArgsFromContentsMaybe (Just pub) = getArgsFromContents pub
 
 replaceChar :: Char -> String -> String -> String
 replaceChar _ _ "" = ""
@@ -154,18 +154,16 @@ replaceChar old new (ch : rest)
 
 getConfigArgs :: Map OptionName String -> IO (Result (Map OptionName String))
 getConfigArgs args
-  | any (`member` args) [PURE, QUERY, LIST, GENSPELL, GENNUM, ENCRYPT, DECRYPT] = return (Content args)
-  | member CONFIGFILE args = do
-      fileContentsH <- readFileResult readFile (args ! CONFIGFILE)
-      case fileContentsH of
-        Error tr -> return (Error $ ("Trace while reading configuration from {" ++ args ! CONFIGFILE ++ "}:") :=> [tr])
-        Content contents -> return $ getArgsFromContents (DM.lookup FIRST args) contents
+  | any (`member` args) [PURE, QUERY, LIST, GENSPELL, GENNUM, ENCRYPT, DECRYPT, INSPECT] = return (Content args)
+  | member CONFIGFILE args = readFileResult readFile (args ! CONFIGFILE) >>= \x -> return $
+    getArgsFromContentsMaybe (DM.lookup FIRST args)
+    =<< addTrace ("Reading configuration from {" ++ args ! CONFIGFILE ++ "}:") x
   | not (member IMPURE args) = return (Content args)
   | otherwise = do
       let processContents :: [Maybe String] -> Result (Map OptionName String)
           processContents [] = Content args
           processContents (Nothing : rest) = processContents rest
-          processContents (Just contents : _) = getArgsFromContents (DM.lookup FIRST args) contents
+          processContents (Just contents : _) = getArgsFromContentsMaybe (DM.lookup FIRST args) contents
       homeDir <- getHomeDirectory
       return . processContents =<< mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
 
@@ -224,8 +222,6 @@ setEchoesAndPrompts args
       args
 
 parseArgs' :: (Bool, Bool, Bool) -> [String] -> IO (Result (Map OptionName String))
-parseArgs' trp rawArgs = case parseArgs trp rawArgs of
-  Error tr -> return . Error $ "Trace while parsing command-line arguments:" :=> [tr]
-  Content args -> do
-    configArgs <- getConfigArgs args
-    return $ fmap setEchoesAndPrompts $ (configArgs >>= patchArgs . DM.union args)
+parseArgs' trp rawArgs = handleWithMsg' "Parsing command-line arguments:" (parseArgs trp rawArgs) $ \args -> do
+  configArgs <- getConfigArgs args
+  return $ fmap setEchoesAndPrompts $ (configArgs >>= patchArgs . DM.union args)

@@ -3,8 +3,6 @@ module Keys where
 import Error
 import Data.Char (ord, chr)
 import Data.List (elemIndex)
--- import Test.QuickCheck (Positive(..))
--- import Algorithm (getHash, defaultConfiguration)
 
 -- ┌────────────────────────┐
 -- │ READING THE PUBLIC KEY │
@@ -74,7 +72,7 @@ getPrivateKey s = case getPrivateKeyNum s of
 
 includeSpaces :: [String] -> [String]
 includeSpaces [s1, s2, s3] = [s1, s2, s3]
-includeSpaces (s1:s2:s3:rest) = s1 : s2 : s3 : " " : includeSpaces rest
+includeSpaces (s1 : s2 : s3 : rest) = s1 : s2 : s3 : " " : includeSpaces rest
 includeSpaces strs = strs
 
 getPairs :: [a] -> [[a]]
@@ -91,14 +89,3 @@ getMnemonic n =
       nums :: [Int]
       nums = map read $ getPairs $ if mod (length nstr) 2 == 1 then '0':nstr else nstr
    in concat $ includeSpaces (getCombinations nums)
-
--- ┌─────────┐
--- │ TESTING │
--- └─────────┘
-
--- prop :: Positive Integer -> Bool
--- prop (Positive n) = Content n == getPrivateKeyMnemonic (getMnemonic n)
---
--- hashProp :: Positive Integer -> Positive Integer -> Bool
--- hashProp (Positive ch) (Positive sh) =
---   Content (getHash defaultConfiguration ch sh) == liftA2 (getHash defaultConfiguration) (getPrivateKeyMnemonic (getMnemonic ch)) (getPrivateKeyMnemonic (getMnemonic sh))

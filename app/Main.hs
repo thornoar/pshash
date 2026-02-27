@@ -63,4 +63,4 @@ main = do
   parsedArgs <- parseArgs' (False, False, False) rawArgs
   hSetBuffering stdin NoBuffering
   hSetEcho stdin False
-  toIO rawArgs $ raiseH' (raise2' performAction <*> getConfig) parsedArgs
+  toIO rawArgs $ raiseM (raise2' performAction <*> getConfig) parsedArgs
