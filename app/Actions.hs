@@ -475,6 +475,7 @@ printGroups plain len grps = do
     "\n public key" ++ replicate (len - 10) ' ' ++ " | arguments\n " ++
     replicate len '-' ++ "-+" ++ replicate 10 '-' ++ "\n"
   putStr . unlines $ map (if plain then formatPairPlain else formatPairFancy) grps
+  unless plain (putStrLn "")
 
 inspectAction :: Map OptionName String -> IO (Result ())
 inspectAction args
