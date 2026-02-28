@@ -7,7 +7,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as B (readFile, writeFile, putStr, pack, splitAt, append)
 import System.Random (getStdGen, randomR, uniformByteString)
 import Data.Char (ord)
-import System.IO (stderr, hPutStr, hPutChar, hPutStrLn, stdin, hSetEcho)
+import System.IO (stderr, hPutStr, hPutChar, hPutStrLn, stdin, hSetEcho, BufferMode (NoBuffering), hSetBuffering)
 import System.Info (os)
 import Control.Monad (unless, when)
 
@@ -28,9 +28,9 @@ currentVersion = "0.1.20.0"
 -- └─────────────────────┘
 
 getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Result [Char]
-getFinalHash config publicStr choiceStr shuffleStr = mergeTrace "Computing pseudo-hash:" (getHash config)
-  (addTrace ("Getting the " ++ "{choice}" ++ " key:") choiceKey)
-  (addTrace ("Getting the " ++ "{shuffle}" ++ " key:") shuffleKey)
+getFinalHash config publicStr choiceStr shuffleStr = liftMsg "Computing pseudo-hash:" (getHash config)
+  (addTrace ("Reading the " ++ "{choice}" ++ " key:") choiceKey)
+  (addTrace ("Reading the " ++ "{shuffle}" ++ " key:") shuffleKey)
   where
     publicKey = getPublicKey publicStr
     choiceKey = fmap2 mod ((+publicKey) <$> getPrivateKey choiceStr) (chooseAndMergeSpread' config)
@@ -81,6 +81,8 @@ getInputSimple echo askRepeat prompt = do
 
 getInputFancy :: Bool -> Bool -> String -> IO String
 getInputFancy echo askRepeat prompt = do
+  hSetBuffering stdin NoBuffering
+  hSetEcho stdin False
   hPutStr stderr prompt
   input <- readChar echo (echo || null prompt) 0
   unless (null prompt && not echo) $ hPutChar stderr '\n'
@@ -111,7 +113,7 @@ retrievePublicKey config choiceStr shuffleStr hashStr =
   let shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = getPrivateKey choiceStr
       choiceKey = shuffleKey >>= getHashI' config hashStr
-   in getPublicStr <$> fmapMsg2 "Retrieving public key:" mod (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
+   in fmapMsg2 "Retrieving public key:" (getPublicStr <.> mod) (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
 
 retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =
@@ -138,11 +140,12 @@ infoAction plain config "help" = do
       let show' :: [([Char], Integer)] -> String
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"    
       putStr . unlines $
-          "usage: pshash [ --help | --version | --list | --pure | --impure ]"
+          "usage: pshash [ --help | --version | --list | --inspect ]"
         : "              [ --gen-keys | --gen-spell | --gen-num | --gen-mod ]"
         : "              [ --ask-repeat | --show | --plain ]"
+        : "              [ --pure | --impure ]"
         : "              [ +color | +no-color ]"
-        : "              [ -k|n|c|i|q|f|p|e|d|r ARGUMENT ]"
+        : "              [ -k|n|c|i|q|f|p|e|d|r ARG ]"
         : "              [ ARG_1 ARG_2 ARG_3 ]"
         : if plain then [] else ""
         : "the three arguments ARG_1, ARG_2, ARG_3 can be passed directly on the"
@@ -178,17 +181,7 @@ infoAction plain config "help" = do
         : "                       * the NUMBER of pairs to compute, and"
         : "                       * the final HASH"
         : ""
-        : "  --pure              ignore all configuration files, the default behavior"
-        : ""
-        : "  --impure            enable configuration file usage"
-        : ""
-        : "  --plain             omit prompts and other auxiliary output when"
-        : "                      appropriate"
-        : ""
-        : "  --ask-repeat        ask the user to repeat keys, which is useful when"
-        : "                      generating passwords for the first time"
-        : ""
-        : "  --show              do not conceal typed keys"
+        : "  --inspect           Format and print the contents of a configuration file"
         : ""
         : "  --gen-keys          generate a random choice-shuffle keypair. The"
         : "                      key range depends on the configuration used"
@@ -204,12 +197,24 @@ infoAction plain config "help" = do
         : "                      form) and a number M, printing the value of K modulo"
         : "                      M, both in numeric and mnemonic forms"
         : ""
+        : "  --ask-repeat        ask the user to repeat keys, which is useful when"
+        : "                      generating passwords for the first time"
+        : ""
+        : "  --show              do not conceal typed input"
+        : ""
+        : "  --plain             omit prompts and other auxiliary output when"
+        : "                      appropriate"
+        : ""
+        : "  --pure              ignore all configuration files, the default behavior"
+        : ""
+        : "  --impure            enable configuration file usage"
+        : ""
         : "  +color              enable colors in error messages"
         : ""
         : "  +no-color           disable colors in error messages"
         : ""
-        : "                      (options starting with '+' are low-level, they are"
-        : "                      parsed at the very end of the execution chain)"
+        : "                      (meta-options starting with '+' are parsed at the"
+        : "                      very end of the execution chain)"
         : ""
         : "  -k KEYWORD          specify the source configuration. KEYWORD can be"
         : "                      one of the following (default is long):"
@@ -222,8 +227,8 @@ infoAction plain config "help" = do
         : "                       * mediumpin (6-digit pin code)"
         : "                       * longpin (8-digit pin code)"
         : ""
-        : "  -n \"(L, U, S, D)\"   specify how many Lower case, Upper case,"
-        : "                      Special characters, and Digits should be used"
+        : "  -n \"(L, U, S, D)\"   specify how many [L]ower case, [U]pper case,"
+        : "                      [S]pecial characters, and [D]igits should be used"
         : ""
         : "  -c CONFIGURATION    specify the source configuration manually,"
         : "                      as the Haskell [([Char], Integer)] type"
@@ -234,8 +239,8 @@ infoAction plain config "help" = do
         : "                       * numbers (show the total amounts of hashes/keys)"
         : "                       * times (show times needed to crack your passwords)"
         : ""
-        : "                      the output will depend on the source configuration"
-        : "                      used"
+        : "                      (the output will depend on the source configuration"
+        : "                      used)"
         : ""
         : "  -q KEYWORD          retrieve one of the keys from a final pseudo-hash and"
         : "                      two remaining keys. KEYWORD can be one of:"
@@ -250,7 +255,7 @@ infoAction plain config "help" = do
         : map ("                       * " ++) defaultConfigFiles ++
           ""
         : "                      each line of the file should follow the format"
-        : "                         PUBLIC1, PUBLIC2, ... : ARGS"
+        : "                         PUBLIC_1, PUBLIC_2, ... PUBLIC_N : ARGS"
         : "                      (a syntax error will be reported for incorrect lines)"
         : ""
         : "                      a line with the keyword \"+all\" as PUBLIC will apply"
@@ -271,8 +276,8 @@ infoAction plain config "help" = do
         : "                        * WRITE TO: the file to write the encrypted/decrypted"
         : "                                    data to. A value of `stdout` will write"
         : "                                    to standard output"
-        : "                        * KEY 1: first encryption key (e.g. choice key)"
-        : "                        * KEY 2: second encryption key (e.g. shuffle key)"
+        : "                        * CHOICE KEY: first encryption key"
+        : "                        * SHUFFLE KEY: second encryption key"
         : ""
         : "  -d FILE             decrypt FILE. Accepts the same arguments"
         : ""
@@ -315,7 +320,7 @@ infoAction plain config "times" =
     printTimes "  password brute-force time" bfTime ++ "\n" ++
     printTimes " known password attack time" khTime ++ "\n\n"
   return (Content ())
-infoAction _ _ cmd = return . Error $ ("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []
+infoAction _ _ cmd = return . Error $ [("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []]
 
 queryAction :: Bool -> [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Result ())
 queryAction plain config kwd arg1 arg2 arg3 =
@@ -328,7 +333,7 @@ queryAction plain config kwd arg1 arg2 arg3 =
     "public" -> handleWith printPublic $ retrievePublicKey config arg1 arg2 arg3
     "choice" -> handleWith printPrivate $ retrieveChoiceKey config arg1 arg2 arg3
     "shuffle" -> handleWith printPrivate $ retrieveShuffleKey config arg1 arg2 arg3
-    _ -> return . Error $ ("<Query keyword not recognized: \"{{" ++ kwd ++ "}}\".>") :=> []
+    _ -> return . Error $ [("<Query keyword not recognized: \"{{" ++ kwd ++ "}}\".>") :=> []]
 
 listPairsAction :: Bool -> [([Char], Integer)] -> String -> String -> [Char] -> IO (Result ())
 listPairsAction plain config publicStr limitStr hashStr =
@@ -395,7 +400,7 @@ modgenAction :: Map OptionName String -> [(Integer, Integer)] -> IO (Result ())
 modgenAction args amts = do
   choiceStr <- getKeyStr args FIRST E1 P1
   shuffleStr <- getKeyStr args SECOND E2 P2
-  mergeTraceM "Performing modulus operation:"
+  liftMsgM "Performing modulus operation:"
     (addTrace "Reading the {choice} key:" $ getPrivateKey choiceStr)
     (addTrace "Reading the {shuffle} key:" $ getPrivateKey shuffleStr) $
     \choice shuffle -> do
@@ -427,17 +432,20 @@ encryptionAction dec args func = do
   mcts <- case fname of
     "stdin" -> fmap (Content . B.pack . map (fromIntegral . ord)) getContents
     _ -> readFileResult B.readFile fname
-  let write = if outfile == "stdout" then B.putStr else B.writeFile outfile
   g <- getStdGen
-  handleWith write $ case (mrounds, mkey1, mkey2, mcts) of
-    (Error tr, _, _, _) -> genError "{number of rounds}" tr
-    (_, Error tr, _, _) -> genError "{choice key}" tr
-    (_, _, Error tr, _) -> genError "{shuffle key}" tr
-    (_, _, _, Error tr) -> genError (if dec then "{ciphertext}" else "{plaintext}") tr
-    (Content rounds, Content k1, Content k2, Content msg) ->
+  let write = if outfile == "stdout" then B.putStr else B.writeFile outfile
+      unpair ((a, b), (c, d)) = (a, b, c, d)
+      mergeTrace4 :: String -> Result a -> Result b -> Result c -> Result d -> ((a, b, c, d) -> e) -> Result e
+      mergeTrace4 msg ma mb mc md f = addTrace msg $ (f . unpair) <$>
+        liftA2 (,) (liftA2 (,) ma mb) (liftA2 (,) mc md)
+      curAddTrace kw = addTrace ("Reading the " ++ kw)
+  handleWith write $ mergeTrace4 ("Performing " ++ if dec then "decryption:" else "encryption:")
+    (curAddTrace "{number of rounds}:" mrounds)
+    (curAddTrace "{choice key}:" mkey1)
+    (curAddTrace "{shuffle key}:" mkey2)
+    (curAddTrace (if dec then "{ciphertext}:" else "{plaintext}:") mcts) $ \ (rounds, k1, k2, msg) ->
       let (iv, msg') = if dec then B.splitAt defaultSize msg else (fst $ uniformByteString defaultSize g, msg)
-      in Content $ (if dec then id else B.append iv) $ func rounds (iv,msg') k1 k2
-    where genError kw tr = Error $ ("Performing " ++ if dec then "decryption" else "encryption" ++ ", reading the " ++ kw) :=> [tr]
+      in (if dec then id else B.append iv) $ func rounds (iv,msg') k1 k2
 
 unprefix :: Char -> String -> String
 unprefix c (c':rest)
@@ -454,7 +462,7 @@ groupContents (line : rest) = case splitBy ':' line of
         argStr' = unprefix ' ' argStr
         cur = map (\x -> (x, argStr')) kws
      in fmap (\ (a, lst) -> (max a len, cur ++ lst)) (groupContents rest)
-  _ -> Error $ "<Incorrect syntax:>" :=> [ ("In line {" ++ line ++ "}") :=> [] ]
+  _ -> Error $ ["<Incorrect syntax:>" :=> [ ("In line {" ++ line ++ "}") :=> [] ]]
 
 printGroups :: Bool -> Int -> [(String, String)] -> IO ()
 printGroups plain len grps = do
@@ -466,24 +474,24 @@ printGroups plain len grps = do
   unless plain $ putStr $
     "\n public key" ++ replicate (len - 10) ' ' ++ " | arguments\n " ++
     replicate len '-' ++ "-+" ++ replicate 10 '-' ++ "\n"
-  putStrLn . unlines $ map (if plain then formatPairPlain else formatPairFancy) grps
+  putStr . unlines $ map (if plain then formatPairPlain else formatPairFancy) grps
 
 inspectAction :: Map OptionName String -> IO (Result ())
 inspectAction args
   | member CONFIGFILE args = do
     let path = args ! CONFIGFILE
     fileContentsH <- readFileResult readFile path
-    handleWithMsg ("Reading contents from {" ++ path ++ "}:")
+    handleWithMsg ("Inspecting configuration file {" ++ path ++ "}:")
       (fmap lines fileContentsH >>= groupContents)
       (\ (len, grps) -> printGroups (member PLAIN args) (max len 10) grps)
   | otherwise = do
     homeDir <- getHomeDirectory
-    let processFiles :: [Maybe String] -> IO (Result ())
+    let processFiles :: [(FilePath, Maybe String)] -> IO (Result ())
         processFiles [] = do
           unless (member PLAIN args) $ putStr "\n no configuration files were found\n\n"
           return (Content ())
-        processFiles (Nothing : rest) = processFiles rest
-        processFiles (Just cnts : _) = handleWithMsg "Reading contents from configuration file:"
+        processFiles ((_, Nothing) : rest) = processFiles rest
+        processFiles ((path, Just cnts) : _) = handleWithMsg ("Inspecting configuration file {" ++ path ++ "}:")
           (groupContents $ lines cnts)
           (\ (len, grps) -> printGroups (member PLAIN args) (max len 10) grps)
     processFiles =<< mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles

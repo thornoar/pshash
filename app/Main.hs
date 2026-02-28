@@ -1,6 +1,6 @@
 module Main where
 
-import System.IO (stderr, hPutStrLn, hSetBuffering, stdin, BufferMode (NoBuffering), hSetEcho)
+import System.IO (stderr, hPutStrLn)
 import Data.Map (Map, member, (!))
 import System.Environment (getArgs)
 import System.Info (os)
@@ -27,7 +27,7 @@ passKeysToAction args act = do
   act first second third
 
 performAction :: Map OptionName String -> Result [([Char], Integer)] -> IO (Result ())
-performAction _ (Error tr) = return (Error $ "Trace in configuration argument:" :=> [tr])
+performAction _ (Error trs) = return $ Error $ ["In configuration argument:" :=> trs]
 performAction args (Content config)
   | member INFO args = infoAction (member PLAIN args) config (args ! INFO)
   | member QUERY args = passKeysToAction args (queryAction (member PLAIN args) config (args ! QUERY))
@@ -51,9 +51,9 @@ toIO rawArgs action = do
       errorWord = if color then "\ESC[1;31mError:\ESC[0m" else "ERROR:"
   res <- action
   case res of
-    Error tr -> do
+    Error trs -> do
       hPutStrLn stderr errorWord
-      printTrace [] [False,False] (formatTrace color tr)
+      printTraceList [] (map (formatTrace color) trs)
       exitWith (ExitFailure 1)
     Content () -> return ()
 
@@ -61,6 +61,4 @@ main :: IO ()
 main = do
   rawArgs <- getArgs
   parsedArgs <- parseArgs' (False, False, False) rawArgs
-  hSetBuffering stdin NoBuffering
-  hSetEcho stdin False
   toIO rawArgs $ handleWith' (raise2' performAction <*> getConfig) parsedArgs

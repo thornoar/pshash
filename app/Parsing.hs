@@ -34,27 +34,28 @@ defaultConfigFiles =
   ]
 
 checkConfigValidity :: [([Char], Integer)] -> Result [([Char], Integer)]
-checkConfigValidity [] = Error $ "<Cannot have empty configuration.>" :=> []
+checkConfigValidity [] = Error $ ["<Cannot have empty configuration.>" :=> []]
 checkConfigValidity [(lst, num)]
-  | num < 0 = Error $ ("<Invalid configuration: number {{" ++ show num ++ "}} must be non-negative.>") :=> []
-  | num > length' lst = Error $ "<Invalid configuration: too many elements drawn.>" :=>
-      [
+  | num < 0 = Error $ [("<Invalid configuration: number {{" ++ show num ++ "}} must be non-negative.>") :=> []]
+  | num > length' lst = Error $ ["<Invalid configuration: too many elements drawn.>" :=> [
         ("Using source: {" ++ show lst ++ "}") :=> [],
         ("Available amount: {" ++ show (length lst) ++ "}") :=> [],
         ("Demanded: {" ++ show num ++ "}") :=> []
-      ]
+      ]]
   | otherwise = Content [(lst, num)]
-checkConfigValidity (src : rest) = mergeTrace "@checkConfigValidity" (++) (checkConfigValidity [src]) (checkConfigValidity rest)
+checkConfigValidity (src : rest) = liftA2 (++) (checkConfigValidity [src]) (checkConfigValidity rest)
 
 safeReadWithHandler :: (Monad m) => (FilePath -> IO a) -> (IOException -> IO (m a)) -> FilePath -> IO (m a)
 safeReadWithHandler rf handler path = (return <$> rf path) `catch` handler
 
-readFileMaybe :: (FilePath -> IO a) -> FilePath -> IO (Maybe a)
-readFileMaybe rf = safeReadWithHandler rf (const $ return Nothing)
+readFileMaybe :: (FilePath -> IO a) -> FilePath -> IO (FilePath, Maybe a)
+readFileMaybe rf path = do
+  mcts <- safeReadWithHandler rf (const $ return Nothing) path
+  return (path, mcts)
 
 readFileResult :: (FilePath -> IO a) -> FilePath -> IO (Result a)
 readFileResult rf = safeReadWithHandler rf handler
-  where handler e = return . Error $ "<Error reading file:>" :=> [ show e :=> [] ]
+  where handler e = return . Error $ ["<Error reading file:>" :=> [ show e :=> [] ]]
 
 getConfig :: Map OptionName String -> IO (Result [([Char], Integer)])
 getConfig args
@@ -67,7 +68,7 @@ getConfig args
       "pin" -> Content pinCodeConfiguration
       "mediumpin" -> Content mediumPinCodeConfiguration
       "longpin" -> Content longPinCodeConfiguration
-      str -> Error $ ("<Unrecognized configuration keyword: \"{{" ++ str ++ "}}\".>") :=> []
+      str -> Error $ [("<Unrecognized configuration keyword: \"{{" ++ str ++ "}}\".>") :=> []]
   | member SELECT args =
       return $ readResult "(Int,Int,Int,Int)" (args ! SELECT)
       >>= (checkConfigValidity . getConfigFromSpec)
@@ -93,8 +94,8 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'e' -> insert' ENCRYPT s <$> parseArgs trp rest
   'd' -> insert' DECRYPT s <$> parseArgs trp rest
   'r' -> insert' ROUNDS s <$> parseArgs trp rest
-  ch -> Error $ ("<Unsupported option: \"{{" ++ ['-',ch] ++ "}}\".>") :=> []
-parseArgs _ [['-', ch]] = Error $ ("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []
+  ch -> Error $ [("<Unsupported option: \"{{" ++ ['-',ch] ++ "}}\".>") :=> []]
+parseArgs _ [['-', ch]] = Error $ [("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []]
 parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE [] <$> parseArgs trp rest
   "impure" -> insert' IMPURE [] <$> parseArgs trp rest
@@ -109,15 +110,14 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "gen-mod" -> insert' GENMOD [] <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
-  str -> Error $ ("<Unsupported long option: {{--" ++ str ++ "}}.>") :=> []
-parseArgs _ (['-'] : _) = Error $ "<All dashes should be followed by command line options.>" :=> []
-parseArgs _ (('-':ch:opt) : _) = Error $ "<Violation of command line option format. Try:>" :=>
-  [
+  str -> Error $ [("<Unsupported long option: {{--" ++ str ++ "}}.>") :=> []]
+parseArgs _ (['-'] : _) = Error $ ["<All dashes should be followed by command line options.>" :=> []]
+parseArgs _ (('-':ch:opt) : _) = Error $ ["<Violation of command line option format. Try:>" :=> [
     ("{" ++ ('-':'-':ch:opt) ++ "} for long option, or") :=> [],
     ("{" ++ ['-',ch] ++ "} for short option.") :=> []
-  ]
+  ]]
 parseArgs (b1, b2, b3) (s : rest)
-  | b3 = Error $ ("<Excessive argument: {{" ++ s ++ "}}. All three were already provided.>") :=> []
+  | b3 = Error $ [("<Excessive argument: {{" ++ s ++ "}}. All three were already provided.>") :=> []]
   | b2 = insert' THIRD s <$> parseArgs (True, True, True) rest
   | b1 = insert' SECOND s <$> parseArgs (True, True, False) rest
   | otherwise = insert' FIRST s <$> parseArgs (True, False, False) rest
@@ -129,22 +129,22 @@ getArgsFromContents publicStr contents = findArgs $ map (splitBy ':') (lines con
     findArgs [] = Content empty
     findArgs ([keywords, argStr] : rest) =
       if keywords == "+all" || publicStr `elem` splitBy ',' (filter (/= ' ') keywords)
-      then addTrace ("Parsing options for {" ++ keywords ++ "}:") $ parseArgs (True, True, True) (words argStr)
+      then addTrace ("Parsing options for public key {" ++ publicStr ++ "}:") $ parseArgs (True, True, True) (words argStr)
       else findArgs rest
-    findArgs (lst : _) = Error $ "<Incorrect syntax:>" :=>
-      [
+    findArgs (lst : _) = Error $ ["<Incorrect syntax:>" :=> [
         ("In line {" ++ intercalate ":" lst ++ "}") :=> []
-      ]
+      ]]
 
-getArgsFromContentsMaybe :: Maybe String -> String -> Result (Map OptionName String)
-getArgsFromContentsMaybe Nothing = \_ -> Error $ "<Cannot use configuration file: public key was not pre-supplied. Either:>" :=>
-  [
+getArgsFromContentsMaybe :: Maybe String -> String -> String -> Result (Map OptionName String)
+getArgsFromContentsMaybe Nothing _ = \_ -> Error $ ["<Cannot use configuration file: public key was not pre-supplied. Either:>" :=> [
     ("Disable configuration files by removing the " ++ "{--impure/-f}" ++ " options, or") :=> [],
     ("Pass the " ++ "{--pure}" ++ " option for the same effect, or") :=> [],
     ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
     ("{Remove}" ++ " the configuration files.") :=> []
-  ]
-getArgsFromContentsMaybe (Just pub) = getArgsFromContents pub
+  ]]
+getArgsFromContentsMaybe (Just pub) fname =
+  addTrace ("Reading configuration from {" ++ fname ++ "}:") .
+  getArgsFromContents pub
 
 replaceChar :: Char -> String -> String -> String
 replaceChar _ _ "" = ""
@@ -156,14 +156,13 @@ getConfigArgs :: Map OptionName String -> IO (Result (Map OptionName String))
 getConfigArgs args
   | any (`member` args) [PURE, QUERY, LIST, GENSPELL, GENNUM, ENCRYPT, DECRYPT, INSPECT] = return (Content args)
   | member CONFIGFILE args = readFileResult readFile (args ! CONFIGFILE) >>= \x -> return $
-    getArgsFromContentsMaybe (DM.lookup FIRST args)
-    =<< addTrace ("Reading configuration from {" ++ args ! CONFIGFILE ++ "}:") x
+    getArgsFromContentsMaybe (DM.lookup FIRST args) (args ! CONFIGFILE) =<< x
   | not (member IMPURE args) = return (Content args)
   | otherwise = do
-      let processContents :: [Maybe String] -> Result (Map OptionName String)
+      let processContents :: [(FilePath, Maybe String)] -> Result (Map OptionName String)
           processContents [] = Content args
-          processContents (Nothing : rest) = processContents rest
-          processContents (Just contents : _) = getArgsFromContentsMaybe (DM.lookup FIRST args) contents
+          processContents ((_, Nothing) : rest) = processContents rest
+          processContents ((path, Just contents) : _) = getArgsFromContentsMaybe (DM.lookup FIRST args) path contents
       homeDir <- getHomeDirectory
       return . processContents =<< mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
 
@@ -175,11 +174,10 @@ patchArgs args
     then do
       patchAmount <- (readResult "integer" (args ! PATCH) :: Result Integer)
       Content $ insertWith const FIRST (shiftString patchAmount (args ! FIRST)) args
-    else Error $ "<Cannot patch public key that was not pre-supplied. Either:>" :=>
-      [
-        ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
-        ("{Remove}" ++ " the " ++ "{-p}" ++ " option.") :=> []
-      ]
+    else Error $ ["<Cannot patch public key that was not pre-supplied. Either:>" :=> [
+        ("{Pass the public key inline} as one of the arguments, or") :=> [],
+        ("{Remove} the {-p} option.") :=> []
+      ]]
   | member FIRST args = Content $ insertWith const FIRST (args ! FIRST) args
   | otherwise = Content args
 

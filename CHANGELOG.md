@@ -2,7 +2,7 @@
 
 ## 0.1.20.0
 
-* A whole bunch of new stuff.
+* A whole bunch of new stuff!
 
 ## 0.1.17.5
 

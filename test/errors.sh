@@ -24,6 +24,7 @@ run "$cmd --list pub 3asd5 0" 30
 run "$cmd --list pub 5 ahfs234^&%jkdv" 30
 run "$cmd -f non-existent pub 5 5" 30
 run "$cmd -f test/incorrect.conf pub 5 5" 30
+run "$cmd -f test/incorrect2.conf pub1 mahasu rttre" 30
 run "$cmd --impure" 30
 run "$cmd -k non-existent pub 0 0" 30
 run "$cmd -n non-existent pub 0 0" 30
@@ -46,4 +47,6 @@ run "$cmd arg1 arg2 arg3 arg4" 30
 run "$cmd asd 234^2-+-3 uffff" 30
 run "$cmd -i hahahha" 30
 run "$cmd --gen-spell 123&&&123123" 30
+run "$cmd --gen-num wqerqwerqwerwerqewqrweqr" 30
 run "$cmd --gen-mod freeerreer not-a-number" 30
+run "$cmd --inspect -f test/incorrect.conf" 30
