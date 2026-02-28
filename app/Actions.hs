@@ -5,7 +5,7 @@ module Actions where
 import Data.Map (Map, member, (!))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B (readFile, writeFile, putStr, pack, splitAt, append)
-import System.Random (getStdGen, randomR, uniformByteString)
+import System.Random (getStdGen, randomR, genByteString)
 import Data.Char (ord)
 import System.IO (stderr, hPutStr, hPutChar, hPutStrLn, stdin, hSetEcho, BufferMode (NoBuffering), hSetBuffering)
 import System.Info (os)
@@ -444,7 +444,7 @@ encryptionAction dec args func = do
     (curAddTrace "{choice key}:" mkey1)
     (curAddTrace "{shuffle key}:" mkey2)
     (curAddTrace (if dec then "{ciphertext}:" else "{plaintext}:") mcts) $ \ (rounds, k1, k2, msg) ->
-      let (iv, msg') = if dec then B.splitAt defaultSize msg else (fst $ uniformByteString defaultSize g, msg)
+      let (iv, msg') = if dec then B.splitAt defaultSize msg else (fst $ genByteString defaultSize g, msg)
       in (if dec then id else B.append iv) $ func rounds (iv,msg') k1 k2
 
 unprefix :: Char -> String -> String

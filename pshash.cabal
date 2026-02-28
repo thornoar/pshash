@@ -13,7 +13,6 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options:
         -Wall
-        -Werror
 
 library pshash-lib
     import:           warnings
@@ -35,12 +34,10 @@ executable pshash
         directory,
         pshash-lib,
         bytestring,
-        random >= 1.3.1
+        random >= 1.2.1
     hs-source-dirs:   app
     default-language: Haskell2010
     ghc-options:
         -O2
         -fwrite-ide-info
         -hiedir=.hie
-        -- -rtsopts=all
-        -- -with-rtsopts=--io-manager=native
