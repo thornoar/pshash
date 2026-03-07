@@ -8,7 +8,7 @@
 
 Various password templates (co-called "source configurations") are supported, and the user is free to define their own. These configurations can then be stored in a configuration file, associated to one or more public keys. This way, the user can produce different types of passwords for different public keys, and does not have to keep all the templates in their head.
 
-The algorithm was designed to withstand different kinds of brute-force attacks as well. For finer detail, please refer to the corresponding mathematical paper: *paper/main.pdf*
+The algorithm was designed to withstand different kinds of brute-force attacks as well. For finer detail, please refer to the corresponding mathematical paper: _paper/main.pdf_
 
 This repository contains the CLI version of the `pshash` algorithm, implemented in Haskell. For access to other implementations, see sections below.
 
