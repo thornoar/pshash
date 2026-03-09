@@ -153,7 +153,7 @@ It corresponds to picking one element from the source according to the key. For 
   \[
     f(k_1) = f(k_2) \implies |k_1 - k_2| \geq n.
   \]
-  This number exists due the $A$ being finite. We will denote the spread of $f$ by $\spr{f}$.\\
+  This number exists due to $A$ being finite. We will denote the spread of $f$ by $\spr{f}$.\\
 \end{definition}
 
 Trivially, if $\spr{f} \geq n$, then $f$ is injective on $(n)$, but the converse is not always true. Therefore, a lower bound on the spread of a function serves as a guarantee of its injectivity on a certain interval. Furthermore, if $\spr{f} \geq n$ and $f$ is bijective on $(n)$, then $f$ is periodic with period $n$ and therefore has a spread of exactly $n$. We leave these facts as a simple exercise for the reader.\\
@@ -260,7 +260,7 @@ In other words, the elevated choice function is a ``mapping'' of the choice func
 \end{align}
 where $E_i$, $n_i$, and $m_i$ compose the configuration $\conf$. In fact, due to the rule of product in combinatorics, we see that the expression in (\ref{elspr}) directly corresponds to the number of possible multiselections from $\conf$, or $\#^{\elv} (\conf)$ for short. Therefore, $\elv(\conf, -)$ is bijective on the interval $\left( \#^{\elv} (\conf) \right)$ and periodic with period $\#^{\elv} (\conf)$.
 
-This solves the problem with lacking symbol categories --- now we can separate upper-case letters, lower-case letters, numbers, etc., into different sources and apply the elevated choice function, specifying the number of symbols from each source. However, there are two issues arising:
+This solves the problem of lacking symbol categories --- now we can separate upper-case letters, lower-case letters, numbers, etc., into different sources and apply the elevated choice function, specifying the number of symbols from each source. However, there are two issues arising:
 
 \begin{itemize}
   \item The result of the elevated choice function will be something like \texttt{"amwYXT28@!"}, which is not a bad password, but it would be nice to be able to shuffle the individual selections between each other instead of lining them up one after another.
@@ -317,7 +317,7 @@ We will solve one problem at a time.
       \]
   \end{enumerate}
 \end{definition}
-The merge function takes two lists and combines them together in one, in such a way that the order of elements in each of the two lists is not disturbed. For example, the merge of $[1,2,3]$ and $[a,b,c]$ with a certain key could be $[1,a,b,2,c,3]$. We will now derive some properties of $\m^2$. If $s_1$ and $s_2$ are as defined above, we immediately see that $\m^2(\alpha, \beta, -)$ is periodic with period $s_1 + s_2$, since it depends only on $k' = \li^{(s_1 + s_2)}k$. Moreover, we have the following result:\\
+The merge function takes two lists and combines them together in one, in such a way that the order of elements in each of the two lists is not disturbed. For example, the merge of $[1,2,3]$ and $[a,b,c]$ with a certain key could be $[1,a,b,2,c,3]$. We will now derive some properties of $\m^2$. If $s_1$ and $s_2$ are as defined above, we immediately see that $\m^2(\alpha, \beta, -)$ is periodic with period $s_1 + s_2$, since it depends only on $k' = \li^{(s_1 + s_2)}k$. Hence, $\spr{\m^2 (\alpha, \beta, -)} \leq s_1 + s_2$. Moreover, we have the following result:\\
 
 \begin{proposition}
   \label{m2inj}
@@ -328,11 +328,11 @@ The merge function takes two lists and combines them together in one, in such a 
   \[
     \m^2(\alpha, \beta, k_1) = \m^2(\alpha, \beta, k_2) =: \gamma.
   \]
-  Since the lists $\alpha$ and $\beta$ have empty intersection (being taken from distinct sources $E_1$ and $E_2$), we see that either $k_1, k_2 < s_1$ or $k_1, k_2 \ge s_1$, since otherwise we would have $\alpha : 0 = \gamma : 0 = \beta : 0$. If $k_1, k_2 < s_1$, we see from Definition \ref{m2def} that
+  Since the lists $\alpha$ and $\beta$ have empty intersection (being taken from distinct sources $E_1$ and $E_2$), we see that either $k_1, k_2 < s_1$ or $k_1, k_2 \ge s_1$, as otherwise we would have $\alpha : 0 = \gamma : 0 = \beta : 0$. If $k_1, k_2 < s_1$, we see from Definition \ref{m2def} that
   \[
     \m^2 (\alpha \wo 0, \beta, k_1 + T(\alpha : 0)) = \m^2 (\alpha \wo 0, \beta, k_2 + T(\alpha : 0)).
   \]
-  Since $|k_1 - k_2| < s_1 = \spr{\m^2(\alpha \wo 0, \beta)}$, we must have $k_1 = k_2$ by the definition of spread. The case $k_1, k_2 >= s_1$ is similar.
+  Since $|k_1 - k_2| < s_1 = \spr{\m^2(\alpha \wo 0, \beta)}$, we must have $k_1 = k_2$ by the definition of spread. The case $k_1, k_2 \geq s_1$ is similar.
 \end{proof}
 
 The above proposition entails that the spread of $\m^2(\alpha, \beta, -)$ equals exactly $s_1 + s_2$, since, being periodic, this function will be injective on any interval of length $s_1 + s_2$. Therefore, we have the identity
@@ -589,7 +589,7 @@ These problems are solved in the implementation of \texttt{pshash} as follows:
       14597701819718601692712560 \ &\longleftrightarrow \ \mathtt{rebifu\ unpuja\ litule\ jufela\ tu}
     \end{align*}
     Remembering these incantations still requires effort, of course, but it is feasible, and the nature of \texttt{pshash} is such that the security properties of passwords rely directly on the amount of entropy in the keys.\\
-    To generate an incantation, the user may invoke \verb|$ pshash --gen-spell|. They will be prompted for the arithmetic key (which can be typed as an arithmetic expression), after which the incantation will be printed as output. The \verb|$ pshash --gen-keys| command will also automatically print corresponding incantations.\\
+    To generate an incantation, the user may invoke \verb|$ pshash --gen-spell|. They will be prompted for the numeric key (which can be typed as an arithmetic expression), after which the incantation will be printed as output. The \verb|$ pshash --gen-keys| command will also automatically print corresponding incantations.\\
 \end{itemize}
 
 \subsection{Error Messages}
@@ -655,7 +655,7 @@ As before, the security of this cipher does not correspond to the conventional n
 \]
 which is simply the number of all possible plaintexts that correspond to the given ciphertext.
 
-Now, to exncrypt/decrypt byte streams of length other than 64, we run our block cipher in (a slightly modified) counter mode (\cite{serious}, page 118). In particular, let a plaintext $P$ of arbitrary size be given, along with two keys $k_1, k_2$. We calculate the permutation $\varphi$ based on $k_1, k_2$, and we also generate a random 64-byte block $IV$. Now, we build a sequence $(B_i)_{i = 0}^\infty$ of 64-byte blocks as follows:
+Now, to encrypt/decrypt byte streams of length other than 64, we run our block cipher in (a slightly modified) counter mode (\cite{serious}, page 118). In particular, let a plaintext $P$ of arbitrary size be given, along with two keys $k_1, k_2$. We calculate the permutation $\varphi$ based on $k_1, k_2$, and we also generate a random 64-byte block $IV$. Now, we build a sequence $(B_i)_{i = 0}^\infty$ of 64-byte blocks as follows:
 \begin{itemize}
   \item We set $B_0$ to $IV \oplus DS$, where $DS$ is a fixed random 64-byte block generated beforehand and hard-coded in the executable;
   \item If $B_i$ is computed, we set $B_{i+1} = e_\varphi (B_i \oplus DS)$.
