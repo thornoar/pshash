@@ -1,5 +1,9 @@
 # Revision history for `pshash`
 
+## 0.1.20.1
+
+* Added comment support to `pshash.conf`
+
 ## 0.1.20.0
 
 * A whole bunch of new stuff!

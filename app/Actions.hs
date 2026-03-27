@@ -21,7 +21,7 @@ import Encryption
 import System.Directory (getHomeDirectory)
 
 currentVersion :: String
-currentVersion = "0.1.20.0"
+currentVersion = "0.1.20.1"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -454,6 +454,7 @@ unprefix _ str = str
 
 groupContents :: [String] -> Result (Int, [(String, String)])
 groupContents [] = Content (0, [])
+groupContents (('#' : _) : rest) = groupContents rest
 groupContents (line : rest) = case splitBy ':' line of
   ["+all", argStr] -> Content (1, [("*", unprefix ' ' argStr)])
   [kwstr, argStr] ->

@@ -127,6 +127,7 @@ getArgsFromContents publicStr contents = findArgs $ map (splitBy ':') (lines con
   where
     findArgs :: [[String]] -> Result (Map OptionName String)
     findArgs [] = Content empty
+    findArgs ((('#' : _) : _) : rest) = findArgs rest
     findArgs ([keywords, argStr] : rest) =
       if keywords == "+all" || publicStr `elem` splitBy ',' (filter (/= ' ') keywords)
       then addTrace ("Parsing options for public key {" ++ publicStr ++ "}:") $ parseArgs (True, True, True) (words argStr)
