@@ -1,17 +1,17 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/nixos.org) (preloaded format=pdflatex 1980.1.1)  9 MAR 2026 11:51
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/nixos.org) (preloaded format=pdflatex 1980.1.1)  10 AUG 2026 22:35
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
 **./main.tex
 (./main.tex
-LaTeX2e <2025-06-01> patch level 1
-L3 programming layer <2025-06-09>
+LaTeX2e <2025-11-01>
+L3 programming layer <2026-01-19>
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/base/article.cls
 Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/base/size10.clo
 File: size10.clo 2025/01/22 v1.4n Standard LaTeX file (size option)
 )
@@ -27,49 +27,49 @@ File: size10.clo 2025/01/22 v1.4n Standard LaTeX file (size option)
 \belowcaptionskip=\skip50
 \bibindent=\dimen148
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/tex-gyre/tgschola.sty
 Package: tgschola 2009/09/27 v1.2 TeX Gyre Schola as default roman family
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/kvoptions/kvoptions.sty
 Package: kvoptions 2022-06-15 v3.15 Key value format for package options (HO)
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/graphics/keyval.sty
 Package: keyval 2022/05/29 v1.15 key=value parser (DPC)
 \KV@toks@=\toks17
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/ltxcmds/ltxcmds.sty
 Package: ltxcmds 2023-12-04 v1.26 LaTeX kernel commands for general use (HO)
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/kvsetkeys/kvsetkeys.sty
 Package: kvsetkeys 2022-10-05 v1.19 Key value parser (HO)
 )))
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/hyperref/hyperref.sty
-Package: hyperref 2025-06-21 v7.01n Hypertext links for LaTeX
+Package: hyperref 2026-01-29 v7.01p Hypertext links for LaTeX
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/iftex/iftex.sty
 Package: iftex 2024/12/12 v1.0g TeX engine tests
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/kvdefinekeys/kvdefinekeys.sty
 Package: kvdefinekeys 2019-12-19 v1.6 Define keys (HO)
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/pdfescape/pdfescape.sty
 Package: pdfescape 2019/12/09 v1.15 Implements pdfTeX's escape features (HO)
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/pdftexcmds/pdftexcmds.sty
 Package: pdftexcmds 2020-06-27 v0.33 Utility functions of pdfTeX for LuaTeX (HO
 )
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/infwarerr/infwarerr.sty
 Package: infwarerr 2019/12/03 v1.5 Providing info/warning/error messages (HO)
 )
@@ -77,30 +77,30 @@ Package pdftexcmds Info: \pdf@primitive is available.
 Package pdftexcmds Info: \pdf@ifprimitive is available.
 Package pdftexcmds Info: \pdfdraftmode found.
 ))
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/hycolor/hycolor.sty
 Package: hycolor 2020-01-27 v1.10 Color options for hyperref/bookmark (HO)
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/hyperref/nameref.sty
-Package: nameref 2025-06-21 v2.57 Cross-referencing by name of section
+Package: nameref 2026-01-29 v2.58 Cross-referencing by name of section
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/refcount/refcount.sty
 Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/gettitlestring/gettitlestring.sty
 Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 )
 \c@section@level=\count283
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/etoolbox/etoolbox.sty
-Package: etoolbox 2025/02/11 v2.5l e-TeX tools for LaTeX (JAW)
+Package: etoolbox 2025/10/02 v2.5m e-TeX tools for LaTeX (JAW)
 \etb@tempcnta=\count284
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/stringenc/stringenc.sty
 Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO
 )
@@ -109,46 +109,46 @@ Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO
 \Hy@linkcounter=\count285
 \Hy@pagecounter=\count286
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/hyperref/pd1enc.def
-File: pd1enc.def 2025-06-21 v7.01n Hyperref: PDFDocEncoding definition (HO)
+File: pd1enc.def 2026-01-29 v7.01p Hyperref: PDFDocEncoding definition (HO)
 Now handling font encoding PD1 ...
 ... no UTF-8 mapping file for font encoding PD1
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/intcalc/intcalc.sty
 Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
 )
 \Hy@SavedSpaceFactor=\count287
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/hyperref/puenc.def
-File: puenc.def 2025-06-21 v7.01n Hyperref: PDF Unicode definition (HO)
+File: puenc.def 2026-01-29 v7.01p Hyperref: PDF Unicode definition (HO)
 Now handling font encoding PU ...
 ... no UTF-8 mapping file for font encoding PU
 )
-Package hyperref Info: Hyper figures OFF on input line 4181.
-Package hyperref Info: Link nesting OFF on input line 4186.
-Package hyperref Info: Hyper index ON on input line 4189.
-Package hyperref Info: Plain pages OFF on input line 4196.
-Package hyperref Info: Backreferencing OFF on input line 4201.
+Package hyperref Info: Hyper figures OFF on input line 4201.
+Package hyperref Info: Link nesting OFF on input line 4206.
+Package hyperref Info: Hyper index ON on input line 4209.
+Package hyperref Info: Plain pages OFF on input line 4216.
+Package hyperref Info: Backreferencing OFF on input line 4221.
 Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
-Package hyperref Info: Bookmarks ON on input line 4448.
+Package hyperref Info: Bookmarks ON on input line 4468.
 \c@Hy@tempcnt=\count288
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/url/url.sty
 \Urlmuskip=\muskip17
 Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
 )
-LaTeX Info: Redefining \url on input line 4787.
+LaTeX Info: Redefining \url on input line 4807.
 \XeTeXLinkMargin=\dimen150
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/bitset/bitset.sty
 Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/bigintcalc/bigintcalc.sty
 Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
 )
@@ -156,30 +156,30 @@ Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
 \Fld@menulength=\count289
 \Field@Width=\dimen151
 \Fld@charsize=\dimen152
-Package hyperref Info: Hyper figures OFF on input line 6066.
-Package hyperref Info: Link nesting OFF on input line 6071.
-Package hyperref Info: Hyper index ON on input line 6074.
-Package hyperref Info: backreferencing OFF on input line 6081.
-Package hyperref Info: Link coloring OFF on input line 6086.
-Package hyperref Info: Link coloring with OCG OFF on input line 6091.
-Package hyperref Info: PDF/A mode OFF on input line 6096.
+Package hyperref Info: Hyper figures OFF on input line 6084.
+Package hyperref Info: Link nesting OFF on input line 6089.
+Package hyperref Info: Hyper index ON on input line 6092.
+Package hyperref Info: backreferencing OFF on input line 6099.
+Package hyperref Info: Link coloring OFF on input line 6104.
+Package hyperref Info: Link coloring with OCG OFF on input line 6109.
+Package hyperref Info: PDF/A mode OFF on input line 6114.
 \Hy@abspage=\count290
 \c@Item=\count291
 \c@Hfootnote=\count292
 )
 Package hyperref Info: Driver (autodetected): hpdftex.
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/hyperref/hpdftex.def
-File: hpdftex.def 2025-06-21 v7.01n Hyperref driver for pdfTeX
+File: hpdftex.def 2026-01-29 v7.01p Hyperref driver for pdfTeX
 \Fld@listcount=\count293
 \c@bookmark@seq@number=\count294
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/rerunfilecheck/rerunfilecheck.sty
 Package: rerunfilecheck 2025-06-21 v1.11 Rerun checks for auxiliary files (HO)
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/uniquecounter/uniquecounter.sty
 Package: uniquecounter 2019/12/15 v1.4 Provide unlimited unique counter (HO)
 )
@@ -188,29 +188,29 @@ Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
 )
 \Hy@SectionHShift=\skip51
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amsmath/amsmath.sty
-Package: amsmath 2025/06/16 v2.17y AMS math features
+Package: amsmath 2025/07/09 v2.17z AMS math features
 \@mathmargin=\skip52
 
 For additional information on amsmath, use the `?' option.
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amsmath/amstext.sty
 Package: amstext 2024/11/17 v2.01 AMS text
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amsmath/amsgen.sty
 File: amsgen.sty 1999/11/30 v2.0 generic functions
 \@emptytoks=\toks18
 \ex@=\dimen153
 ))
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amsmath/amsbsy.sty
 Package: amsbsy 1999/11/29 v1.2d Bold Symbols
 \pmbraise@=\dimen154
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amsmath/amsopn.sty
 Package: amsopn 2022/04/08 v2.04 operator names
 )
@@ -259,14 +259,14 @@ LaTeX Info: Redefining \Relbar on input line 970.
 \multlinegap=\skip53
 \multlinetaggap=\skip54
 \mathdisplay@stack=\toks22
-LaTeX Info: Redefining \[ on input line 2949.
-LaTeX Info: Redefining \] on input line 2950.
+LaTeX Info: Redefining \[ on input line 2950.
+LaTeX Info: Redefining \] on input line 2951.
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amsfonts/amssymb.sty
 Package: amssymb 2013/01/14 v3.01 AMS font symbols
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amsfonts/amsfonts.sty
 Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
 \symAMSa=\mathgroup4
@@ -275,26 +275,26 @@ LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
 LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
 (Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
 ))
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/leftindex/leftindex.sty
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/l3packages/xparse/xparse.sty
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/l3kernel/expl3.sty
-Package: expl3 2025-06-09 L3 programming layer (loader) 
+Package: expl3 2026-01-19 L3 programming layer (loader) 
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/l3backend/l3backend-pdftex.def
-File: l3backend-pdftex.def 2025-06-09 L3 backend support: PDF output (pdfTeX)
+File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count307
 ))
-Package: xparse 2024-08-16 L3 Experimental document command parser
+Package: xparse 2025-10-09 L3 Experimental document command parser
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/mathtools/mathtools.sty
 Package: mathtools 2024/10/04 v1.31 mathematical typesetting tools
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/tools/calc.sty
 Package: calc 2025/03/01 v4.3b Infix arithmetic (KKT,FJ)
 \calc@Acount=\count308
@@ -308,7 +308,7 @@ LaTeX Info: Redefining \addtolength on input line 87.
 \calc@Ccount=\count310
 \calc@Cskip=\skip57
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/mathtools/mhsetup.sty
 Package: mhsetup 2021/03/18 v1.4 programming setup (MH)
 )
@@ -337,40 +337,40 @@ Package: leftindex 2024/01/31 v0.2beta
 \l__leftindex_subscript_temp_box=\box59
 \l__leftindex_width_of_subscript_dim=\dimen177
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/graphics/graphicx.sty
 Package: graphicx 2024/12/31 v1.2e Enhanced LaTeX Graphics (DPC,SPQR)
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/graphics/graphics.sty
 Package: graphics 2024/08/06 v1.4g Standard LaTeX Graphics (DPC,SPQR)
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/graphics/trig.sty
 Package: trig 2023/12/02 v1.11 sin cos tan (DPC)
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/graphics-cfg/graphics.cfg
 File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
 )
 Package graphics Info: Driver file: pdftex.def on input line 106.
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/graphics-def/pdftex.def
-File: pdftex.def 2024/04/13 v1.2c Graphics/color driver for pdftex
+File: pdftex.def 2025/09/29 v1.2d Graphics/color driver for pdftex
 ))
 \Gin@req@height=\dimen178
 \Gin@req@width=\dimen179
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/parskip/parskip.sty
 Package: parskip 2021-03-14 v2.0h non-zero parskip adjustments
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/geometry/geometry.sty
 Package: geometry 2020/01/02 v5.9 Page Geometry
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/generic/iftex/ifvtex.sty
 Package: ifvtex 2019/10/25 v1.7 ifvtex legacy package. Use iftex instead.
 )
@@ -387,7 +387,7 @@ Package: ifvtex 2019/10/25 v1.7 ifvtex legacy package. Use iftex instead.
 \Gm@layoutvoffset=\dimen187
 \Gm@dimlist=\toks23
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amscls/amsthm.sty
 Package: amsthm 2020/05/29 v2.20.6
 \thm@style=\toks24
@@ -405,7 +405,7 @@ Package: amsthm 2020/05/29 v2.20.6
 LaTeX Font Info:    Trying to load font information for OT1+qcs on input line 7
 2.
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/tex-gyre/ot1qcs.fd
 File: ot1qcs.fd 2009/09/25 v1.2 font definition file for OT1/qcs
 ) (.aux/main.aux)
@@ -435,7 +435,7 @@ Package hyperref Info: Link coloring OFF on input line 72.
 \openout3 = `main.out'.
 
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count317
@@ -450,13 +450,13 @@ x/context/base/mkii/supp-pdf.mkii
 \makeMPintoPDFobject=\count322
 \everyMPtoPDFconversion=\toks31
 )
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 85.
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
@@ -499,44 +499,40 @@ Couldn't patch \deferred@thm@head!
 LaTeX Font Info:    Trying to load font information for U+msa on input line 75.
 
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
 LaTeX Font Info:    Trying to load font information for U+msb on input line 75.
 
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 LaTeX Font Info:    Trying to load font information for TS1+qcs on input line 8
 8.
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/tex-gyre/ts1qcs.fd
 File: ts1qcs.fd 2009/09/25 v1.2 font definition file for TS1/qcs
-)
+) [1
 
-[1
-
-{/nix/store/fkrvjv6sp5k6706r4iwsb8phwbjrlqfj-texlive-combined-2025/share/texmf-
-var/fonts/map/pdftex/updmap/pdftex.map}{/nix/store/60l31nr7ikg0ysgy760wzx2xcax7
-ngkx-texlive-combined-2025-texmfdist/fonts/enc/dvips/tex-gyre/q-rm.enc}{/nix/st
-ore/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/enc/
+{/nix/store/921dfnmnfi0fydjfy3vjscpb8lvlfg5j-texlive-combined-2025/share/texmf-
+var/fonts/map/pdftex/updmap/pdftex.map}{/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb9
+6sa3-texlive-combined-2025-texmfdist/fonts/enc/dvips/tex-gyre/q-rm.enc}{/nix/st
+ore/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/fonts/enc/
 dvips/tex-gyre/q-ts1.enc}]
 LaTeX Font Info:    Trying to load font information for U+euf on input line 139
 .
 
-(/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/te
+(/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/te
 x/latex/amsfonts/ueuf.fd
 File: ueuf.fd 2013/01/14 v3.01 Euler Fraktur
 )
 Underfull \hbox (badness 10000) in paragraph at lines 139--140
 
  []
-
-
 
 [2]
 Underfull \hbox (badness 10000) in paragraph at lines 149--150
@@ -563,127 +559,110 @@ Underfull \hbox (badness 10000) in paragraph at lines 192--194
 
  []
 
-
-
-[3]
-
-[4{/nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/
-fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
-Underfull \hbox (badness 10000) in paragraph at lines 320--321
+[3] [4{/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfd
+ist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
+Underfull \hbox (badness 10000) in paragraph at lines 283--288
 
  []
 
 
+Underfull \hbox (badness 10000) in paragraph at lines 338--339
+
+ []
 
 [5]
-Underfull \hbox (badness 10000) in paragraph at lines 367--368
+Underfull \hbox (badness 10000) in paragraph at lines 385--386
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 377--379
+Underfull \hbox (badness 10000) in paragraph at lines 395--397
 
  []
-
-
 
 [6]
-Underfull \hbox (badness 10000) in paragraph at lines 408--410
+Underfull \hbox (badness 10000) in paragraph at lines 426--428
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 412--413
+Underfull \hbox (badness 10000) in paragraph at lines 430--431
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 435--436
+Underfull \hbox (badness 10000) in paragraph at lines 453--454
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 445--447
+Underfull \hbox (badness 10000) in paragraph at lines 463--465
 
  []
-
-
 
 [7]
 
 Package amsmath Warning: Foreign command \atopwithdelims;
 (amsmath)                \frac or \genfrac should be used instead
-(amsmath)                 on input line 468.
+(amsmath)                 on input line 486.
 
-
-
-[8]
-
-[9]
-
-[10]
-Underfull \hbox (badness 10000) in paragraph at lines 590--593
+[8] [9] [10]
+Underfull \hbox (badness 10000) in paragraph at lines 608--611
 
  []
 
-
-
-[11]
-
-[12] (.aux/main.bbl)
-
-[13] (.aux/main.aux)
+[11] [12] (.aux/main.bbl) [13] (.aux/main.aux)
  ***********
-LaTeX2e <2025-06-01> patch level 1
-L3 programming layer <2025-06-09>
+LaTeX2e <2025-11-01>
+L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: CA035A25594F88AF155D6CF90E3EE1FE;4021.
  ) 
 Here is how much of TeX's memory you used:
- 11339 strings out of 467888
- 181532 string characters out of 5412697
- 600817 words of memory out of 5000000
- 39656 multiletter control sequences out of 15000+600000
- 669211 words of font info for 87 fonts, out of 8000000 for 9000
+ 11360 strings out of 467533
+ 181924 string characters out of 5398125
+ 607445 words of memory out of 5000000
+ 40030 multiletter control sequences out of 15000+600000
+ 670107 words of font info for 87 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 73i,21n,79p,1119b,609s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/
-fonts/type1/public/amsfonts/cm/cmex10.pfb></nix/store/60l31nr7ikg0ysgy760wzx2xc
-ax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cmextra/cme
-x7.pfb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmf
-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></nix/store/60l31nr7ikg0ysgy760w
-zx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cm/cmm
-i5.pfb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmf
-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></nix/store/60l31nr7ikg0ysgy760wz
-x2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cm/cmr1
-0.pfb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfd
-ist/fonts/type1/public/amsfonts/cm/cmr5.pfb></nix/store/60l31nr7ikg0ysgy760wzx2
-xcax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cm/cmr7.p
-fb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist
-/fonts/type1/public/amsfonts/cm/cmsy10.pfb></nix/store/60l31nr7ikg0ysgy760wzx2x
-cax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cm/cmsy5.p
-fb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist
-/fonts/type1/public/amsfonts/cm/cmsy7.pfb></nix/store/60l31nr7ikg0ysgy760wzx2xc
-ax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cm/cmtt10.p
-fb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist
-/fonts/type1/public/amsfonts/euler/eufm10.pfb></nix/store/60l31nr7ikg0ysgy760wz
-x2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/euler/e
-ufm7.pfb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-tex
-mfdist/fonts/type1/public/amsfonts/symbols/msam10.pfb></nix/store/60l31nr7ikg0y
-sgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts
-/symbols/msbm10.pfb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combin
-ed-2025-texmfdist/fonts/type1/public/tex-gyre/qcsb.pfb></nix/store/60l31nr7ikg0
-ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/tex-gyr
-e/qcsbi.pfb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-
-texmfdist/fonts/type1/public/tex-gyre/qcsr.pfb></nix/store/60l31nr7ikg0ysgy760w
-zx2xcax7ngkx-texlive-combined-2025-texmfdist/fonts/type1/public/tex-gyre/qcsri.
-pfb></nix/store/60l31nr7ikg0ysgy760wzx2xcax7ngkx-texlive-combined-2025-texmfdis
+ 73i,21n,79p,1119b,617s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/
+fonts/type1/public/amsfonts/cm/cmex10.pfb></nix/store/0mhwmnc5v7yal01pzxxa46qvh
+jb96sa3-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cmextra/cme
+x7.pfb></nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmf
+dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></nix/store/0mhwmnc5v7yal01pzxxa
+46qvhjb96sa3-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cm/cmm
+i5.pfb></nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmf
+dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></nix/store/0mhwmnc5v7yal01pzxxa4
+6qvhjb96sa3-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cm/cmr1
+0.pfb></nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfd
+ist/fonts/type1/public/amsfonts/cm/cmr5.pfb></nix/store/0mhwmnc5v7yal01pzxxa46q
+vhjb96sa3-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cm/cmr7.p
+fb></nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist
+/fonts/type1/public/amsfonts/cm/cmsy10.pfb></nix/store/0mhwmnc5v7yal01pzxxa46qv
+hjb96sa3-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cm/cmsy5.p
+fb></nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist
+/fonts/type1/public/amsfonts/cm/cmsy7.pfb></nix/store/0mhwmnc5v7yal01pzxxa46qvh
+jb96sa3-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/cm/cmtt10.p
+fb></nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist
+/fonts/type1/public/amsfonts/euler/eufm10.pfb></nix/store/0mhwmnc5v7yal01pzxxa4
+6qvhjb96sa3-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts/euler/e
+ufm7.pfb></nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-tex
+mfdist/fonts/type1/public/amsfonts/symbols/msam10.pfb></nix/store/0mhwmnc5v7yal
+01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/fonts/type1/public/amsfonts
+/symbols/msbm10.pfb></nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combin
+ed-2025-texmfdist/fonts/type1/public/tex-gyre/qcsb.pfb></nix/store/0mhwmnc5v7ya
+l01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/fonts/type1/public/tex-gyr
+e/qcsbi.pfb></nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-
+texmfdist/fonts/type1/public/tex-gyre/qcsr.pfb></nix/store/0mhwmnc5v7yal01pzxxa
+46qvhjb96sa3-texlive-combined-2025-texmfdist/fonts/type1/public/tex-gyre/qcsri.
+pfb></nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdis
 t/fonts/type1/public/cm-super/sftt1000.pfb>
-Output written on .aux/main.pdf (13 pages, 341391 bytes).
+Output written on .aux/main.pdf (13 pages, 340874 bytes).
 PDF statistics:
- 379 PDF objects out of 1000 (max. 8388607)
- 317 compressed objects within 4 object streams
- 77 named destinations out of 1000 (max. 500000)
+ 380 PDF objects out of 1000 (max. 8388607)
+ 318 compressed objects within 4 object streams
+ 78 named destinations out of 1000 (max. 500000)
  185 words of extra memory for PDF output out of 10000 (max. 10000000)
 

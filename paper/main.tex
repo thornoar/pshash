@@ -271,12 +271,30 @@ We will solve one problem at a time.
 
 \subsection{The Merge Function}
 
+\begin{definition}
+  Let $f \colon A \times B \to C$ be a function. We say that $f$ is
+  \emph{absolutely injective} with respect to the first argument, if
+  for all $(a_1, b_1), (a_2, b_2) \in A \times B$, the equality
+  $f(a_1, b_1) = f(a_2, b_2)$ implies $a_1 = a_2$ (while $b_1$ and
+  $b_2$ may differ). Similarly we can consider absolute injectivity
+  with respect to the second argument.
+\end{definition}
+
+Sometimes this property is called just ``injectivity in the first
+argument'', but we find it slightly confusing, since intuitively it
+seems to mean that $f(-, b)$ is injective for any $b \in B$ (similarly
+to $f$ being ``linear in the first argument''). Our property is,
+however, stronger than that.\\
+
 \begin{proposition}
   \label{comp}
-  Let $f \colon A \times \N_0 \to B$ and $g \colon B \times \N_0 \to C$ be functions such that $\spr{f} \ge n$ and $\spr{g} \ge m$, where the spread is taken with respect to the second argument. Assume also that $g$ is \textbf{absolutely injective} with respect to the first argument, that is,
-  \[
-    \forall (b_1,k_1), (b_2,k_2) \in B \times \N_0,\ \ g(b_1, k_1) = g(b_2, k_2) \implies b_1 = b_2.
-  \]
+  Let $f \colon A \times \N_0 \to B$ and $g \colon B \times \N_0 \to
+  C$ be functions such that $\spr{f} \ge n$ and $\spr{g} \ge m$, where
+  the spread is taken with respect to the second argument. Assume also
+  that $g$ is absolutely injective with respect to the first argument.
+  % \[
+  %   \forall (b_1,k_1), (b_2,k_2) \in B \times \N_0,\ \ g(b_1, k_1) = g(b_2, k_2) \implies b_1 = b_2.
+  % \]
   Define the function $h \colon A \times \N_0 \to C$ by
   \[
     h(a, k) = g(f(a, \li^n k), \li_n k + T(\li^n k)),
