@@ -100,7 +100,9 @@ In this paper, we describe a new ``on-the-fly'' password generation algorithm \t
   \item Our algorithm uses a custom universal hash function instead of the ``industry standards'' of cryptographic hashing such as SHA-256 or Salsa20. This means that our algorithm is immune to attacks targeting these hash functions, such as dictionary attacks which use pre-computed hash tables.
 \end{itemize}
 
-The above benefits come at the cost of convenience, which means that \texttt{pshash} is probably ill-suited for mass adoption. However, it fits perfectly for technically educated users who do not mind memorizing a couple of 20+ digit numbers for the sake of security.
+The above benefits come at the cost of convenience, which means that \texttt{pshash} is probably ill-suited for mass adoption. However, it fits perfectly for technically educated users who do not mind memorizing a couple of 20+ digit numbers.
+
+One final remark: our algorithm is by no means the ``best'' from a security or efficiency standpoint. It is in fact quite inefficient. We argue, however, that it is secure \emph{enough} and fast \emph{enough} for the purposes of personal password management, and more than anything, it serves as a proof of concept that can later be improved upon.
 
 \section{The Algorithm Specification} \label{spec}
 
@@ -326,7 +328,7 @@ however, stronger than that.\\
   with the following recursive procedure: for $\alpha \in [E_1]_{m_1},\ \beta \in [E_2]_{m_2},\ k \in \N_0$, consider two cases:
   \begin{enumerate}
     \item Either $\alpha$ or $\beta$ is empty, that is, $m_1 = 0$ or $m_2 = 0$. Then we set $\m^2 (\alpha, \beta, k)$ to $\alpha \uplus \beta$.
-    \item Neither $\alpha$ nor $\beta$ is empty. Then we will assume that the merge function is already refined for $(\alpha \wo 0, \beta, -)$ and $(\alpha, \beta \wo 0, -)$. Let $s_1$ be the spread of the function $\m^2(\alpha \wo 0, \beta, -)$ and $s_2$ be the spread of $\m^2 (\alpha, \beta \wo 0, -)$. Finally, denote the remainder $\li^{(s_1+s_2)}k$ by $k'$. The merge of $\alpha$ and $\beta$ with key $k$ and an argument shift function $T \colon \alpha \uplus \beta \to \N_0$ is defined as
+    \item Neither $\alpha$ nor $\beta$ is empty. Then we will assume that the merge function is already defined for $(\alpha \wo 0, \beta, -)$ and $(\alpha, \beta \wo 0, -)$. Let $s_1$ be the spread of the function $\m^2(\alpha \wo 0, \beta, -)$ and $s_2$ be the spread of $\m^2 (\alpha, \beta \wo 0, -)$. Finally, denote the remainder $\li^{(s_1+s_2)}k$ by $k'$. The merge of $\alpha$ and $\beta$ with key $k$ and an argument shift function $T \colon \alpha \uplus \beta \to \N_0$ is defined as
       \[
         \m^2(\alpha, \beta, k) = \begin{cases}
           [\alpha : 0] \uplus \m^2(\alpha \wo 0, \beta, k' + T(\alpha : 0)),\ \mathrm{if}\ k' < s_1,\\
