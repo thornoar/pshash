@@ -47,7 +47,7 @@ readMnemonic (pt:rest) = case elemIndex pt commonCombinations of
      in fmap ((replicate (2 - length sn) '0' ++ sn) ++) (readMnemonic rest)
 
 getPrivateKeyMnemonic :: [Char] -> Result Integer
-getPrivateKeyMnemonic = fmap read . readMnemonic . getPairs . filter (/= ' ')
+getPrivateKeyMnemonic lst = readResult "mnemonic" =<< (readMnemonic . getPairs . filter (/= ' ')) lst
 
 power :: [Integer] -> Integer
 power = foldr (^) 1

@@ -1,17 +1,17 @@
 # Fdb version 4
-["bibtex .aux/main"] 1786394132.52803 ".aux/main.aux" ".aux/main.bbl" ".aux/main" 1786394133.83847 0
+["bibtex .aux/main"] 1786782100.73872 ".aux/main.aux" ".aux/main.bbl" ".aux/main" 1786782292.22531 0
   "./main.bib" 1771386905.38172 5391 633cc4f03d3f71c6c56e382a799ceadd ""
-  ".aux/main.aux" 1786394133.67573 5028 914fd1de6b967deb2b2ac48101ad3399 "pdflatex"
+  ".aux/main.aux" 1786782292.03701 5028 914fd1de6b967deb2b2ac48101ad3399 "pdflatex"
   "/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/bibtex/bst/base/abbrv.bst" 1 20329 b5fed53e10044d0f8112183785c759b1 ""
   (generated)
   ".aux/main.bbl"
   ".aux/main.blg"
   (rewritten before read)
-["pdflatex"] 1786394133.22224 "./main.tex" "main.pdf" "main" 1786394133.83859 0
-  "./main.tex" 1786394132.9023 61016 f9253f383da0b8fac85ba9ccd569d47f ""
-  ".aux/main.aux" 1786394133.67573 5028 914fd1de6b967deb2b2ac48101ad3399 "pdflatex"
-  ".aux/main.bbl" 1786394132.57872 2497 dd2bacbc157e1891a5f54688d4acc219 "bibtex .aux/main"
-  ".aux/main.out" 1786394133.67573 4021 ca035a25594f88af155d6cf90e3ee1fe "pdflatex"
+["pdflatex"] 1786782291.60681 "./main.tex" "main.pdf" "main" 1786782292.22544 0
+  "./main.tex" 1786782290.75474 60987 e6fb980b7edfac9e9b0e13468a60c94f ""
+  ".aux/main.aux" 1786782292.03701 5028 914fd1de6b967deb2b2ac48101ad3399 "pdflatex"
+  ".aux/main.bbl" 1786782100.79205 2497 dd2bacbc157e1891a5f54688d4acc219 "bibtex .aux/main"
+  ".aux/main.out" 1786782292.03701 4021 ca035a25594f88af155d6cf90e3ee1fe "pdflatex"
   "/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/fonts/enc/dvips/tex-gyre/q-rm.enc" 1 2409 c64dab22331c83731e970f6020b4448b ""
   "/nix/store/0mhwmnc5v7yal01pzxxa46qvhjb96sa3-texlive-combined-2025-texmfdist/fonts/enc/dvips/tex-gyre/q-ts1.enc" 1 3124 3813fd4c981d99822890a2861b0d274c ""
@@ -129,7 +129,7 @@
   "/nix/store/921dfnmnfi0fydjfy3vjscpb8lvlfg5j-texlive-combined-2025/share/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1 5541473 9ccf24e226a8e82019ac05a7f821475b ""
   "/nix/store/921dfnmnfi0fydjfy3vjscpb8lvlfg5j-texlive-combined-2025/share/texmf-var/web2c/pdftex/pdflatex.fmt" 1 3636998 8558083d03cc25a87b1725739eb3f0ad ""
   "/nix/store/921dfnmnfi0fydjfy3vjscpb8lvlfg5j-texlive-combined-2025/share/texmf-var/web2c/texmf.cnf" 1 44007 1628eb89a04c4a76ad767aa0dd04d59f ""
-  "main.tex" 1786394132.9023 61016 f9253f383da0b8fac85ba9ccd569d47f ""
+  "main.tex" 1786782290.75474 60987 e6fb980b7edfac9e9b0e13468a60c94f ""
   (generated)
   ".aux/main.aux"
   ".aux/main.log"

@@ -671,7 +671,7 @@ As before, the security of this cipher does not correspond to the conventional n
 \[
   \spr{\s([0,...,63], -)} = 64! \approx 2^{295},
 \]
-which is simply the number of all possible plaintexts that correspond to the given ciphertext.
+which is simply the number of all permutations on $64$ elements.
 
 Now, to encrypt/decrypt byte streams of length other than 64, we run our block cipher in (a slightly modified) counter mode (\cite{serious}, page 118). In particular, let a plaintext $P$ of arbitrary size be given, along with two keys $k_1, k_2$. We calculate the permutation $\varphi$ based on $k_1, k_2$, and we also generate a random 64-byte block $IV$. Now, we build a sequence $(B_i)_{i = 0}^\infty$ of 64-byte blocks as follows:
 \begin{itemize}
@@ -687,7 +687,10 @@ To decrypt a ciphertext $C$, we first extract the $IV$ from its first 64 bytes, 
   P = d(C) = C' \oplus B.
 \]
 
-This simple cipher is included in \texttt{pshash}'s primary implementation. By invoking \verb|$ pshash -e FILE|, the user will be prompted for the destination \verb|OUT|, as well as two keys, after which the contents of \verb|FILE| will be shuffled and written to \verb|OUT|. The program can read from \texttt{stdin} and write to \texttt{stdout} if \verb|FILE| is \verb|"stdin"| or \verb|OUT| is \verb|"stdout"|. Of course, both keys can be specified as arithmetic expressions or mnemonic incantations.
+This simple cipher is included in \texttt{pshash}'s primary
+implementation. By invoking \verb|$ pshash -e FILE|, the user will be
+prompted for the destination \verb|OUT|, as well as two keys, after
+which the contents of \verb|FILE| will be encrypted and written to \verb|OUT|. The program can read from \texttt{stdin} and write to \texttt{stdout} if \verb|FILE| is \verb|"stdin"| or \verb|OUT| is \verb|"stdout"|. Of course, both keys can be specified as arithmetic expressions or mnemonic incantations.
 
 \subsection{Other implementations}
 
