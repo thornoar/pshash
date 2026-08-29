@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/nixos.org) (preloaded format=pdflatex 1980.1.1)  15 AUG 2026 22:32
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/nixos.org) (preloaded format=pdflatex 1980.1.1)  29 AUG 2026 23:20
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -510,8 +510,8 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 75.
 x/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Trying to load font information for TS1+qcs on input line 8
-8.
+LaTeX Font Info:    Trying to load font information for TS1+qcs on input line 9
+7.
 
 (/nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/te
 x/latex/tex-gyre/ts1qcs.fd
@@ -523,80 +523,80 @@ var/fonts/map/pdftex/updmap/pdftex.map}{/nix/store/x27vj6vrmvshnbpz6w65vkvqbs6r
 z7m3-texlive-combined-2025-texmfdist/fonts/enc/dvips/tex-gyre/q-rm.enc}{/nix/st
 ore/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/enc/
 dvips/tex-gyre/q-ts1.enc}]
-LaTeX Font Info:    Trying to load font information for U+euf on input line 141
+LaTeX Font Info:    Trying to load font information for U+euf on input line 150
 .
 
 (/nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/te
 x/latex/amsfonts/ueuf.fd
 File: ueuf.fd 2013/01/14 v3.01 Euler Fraktur
 )
-Underfull \hbox (badness 10000) in paragraph at lines 141--142
+Underfull \hbox (badness 10000) in paragraph at lines 150--151
 
  []
 
 [2]
-Underfull \hbox (badness 10000) in paragraph at lines 151--152
+Underfull \hbox (badness 10000) in paragraph at lines 160--161
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 157--159
+Underfull \hbox (badness 10000) in paragraph at lines 166--168
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 161--162
+Underfull \hbox (badness 10000) in paragraph at lines 170--171
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 188--189
+Underfull \hbox (badness 10000) in paragraph at lines 197--198
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 194--196
+Underfull \hbox (badness 10000) in paragraph at lines 203--205
 
  []
 
 [3] [4{/nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfd
 ist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
-Underfull \hbox (badness 10000) in paragraph at lines 285--290
+Underfull \hbox (badness 10000) in paragraph at lines 294--299
 
  []
 
 [5]
-Underfull \hbox (badness 10000) in paragraph at lines 340--341
+Underfull \hbox (badness 10000) in paragraph at lines 349--350
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 387--388
+Underfull \hbox (badness 10000) in paragraph at lines 396--397
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 397--399
+Underfull \hbox (badness 10000) in paragraph at lines 406--408
 
  []
 
 [6]
-Underfull \hbox (badness 10000) in paragraph at lines 428--430
+Underfull \hbox (badness 10000) in paragraph at lines 437--439
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 432--433
+Underfull \hbox (badness 10000) in paragraph at lines 441--442
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 455--456
+Underfull \hbox (badness 10000) in paragraph at lines 464--465
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 465--467
+Underfull \hbox (badness 10000) in paragraph at lines 474--476
 
  []
 
@@ -604,10 +604,10 @@ Underfull \hbox (badness 10000) in paragraph at lines 465--467
 
 Package amsmath Warning: Foreign command \atopwithdelims;
 (amsmath)                \frac or \genfrac should be used instead
-(amsmath)                 on input line 488.
+(amsmath)                 on input line 497.
 
 [8] [9] [10]
-Underfull \hbox (badness 10000) in paragraph at lines 610--613
+Underfull \hbox (badness 10000) in paragraph at lines 628--632
 
  []
 
@@ -659,7 +659,7 @@ texmfdist/fonts/type1/public/tex-gyre/qcsr.pfb></nix/store/x27vj6vrmvshnbpz6w65
 vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/type1/public/tex-gyre/qcsri.
 pfb></nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdis
 t/fonts/type1/public/cm-super/sftt1000.pfb>
-Output written on .aux/main.pdf (14 pages, 341925 bytes).
+Output written on .aux/main.pdf (14 pages, 341869 bytes).
 PDF statistics:
  385 PDF objects out of 1000 (max. 8388607)
  322 compressed objects within 4 object streams

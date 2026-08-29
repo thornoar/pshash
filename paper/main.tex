@@ -75,7 +75,16 @@
 
 \textbf{Abstract:}
 The traditional model of password management has been failing for the past 25-30 years, with the growth in the number of passwords an average user needs to remember.
-To combat this problem, we introduce \texttt{pshash} --- a deterministic ``on-the-fly'' password generation algorithm based on selecting characters from predefined sources. The selection of characters and their order are derived from two secret numbers (the "choice key" and "shuffle key") provided by the user, and the resulting character string can be used as a password. The algorithm resembles a hash function in many ways, however it is not cryptographically secure in the usual sense. Yet it still satisfies the conditions for being a \emph{universal hash function}, and we argue that this is sufficient for secure password generation. Its main benefits are simplicity (it is implemented in under 200 lines of code) and independence (it does not draw on any pre-existing algorithms or cryptographic notions). This comes at the cost of convenience, as the user is required to memorize a relatively large amount of entropy to achieve good security. However, we argue that practice can mitigate this drawback, and the benefits of security and minimalism are worth it.
+To combat this problem, various password management software systems have been introduced. Each of them makes a certain trade-off between convenience and security. We introduce \texttt{pshash} --- a
+deterministic ``on-the-fly'' password generation algorithm based on
+selecting characters from predefined sources. The selection of
+characters and their order are derived from two secret numbers (the
+``choice private key'' and ``shuffle private key'') provided by the
+user, and the resulting character string can be used as a password.
+Our algorithm differs from its alternatives in that it sacrifices a
+great deal of convenience (the user is required to memorize a
+relatively large amount of entropy to achieve good security), but at
+this cost it can be extremely minimal, stateless, portable and self-sufficient, reducing the amount of attack surfaces. Implementations of our algorithm also provide methods to more easily remember the private keys, namely arithmetic expressions and mnemonic incantations. The main implementation is written in the Haskell language which fits perfectly for this purpose, practically making the program bug-free by means of strong typing and immutability.
 
 \textbf{Keywords:}
 Passwords, Authentication, Combinatorics, Set Functions, Injectivity, Functional Programming
@@ -109,7 +118,7 @@ One final remark: our algorithm is by no means the ``best'' from a security or e
 In this section, we give a full description of \texttt{pshash}. The algorithm is a pure stateless function that takes as input three values:
 
 \begin{itemize}
-  \item The domain name (or any other distinct identifier, for that matter) of the website for which a password is required, called the \emph{public key} and denoted $p$;
+  \item The name (or any other distinct identifier, for that matter) of the website for which a password is required, called the \emph{public key} and denoted $p$;
   \item A secret non-negative integer $k_1$ which lies in a vast range (on the order of $2^{142}$, typically), called the \emph{choice private key};
   \item Another secret non-negative integer $k_2$, which lies in a smaller range of numbers (on the order of $2^{83}$, typically), called the \emph{shuffle private key}.
 \end{itemize}
@@ -220,7 +229,7 @@ These properties make the choice function a fine candidate for a pseudo-hash map
   \text{\texttt{"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789!@\#\$\%"}}
 \]
 
-The choice function gives us a way to enumerate all possible ways to select a sub-list from $E$. What is more, these selections can be made more ``random'' and unpredictable by means of complicating the argument shift function $T$. For example, we may set $T(\li^n k)$ to the ASCII value of the character $E : \li^n k$. This way, each chosen character will influence the choice of the next, creating somewhat of a ``chaotic transformation'', where its behavior is fully determined, but even small changes to inputs produce large changes in the output. Here is a little input-output table for the choice function of order 10 with the specified source and shift function:
+The choice function gives us a way to enumerate all possible ways to select a sub-list from $E$. What is more, these selections can be made more ``random'' and unpredictable by means of complicating the argument shift function $T$. For example, we may set $T(\li^n k)$ to the ASCII value of the character $E : \li^n k$. This way, each chosen character will influence the choice of the next, making the function non-linear and unpredictable, preventing it from following any algebraic laws. Here is a little input-output table for the choice function of order 10 with the specified source and shift function:
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
@@ -525,7 +534,7 @@ In this section, we will use a specific source configuration $\conf$, particular
 
 Therefore, every password produced with this configuration will contain a total of $25$ symbols, $8$, $8$, $5$ and $4$ from their respective categories.
 
-We will also assume that an adversary can perform $10^{10}$ password checks per second, i.e. 0.1 nanosecond to perform one operation such as computing a pseudo-hash or computing a key pair that produces a given pseudo-hash value. This measure is in fact extremely conservative. For example, running \verb|openssl speed -evp sha256| to benchmark the speed of SHA-256 on an 22-core Intel Ultra 9 185H CPU has yielded a speed of $10,000,000$ hashes per second (performed on 16-byte blocks), or 100 nanoseconds per hash. We assume here that \texttt{pshash} is $1,000$ times faster, whereas in fact it must be orders of magnitude slower, due to the fact that it must perform many multiplications and divisions on arbitrary-precision integers. This conservative speed estimate serves as a guarantee of security for a long period of time, even when processors become a million times faster than they are today.
+We will also assume that an adversary can perform $10^{10}$ password checks per second, i.e. 0.1 nanosecond to perform one operation such as computing a pseudo-hash or computing a key pair that produces a given pseudo-hash value. This measure is in fact extremely conservative. For example, running \verb|openssl speed -evp sha256| to benchmark the speed of SHA-256 on a 22-core Intel Ultra 9 185H CPU has yielded a speed of $10,000,000$ hashes per second (performed on 16-byte blocks), or 100 nanoseconds per hash. We assume here that \texttt{pshash} is $1,000$ times faster, whereas in fact it must be orders of magnitude slower, due to the fact that it must perform many multiplications and divisions on arbitrary-precision integers. This conservative speed estimate serves as a guarantee of security for a long period of time, even when processors become a million times faster than they are today.
 
 We will now consider various attacks on the pseudo-hashes produced by \texttt{pshash}.
 
@@ -602,13 +611,23 @@ These problems are solved in the implementation of \texttt{pshash} as follows:
 \begin{itemize}
   \item The program can generate random keys via invoking \verb|$ pshash --gen-keys|. The keys are automatically selected from the range corresponding to the source configuration in use (see Subsection \ref{conf} for more information on how they are specified). This ensures that the generated keys are uniformly distributed in the relevant range, and allows the passwords generated by these keys to enjoy the security properties discussed in Section \ref{security}.
 
-  \item The program supports alternative input methods for the keys. For example, it can evaluate arithmetic expressions involving addition, multiplication, and exponentiation. Instead of \texttt{52046849220153179918678225216} one may type \texttt{8234 * 91234 \^{} 5} which is much easier to remember. Of course, if this input method becomes mainstream, a brute-force attack on such passwords will be much easier, since it will be enough to check all numbers of the form $a + b$, $a * b$, $a ^ b$ and some basic combinations of these expressions, where $a,b < 100,000$. Hence the arithmetic input method is not preferred.\\
+  \item The program supports alternative input methods for the keys.
+    For example, it can evaluate arithmetic expressions involving
+    addition, multiplication, and exponentiation. Instead of
+    \texttt{52046849220153179918678225216} one may type \texttt{8234 *
+    91234 \^{} 5} which is much easier to remember. Of course, if this
+    input method becomes mainstream, a brute-force attack on such
+    passwords will be much easier, since it will be enough to check
+    all numbers of the form $a + b$, $a * b$, $a ^ b$ and some basic
+    combinations of these expressions, where $a,b < 100,000$. Hence
+    the arithmetic input method is not recommended.\\
     As a safer alternative, the \texttt{pshash} implementation offers a ``mnemonic incantation system''. By selecting the 100 most used English 2-letter syllables, we associate each 2-digit number with a syllable. For example, \texttt{00} corresponds to \texttt{'or'}, \texttt{37} corresponds to \texttt{'mi'}, and \texttt{99} corresponds to \texttt{'je'}. We can then apply this map to whole numbers, so \texttt{993700} becomes \texttt{jemior}, which sounds like an English word and is much easier to remember. Given the source configuration described in Section \ref{security}, the average choice key will have about 7 three-syllable words in its mnemonic incantation, while the average shuffle key will have about 4 words. An example would be
     \begin{align*}
       5925758263543757867984307717119455838590518 \ &\longleftrightarrow \ \mathtt{usjusu\ sodilo\ hiwewa\ quzihi\ agfefe\ riposo\ tobius\ li}\\
       14597701819718601692712560 \ &\longleftrightarrow \ \mathtt{rebifu\ unpuja\ litule\ jufela\ tu}
     \end{align*}
-    Remembering these incantations still requires effort, of course, but it is feasible, and the nature of \texttt{pshash} is such that the security properties of passwords rely directly on the amount of entropy in the keys.\\
+    Remembering these incantations still requires effort, of course,
+    but it is feasible (and gets progressively easier with practice), and the nature of \texttt{pshash} is such that the security properties of passwords rely directly on the amount of entropy in the keys.\\
     To generate an incantation, the user may invoke \verb|$ pshash --gen-spell|. They will be prompted for the numeric key (which can be typed as an arithmetic expression), after which the incantation will be printed as output. The \verb|$ pshash --gen-keys| command will also automatically print corresponding incantations.\\
 \end{itemize}
 
@@ -710,7 +729,7 @@ All these implementations support the additional key input methods described in 
 
 \section{Conclusion}
 
-We have presented the \texttt{pshash} password generation algorithm that differs from its closest analogues by its simplicity and originality. The minimalistic design of \texttt{pshash} comes at the cost of user convenience, since the secrets that need to be remembered by the user are big in size. This problem is partly mitigated in the implementation of \texttt{pshash} with two alternative key input methods. The implementation has many other features as well, but it provides no integration with the browser or any external program, for the sake of independence, but at the cost of convenience. Finally, other implementations of \texttt{pshash} are available, which makes the algorithm accessible from any platform and on third-party machines.
+We have presented the \texttt{pshash} password generation algorithm that differs from its closest analogues by its simplicity and originality. \texttt{pshash} provides little user convenience, since the secrets that need to be remembered by the user are big in size. This problem is partly mitigated in the implementation of \texttt{pshash} with two alternative key input methods. In exchange the algorithm is completely stateless, as well as very portable and minimalistic. The implementation has many other features as well, but it provides no integration with the browser or any external program, for the sake of independence, but at the cost of convenience. Finally, other implementations of \texttt{pshash} are available, which makes the algorithm accessible from any platform and on third-party machines.
 
 \bibliographystyle{abbrv}
 \bibliography{main}

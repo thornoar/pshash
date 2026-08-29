@@ -164,13 +164,13 @@ INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdis
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/tfm/public/tex-gyre/rm-qcsb.tfm
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/tfm/public/cm/cmtt10.tfm
-INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/tfm/public/tex-gyre/rm-qcsri.tfm
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/tfm/public/tex-gyre/rm-qcsr.tfm
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/tfm/public/tex-gyre/rm-qcsb.tfm
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/tex/latex/tex-gyre/ts1qcs.fd
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/tex/latex/tex-gyre/ts1qcs.fd
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/tex/latex/tex-gyre/ts1qcs.fd
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/tfm/public/tex-gyre/ts1-qcsr.tfm
+INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/tfm/public/tex-gyre/rm-qcsri.tfm
 INPUT /nix/store/ijqi0cpj66lgiagj8g2pfgzsl1shb34m-texlive-combined-2025/share/texmf-var/fonts/map/pdftex/updmap/pdftex.map
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/enc/dvips/tex-gyre/q-rm.enc
 INPUT /nix/store/x27vj6vrmvshnbpz6w65vkvqbs6rz7m3-texlive-combined-2025-texmfdist/fonts/enc/dvips/tex-gyre/q-ts1.enc
