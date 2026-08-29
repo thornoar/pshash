@@ -62,6 +62,12 @@ A.~Hanamsagar, S.~Woo, C.~Kanich, and J.~Mirkovic.
   their causes.
 \newblock pages 1--12, 04 2018.
 
+\bibitem{jubur}
+M.~Jubur, C.~R. Price, M.~Shirvanian, N.~Saxena, S.~Jarecki, and H.~Krawczyk.
+\newblock Building and testing a hidden-password online password manager.
+\newblock {\em IEEE Transactions on Information Forensics and Security},
+  20:7454--7468, 2025.
+
 \bibitem{again}
 P.~Kelley, S.~Komanduri, M.~Mazurek, R.~Shay, T.~Vidas, L.~Bauer, N.~Christin,
   L.~Cranor, and J.~Lopez.

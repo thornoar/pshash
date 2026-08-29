@@ -17,45 +17,45 @@ Warning--empty booktitle in conv
 Warning--empty booktitle in mirkovic
 Warning--empty booktitle in again
 Warning--empty journal in ross
-You've used 16 entries,
+You've used 17 entries,
             2118 wiz_defined-function locations,
-            566 strings with 5732 characters,
-and the built_in function-call counts, 4684 in all, are:
-= -- 437
-> -- 186
+            573 strings with 5999 characters,
+and the built_in function-call counts, 5144 in all, are:
+= -- 479
+> -- 219
 < -- 5
-+ -- 81
-- -- 62
-* -- 268
-:= -- 671
-add.period$ -- 44
-call.type$ -- 16
-change.case$ -- 78
++ -- 94
+- -- 74
+* -- 309
+:= -- 751
+add.period$ -- 47
+call.type$ -- 17
+change.case$ -- 87
 chr.to.int$ -- 0
-cite$ -- 30
-duplicate$ -- 198
-empty$ -- 440
-format.name$ -- 62
-if$ -- 1060
+cite$ -- 31
+duplicate$ -- 209
+empty$ -- 468
+format.name$ -- 74
+if$ -- 1151
 int.to.chr$ -- 0
-int.to.str$ -- 16
-missing$ -- 9
-newline$ -- 78
-num.names$ -- 16
-pop$ -- 154
+int.to.str$ -- 17
+missing$ -- 10
+newline$ -- 83
+num.names$ -- 18
+pop$ -- 161
 preamble$ -- 1
-purify$ -- 63
+purify$ -- 71
 quote$ -- 0
-skip$ -- 168
+skip$ -- 175
 stack$ -- 0
-substring$ -- 214
-swap$ -- 56
+substring$ -- 246
+swap$ -- 57
 text.length$ -- 5
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 62
+type$ -- 66
 warning$ -- 14
-while$ -- 27
-width$ -- 18
-write$ -- 145
+while$ -- 30
+width$ -- 19
+write$ -- 156
 (There were 14 warnings)
