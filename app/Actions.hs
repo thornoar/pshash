@@ -21,7 +21,7 @@ import Encryption
 import System.Directory (getHomeDirectory)
 
 currentVersion :: String
-currentVersion = "0.1.20.1"
+currentVersion = "0.1.20.2"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -193,9 +193,12 @@ infoAction plain config "help" = do
         : "  --gen-num           prompt for a mnemonic key (e.g. `mufasa` or `begepo`)"
         : "                      and print the numeric value of this key"
         : ""
-        : "  --gen-mod           prompt for a key K (in either arithmetic or mnemonic"
-        : "                      form) and a number M, printing the value of K modulo"
-        : "                      M, both in numeric and mnemonic forms"
+        : "  --gen-mod           prompt for the CHOICE and SHUFFLE keys, and output"
+        : "                      these keys modulo the current source configuration."
+        : "                      For example, when used with `-k mediumpin`, the choice"
+        : "                      key will be printed modulo 151200 (the spread of the"
+        : "                      merge-choice function), while the shuffle key will be"
+        : "                      printed modulo 720 (the spread of the shuffle function)"
         : ""
         : "  --ask-repeat        ask the user to repeat keys, which is useful when"
         : "                      generating passwords for the first time"
