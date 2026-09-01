@@ -2,15 +2,15 @@
 
 ## 0.1.20.2
 
-* Fixed an incorrect `help` message
+* Fixed an incorrect `help` message for the `--gen-mod` flag.
 
 ## 0.1.20.1
 
-* Added comment support to `pshash.conf`
+* Added comment support to configuration files.
 
 ## 0.1.20.0
 
-* A whole bunch of new stuff!
+* Significant changes to output style, a new `--inspect` flag, and more.
 
 ## 0.1.17.5
 
