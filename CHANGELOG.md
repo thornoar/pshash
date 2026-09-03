@@ -1,5 +1,9 @@
 # Revision history for `pshash`
 
+## 0.1.20.3
+
+* Encryption/decryption now runs using O(1) memory.
+
 ## 0.1.20.2
 
 * Fixed an incorrect `help` message for the `--gen-mod` flag.

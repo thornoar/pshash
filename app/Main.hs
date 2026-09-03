@@ -8,7 +8,6 @@ import System.Exit (exitWith, ExitCode (ExitFailure))
 
 import Algorithm
 import Error
-import Encryption
 import Actions
 import Parsing
 
@@ -32,8 +31,8 @@ performAction args (Content config)
   | member INFO args = infoAction (member PLAIN args) config (args ! INFO)
   | member QUERY args = passKeysToAction args (queryAction (member PLAIN args) config (args ! QUERY))
   | member LIST args = passKeysToAction args (listPairsAction (member PLAIN args) config)
-  | member ENCRYPT args = encryptionAction False args procrypt
-  | member DECRYPT args = encryptionAction True args procrypt
+  | member ENCRYPT args = encryptionAction False args
+  | member DECRYPT args = encryptionAction True args
   | member GENKEYS args = keygenAction (member PLAIN args) (map dropElementInfo config)
   | member GENSPELL args = spellgenAction args
   | member GENNUM args = numgenAction args

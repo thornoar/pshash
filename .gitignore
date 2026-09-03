@@ -7,3 +7,7 @@
 /app/Main.o
 /.hie
 /documentation/paper/.aux
+/large-files
+/test.enc
+/pshash.eventlog*
+/pshash.hp

@@ -3,8 +3,8 @@
 module Actions where
 
 import Data.Map (Map, member, (!))
-import Data.ByteString (ByteString)
-import qualified Data.ByteString as B (readFile, writeFile, putStr, pack, splitAt, append)
+import Data.ByteString (fromStrict)
+import qualified Data.ByteString.Lazy as B (readFile, writeFile, putStr, pack, splitAt, append)
 import System.Random (getStdGen, randomR, genByteString)
 import Data.Char (ord)
 import System.IO (stderr, hPutStr, hPutChar, hPutStrLn, stdin, hSetEcho, BufferMode (NoBuffering), hSetBuffering)
@@ -21,7 +21,7 @@ import Encryption
 import System.Directory (getHomeDirectory)
 
 currentVersion :: String
-currentVersion = "0.1.20.2"
+currentVersion = "0.1.20.3"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -424,9 +424,9 @@ modgenAction args amts = do
 encryptionAction ::
   Bool ->
   Map OptionName String ->
-  (Int -> (ByteString, ByteString) -> Integer -> Integer -> ByteString) ->
+  -- (Int -> (ByteString, ByteString) -> Integer -> Integer -> ByteString) ->
   IO (Result ())
-encryptionAction dec args func = do
+encryptionAction dec args = do
   let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
       fname = args ! if dec then DECRYPT else ENCRYPT
   outfile <- getKeyStr args FIRST E1 P1
@@ -437,18 +437,16 @@ encryptionAction dec args func = do
     _ -> readFileResult B.readFile fname
   g <- getStdGen
   let write = if outfile == "stdout" then B.putStr else B.writeFile outfile
-      unpair ((a, b), (c, d)) = (a, b, c, d)
-      mergeTrace4 :: String -> Result a -> Result b -> Result c -> Result d -> ((a, b, c, d) -> e) -> Result e
-      mergeTrace4 msg ma mb mc md f = addTrace msg $ (f . unpair) <$>
-        liftA2 (,) (liftA2 (,) ma mb) (liftA2 (,) mc md)
+      mergeTrace4 :: String -> Result a -> Result b -> Result c -> Result d -> (a -> b -> c -> d -> e) -> Result e
+      mergeTrace4 msg ma mb mc md f = addTrace msg $ ma >>= \a -> mb >>= \b -> mc >>= \c -> md >>= Content . f a b c
       curAddTrace kw = addTrace ("Reading the " ++ kw)
   handleWith write $ mergeTrace4 ("Performing " ++ if dec then "decryption:" else "encryption:")
     (curAddTrace "{number of rounds}:" mrounds)
     (curAddTrace "{choice key}:" mkey1)
     (curAddTrace "{shuffle key}:" mkey2)
-    (curAddTrace (if dec then "{ciphertext}:" else "{plaintext}:") mcts) $ \ (rounds, k1, k2, msg) ->
-      let (iv, msg') = if dec then B.splitAt defaultSize msg else (fst $ genByteString defaultSize g, msg)
-      in (if dec then id else B.append iv) $ func rounds (iv,msg') k1 k2
+    (curAddTrace (if dec then "{ciphertext}:" else "{plaintext}:") mcts) $ \ rounds k1 k2 cts ->
+      let (iv, cts') = if dec then B.splitAt (fromIntegral defaultSize) cts else (fromStrict . fst $ genByteString defaultSize g, cts)
+      in (if dec then id else B.append iv) $ procrypt rounds (iv, cts') k1 k2
 
 unprefix :: Char -> String -> String
 unprefix c (c':rest)

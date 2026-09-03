@@ -4,7 +4,7 @@ module Encryption where
 
 import Algorithm (Shifting, shift, shuffleList)
 import GHC.Bits (xor)
-import qualified Data.ByteString as B (ByteString, pack, length, concat, packZipWith, map, index, replicate)
+import qualified Data.ByteString.Lazy as B (ByteString, pack, concat, packZipWith, map, index, replicate)
 
 instance Shifting Int where
   shift = (2^)
@@ -37,19 +37,17 @@ xorbs = B.packZipWith xor
 processBlock :: B.ByteString -> B.ByteString -> B.ByteString
 processBlock !perm !blk = B.map (B.index blk . fromIntegral) perm
 
-buildStream :: Integer -> B.ByteString -> B.ByteString -> [B.ByteString]
-buildStream 0 _ _ = []
-buildStream n perm prev =
-  let cur = processBlock perm (xorbs prev defaultSeed)
-   in cur : buildStream (n-1) perm cur
+buildStream :: B.ByteString -> B.ByteString -> [B.ByteString]
+buildStream perm prev =
+  let !cur = processBlock perm (xorbs prev defaultSeed)
+   in cur : buildStream perm cur
 
 procrypt :: Int -> (B.ByteString, B.ByteString) -> Integer -> Integer -> B.ByteString
-procrypt r (iv, plaintext) k1 k2 =
+procrypt r (iv, cts) k1 k2 =
   let enc blk = shuffleList (shuffleList blk k1) k2
       !perm = B.pack $ map fromIntegral $ fpow r enc [0 .. (defaultSize-1)]
-      num = toInteger $ 1 + div (B.length plaintext) defaultSize
-      stream = B.concat (buildStream num perm iv)
-   in xorbs plaintext stream
+      stream = B.concat (buildStream perm iv)
+   in xorbs cts stream
 
 allZero :: B.ByteString
-allZero = B.replicate defaultSize 0
+allZero = B.replicate (fromIntegral defaultSize) 0
