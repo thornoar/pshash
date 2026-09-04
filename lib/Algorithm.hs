@@ -80,6 +80,9 @@ sourceSpecial = "=!*@?$%#&-+^"
 sourceNumbers :: [Char]
 sourceNumbers = "1952074386"
 
+maxConfiguration :: [([Char], Integer)]
+maxConfiguration = [(sourceLower, 26), (sourceUpper, 26), (sourceSpecial, 12), (sourceNumbers, 10)]
+
 defaultConfiguration :: [([Char], Integer)]
 defaultConfiguration = [(sourceLower, 8), (sourceUpper, 8), (sourceSpecial, 5), (sourceNumbers, 4)]
 

@@ -18,12 +18,13 @@ function compare {
     fi
 }
 
-compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.20.3"
+compare "$cmd --version" "The pshash pseudo-hash password manager, version 0.1.20.4"
 compare "$cmd zxc-%-vbn 89^45 9045^4557" "FkPw=p+VyMjdv6XN\$2^3i@QW4"
 compare "$cmd -k long AAA0-=~!@ 123 123" "@&FjQ*34kzZu1O\$IGncBb%5Hy"
 compare "$cmd -k medium ##### 9^900*30*99 125^125" "5y=D06Zw*K\$N%8k@1raX"
 compare "$cmd -k short ##### 123^1000 666^1" "H\$!x9*PMZ#z6f4h5"
 compare "$cmd -k anlong --pure ##### 123^1000 666^1" "bWZHh3y92TzV84XBx6af0"
+compare "$cmd -k max --pure gtgt4gt4 123*123432+500^3^2 666" "cB#C56-^Dek?t8=sl+9waWOLQX0pM\$Zy1jJ3F7Ib%fx4!qodiKNR2HY@Sh&VrgEnPu*TAvzGmU"
 compare "$cmd -k anshort ##### 123^1000 666^1" "3xPM47Zz2Hfh"
 compare "$cmd -k pin ##### 12*43^10+120 666^1" "6720"
 compare "$cmd -k mediumpin qwerty 89 9045" "185074"

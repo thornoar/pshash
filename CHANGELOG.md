@@ -1,5 +1,9 @@
 # Revision history for `pshash`
 
+## 0.1.20.4
+
+* Added another configuration keyword: `max`.
+
 ## 0.1.20.3
 
 * Encryption/decryption now runs using O(1) memory.

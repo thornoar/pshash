@@ -21,7 +21,7 @@ import Encryption
 import System.Directory (getHomeDirectory)
 
 currentVersion :: String
-currentVersion = "0.1.20.3"
+currentVersion = "0.1.20.4"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -221,6 +221,7 @@ infoAction plain config "help" = do
         : ""
         : "  -k KEYWORD          specify the source configuration. KEYWORD can be"
         : "                      one of the following (default is long):"
+        : "                       * max (26 upper, 26 lower, 12 special, 10 digits)"
         : "                       * long (8 upper, 8 lower, 5 special, 4 digits)"
         : "                       * medium (5 symbols of each type above)"
         : "                       * short (4 symbols of each type)"

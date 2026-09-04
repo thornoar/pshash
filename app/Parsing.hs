@@ -60,6 +60,7 @@ readFileResult rf = safeReadWithHandler rf handler
 getConfig :: Map OptionName String -> IO (Result [([Char], Integer)])
 getConfig args
   | member KEYWORD args = return $ case args ! KEYWORD of
+      "max" -> Content maxConfiguration
       "long" -> Content defaultConfiguration
       "medium" -> Content mediumConfiguration
       "short" -> Content shortConfiguration
