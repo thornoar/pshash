@@ -130,7 +130,8 @@ getArgsFromContents publicStr contents = findArgs $ map (splitBy ':') (lines con
     findArgs [] = Content empty
     findArgs ((('#' : _) : _) : rest) = findArgs rest
     findArgs ([keywords, argStr] : rest) =
-      if keywords == "+all" || publicStr `elem` splitBy ',' (filter (/= ' ') keywords)
+      let lst = splitBy ',' (filter (/= ' ') keywords) in
+      if "+all" `elem` lst || publicStr `elem` lst
       then addTrace ("Parsing options for public key {" ++ publicStr ++ "}:") $ parseArgs (True, True, True) (words argStr)
       else findArgs rest
     findArgs (lst : _) = Error $ ["<Incorrect syntax:>" :=> [
