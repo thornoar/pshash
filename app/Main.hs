@@ -20,10 +20,13 @@ passKeysToAction ::
   (String -> String -> String -> IO (Result ())) ->
   IO (Result ())
 passKeysToAction args act = do
-  first <- getKeyStr args FIRST E1 P1
+  public <- getKeyStr args FIRST E1 P1
+  -- let publicPatched
+  --       | member PATCH args = flip shiftString public <$> (readResult "integer" (args ! PATCH) :: Result Integer)
+  --       | otherwise = Content public
   second <- getKeyStr args SECOND E2 P2
   third <- getKeyStr args THIRD E3 P3
-  act first second third
+  act public second third
 
 performAction :: Map OptionName String -> [([Char], Integer)] -> IO (Result ())
 performAction args config
@@ -32,6 +35,7 @@ performAction args config
   | member LIST args = addTrace "Listing key pairs:" <$> passKeysToAction args (listPairsAction (member PLAIN args) config)
   | member ENCRYPT args = addTrace "Decrypting file:" <$> encryptionAction False args
   | member DECRYPT args = addTrace "Encrypting file:" <$> encryptionAction True args
+  -- | member LOOP args = addTrace "Running pseudo-hash generation loop:" <$> loopAction args config
   | member GENKEYS args = addTrace "Generating private keys:" <$> keygenAction (member PLAIN args) (map dropElementInfo config)
   | member GENSPELL args = addTrace "Producing a mnemonic incantation:" <$> spellgenAction args
   | member GENNUM args = addTrace "Converting an incantation to numeric form:" <$> numgenAction args

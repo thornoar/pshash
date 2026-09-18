@@ -2,7 +2,8 @@
 {-# HLINT ignore "Use list literal" #-}
 module Actions where
 
-import Data.Map (Map, member, (!))
+import Data.Map (Map, member, (!), unionWith)
+-- import qualified Data.Map as DM
 import Data.ByteString (fromStrict)
 import qualified Data.ByteString.Lazy as B (readFile, writeFile, putStr, pack, splitAt, append)
 import System.Random (getStdGen, randomR, genByteString)
@@ -19,6 +20,7 @@ import Inverse
 import Info
 import Encryption
 import System.Directory (getHomeDirectory)
+import System.Exit (exitWith, ExitCode (ExitFailure))
 
 currentVersion :: String
 currentVersion = "0.1.20.4"
@@ -93,7 +95,7 @@ getInputFancy echo askRepeat prompt = do
     unless (null prompt && not echo) $ hPutChar stderr '\n'
     if input == inputRepeat then return input
     else do
-      unless (null prompt) $ hPutStrLn stderr "Keys do not match. Try again."
+      unless (null prompt) $ hPutStrLn stderr "Inputs do not match. Try again."
       getInputFancy echo askRepeat prompt
   else return input
 
@@ -502,6 +504,30 @@ inspectAction args
     processFiles =<< mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
 
 -- loopAction :: Map OptionName String -> IO (Result ())
+-- loopAction args = do
+--   mkey1 <- addTrace "Reading the choice key:" . getPrivateKey <$> getKeyStr args FIRST E1 P1
+--   mkey2 <- addTrace "Reading the shuffle key:" . getPrivateKey <$> getKeyStr args SECOND E2 P2
+--   let go :: Integer -> Integer -> IO ()
+--       go choice shuffle = do
+--         putStrLn "\n Private keys were pre-supplied.\n Enter additional arguments.\n"
+--         let loop :: IO ()
+--             loop = do
+--               input <- getInputSimple True False "> "
+--               if (input == "exit") then return () else do
+--                 let rawArgs = words input
+--                 let overrideArgs = parseArgs (True, True, False) rawArgs
+--                 let mnewArgs = fmap (unionWith (const id) args) $ addTrace "Parsing override arguments:" overrideArgs
+--                     hash = mnewArgs >>= \newArgs -> addTrace "Setting the source configuration:" (getConfig newArgs) >>= \config ->
+--                       let
+--                         -- public <- getKeyStr newArgs THIRD E3 P3
+--                         public = getPublicKey <$> case DM.lookup FIRST newArgs of
+--                           Nothing -> Error ["Reading the public key:" :=> ["<In loop mode, the public key must be given inline>" :=> []]]
+--                           Just str -> Content str
+--                         choiceKey = fmap2 mod ((choice +) <$> public) (chooseAndMergeSpread' config)
+--                        in Content $ getHash config choice shuffle
+--                 toIO rawArgs $ handleWith putStrLn hash
+--         loop
+--   switch $ go <$> mkey1 <*> mkey2
 
 hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Result ())
 hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr
