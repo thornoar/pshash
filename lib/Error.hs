@@ -29,14 +29,24 @@ instance Monad Result where
     Error trs -> Error trs
     Content val -> f val
 
-fmap2 :: (Monad m) => (a -> b -> c) -> (m a -> b -> m c)                                                                                                 
+fmap2 :: (Functor m) => (a -> b -> c) -> (m a -> b -> m c)                                                                                                 
 fmap2 f ma b = fmap (`f` b) ma                                                                                                                           
-                                                                                                                                                         
-raise2 :: (Monad m) => (a -> b -> m c) -> (m a -> b -> m c)                                                                                              
-raise2 f ma b = ma >>= (`f` b)                                                                                                                           
 
-raise2' :: (Monad m) => (a -> b -> m c) -> (a -> m b -> m c)
-raise2' f a mb = mb >>= f a
+bind2 :: Monad m => (a -> b -> m c) -> m a -> b -> m c
+bind2 f ma b = ma >>= (`f` b)
+
+raise2' :: (Monad m) => (a -> b -> m (Result c)) -> a -> Result b -> m (Result c)
+raise2' f a mb = case mb of
+  Content b -> f a b
+  Error trs -> return (Error trs)
+
+switch :: (Monad m) => Result (m a) -> m (Result a)
+switch rma = case rma of
+  Content ma -> Content <$> ma
+  Error trs -> return (Error trs)
+
+liftResultM :: (Monad m) => Result a -> Result b -> (a -> b -> m c) -> m (Result c)
+liftResultM ma mb f = switch (liftA2 f ma mb)
 
 (<.>) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
 (<.>) g f a = g . f a
@@ -65,35 +75,35 @@ raiseMsg msg f ma = case ma of
 raiseMsg2 :: String -> (a -> b -> Result c) -> (Result a -> b -> Result c)
 raiseMsg2 msg f ma b = raiseMsg msg (`f` b) ma
 
-liftMsg :: String -> (a -> b -> c) -> Result a -> Result b -> Result c
-liftMsg msg f ma mb = case (ma, mb) of
-  (Content a, Content b) -> Content (f a b)
-  (Error trs, Content _) -> Error [msg :=> trs]
-  (Content _, Error trs) -> Error [msg :=> trs]
-  (Error trs1, Error trs2) -> Error [msg :=> trs1 ++ trs2]
+-- liftMsg2 :: String -> (a -> b -> c) -> Result a -> Result b -> Result c
+-- liftMsg2 msg f ma mb = case (ma, mb) of
+--   (Content a, Content b) -> Content (f a b)
+--   (Error trs, Content _) -> Error [msg :=> trs]
+--   (Content _, Error trs) -> Error [msg :=> trs]
+--   (Error trs1, Error trs2) -> Error [msg :=> trs1 ++ trs2]
 
-liftMsgM :: (Monad m) => String -> Result a -> Result b -> (a -> b -> m c) -> m (Result c)
-liftMsgM msg ma mb f = case (ma, mb) of
-  (Content a, Content b) -> f a b >>= return . Content
-  (Error trs, Content _) -> return $ Error [msg :=> trs]
-  (Content _, Error trs) -> return $ Error [msg :=> trs]
-  (Error trs1, Error trs2) -> return $ Error [msg :=> trs1 ++ trs2]
+-- liftMsgM2 :: (Monad m) => String -> Result a -> Result b -> (a -> b -> m c) -> m (Result c)
+-- liftMsgM2 msg ma mb f = case (ma, mb) of
+--   (Content a, Content b) -> f a b >>= return . Content
+--   (Error trs, Content _) -> return $ Error [msg :=> trs]
+--   (Content _, Error trs) -> return $ Error [msg :=> trs]
+--   (Error trs1, Error trs2) -> return $ Error [msg :=> trs1 ++ trs2]
 
 handleWith :: (Monad m) => (a -> m b) -> Result a -> m (Result b)
 handleWith f (Content a) = f a >>= return . Content
 handleWith _ (Error trs) = return (Error trs)
 
-handleWith' :: (Monad m) => (a -> m (Result b)) -> (Result a -> m (Result b))
-handleWith' f (Content a) = f a
-handleWith' _ (Error trs) = return (Error trs)
+handleWithM :: (Monad m) => (a -> m (Result b)) -> Result a -> m (Result b)
+handleWithM f (Content a) = f a
+handleWithM _ (Error trs) = return (Error trs)
 
-handleWithMsg :: (Monad m) => String -> Result a -> (a -> m b) -> m (Result b)
-handleWithMsg _ (Content a) f = f a >>= return . Content
-handleWithMsg msg (Error trs) _ = return $ Error [msg :=> trs]
+handleWithMsgM :: (Monad m) => String -> Result a -> (a -> m b) -> m (Result b)
+handleWithMsgM _ (Content a) f = f a >>= return . Content
+handleWithMsgM msg (Error trs) _ = return $ Error [msg :=> trs]
 
-handleWithMsg' :: (Monad m) => String -> Result a -> (a -> m (Result b)) -> m (Result b)
-handleWithMsg' _ (Content a) f = f a
-handleWithMsg' msg (Error trs) _ = return $ Error [msg :=> trs]
+handleWithMsgM' :: (Monad m) => String -> Result a -> (a -> m (Result b)) -> m (Result b)
+handleWithMsgM' _ (Content a) f = f a
+handleWithMsgM' msg (Error trs) _ = return $ Error [msg :=> trs]
 
 -- ┌─────────────────┐
 -- │ PRINTING TRACES │

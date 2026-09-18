@@ -25,20 +25,19 @@ passKeysToAction args act = do
   third <- getKeyStr args THIRD E3 P3
   act first second third
 
-performAction :: Map OptionName String -> Result [([Char], Integer)] -> IO (Result ())
-performAction _ (Error trs) = return $ Error $ ["In configuration argument:" :=> trs]
-performAction args (Content config)
-  | member INFO args = infoAction (member PLAIN args) config (args ! INFO)
-  | member QUERY args = passKeysToAction args (queryAction (member PLAIN args) config (args ! QUERY))
-  | member LIST args = passKeysToAction args (listPairsAction (member PLAIN args) config)
-  | member ENCRYPT args = encryptionAction False args
-  | member DECRYPT args = encryptionAction True args
-  | member GENKEYS args = keygenAction (member PLAIN args) (map dropElementInfo config)
-  | member GENSPELL args = spellgenAction args
-  | member GENNUM args = numgenAction args
-  | member GENMOD args = modgenAction args (map dropElementInfo config)
-  | member INSPECT args = inspectAction args
-  | otherwise = passKeysToAction args (hashAction config)
+performAction :: Map OptionName String -> [([Char], Integer)] -> IO (Result ())
+performAction args config
+  | member INFO args = addTrace "Getting meta information:" <$> infoAction (member PLAIN args) config (args ! INFO)
+  | member QUERY args = addTrace "Performing a query operation:" <$> passKeysToAction args (queryAction (member PLAIN args) config (args ! QUERY))
+  | member LIST args = addTrace "Listing key pairs:" <$> passKeysToAction args (listPairsAction (member PLAIN args) config)
+  | member ENCRYPT args = addTrace "Decrypting file:" <$> encryptionAction False args
+  | member DECRYPT args = addTrace "Encrypting file:" <$> encryptionAction True args
+  | member GENKEYS args = addTrace "Generating private keys:" <$> keygenAction (member PLAIN args) (map dropElementInfo config)
+  | member GENSPELL args = addTrace "Producing a mnemonic incantation:" <$> spellgenAction args
+  | member GENNUM args = addTrace "Converting an incantation to numeric form:" <$> numgenAction args
+  | member GENMOD args = addTrace "Performing modular reduction on keys:" <$> modgenAction args (map dropElementInfo config)
+  | member INSPECT args = addTrace "Inspecting configuration file:" <$> inspectAction args
+  | otherwise = addTrace "Computing pseudo-hash:" <$> passKeysToAction args (hashAction config)
 
 toIO :: [String] -> IO (Result ()) -> IO ()
 toIO rawArgs action = do
@@ -59,5 +58,5 @@ toIO rawArgs action = do
 main :: IO ()
 main = do
   rawArgs <- getArgs
-  parsedArgs <- parseArgs' (False, False, False) rawArgs
-  toIO rawArgs $ handleWith' (raise2' performAction <*> getConfig) parsedArgs
+  parsedArgs <- parseArgs' rawArgs
+  toIO rawArgs $ handleWithM (raise2' performAction <*> addTrace "Reading the source configuration:" . getConfig) parsedArgs

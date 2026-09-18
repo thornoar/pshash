@@ -34,9 +34,9 @@ defaultConfigFiles =
   ]
 
 checkConfigValidity :: [([Char], Integer)] -> Result [([Char], Integer)]
-checkConfigValidity [] = Error $ ["<Cannot have empty configuration.>" :=> []]
+checkConfigValidity [] = Error $ ["<The empty configuration is considered invalid.>" :=> []]
 checkConfigValidity [(lst, num)]
-  | num < 0 = Error $ [("<Invalid configuration: number {{" ++ show num ++ "}} must be non-negative.>") :=> []]
+  | num < 0 = Error $ [("<Invalid configuration: number {{" ++ show num ++ "}} is negative.>") :=> []]
   | num > length' lst = Error $ ["<Invalid configuration: too many elements drawn.>" :=> [
         ("Using source: {" ++ show lst ++ "}") :=> [],
         ("Available amount: {" ++ show (length lst) ++ "}") :=> [],
@@ -57,9 +57,9 @@ readFileResult :: (FilePath -> IO a) -> FilePath -> IO (Result a)
 readFileResult rf = safeReadWithHandler rf handler
   where handler e = return . Error $ ["<Error reading file:>" :=> [ show e :=> [] ]]
 
-getConfig :: Map OptionName String -> IO (Result [([Char], Integer)])
+getConfig :: Map OptionName String -> Result [([Char], Integer)]
 getConfig args
-  | member KEYWORD args = return $ case args ! KEYWORD of
+  | member KEYWORD args = case args ! KEYWORD of
       "max" -> Content maxConfiguration
       "long" -> Content defaultConfiguration
       "medium" -> Content mediumConfiguration
@@ -71,12 +71,12 @@ getConfig args
       "longpin" -> Content longPinCodeConfiguration
       str -> Error $ [("<Unrecognized configuration keyword: \"{{" ++ str ++ "}}\".>") :=> []]
   | member SELECT args =
-      return $ readResult "(Int,Int,Int,Int)" (args ! SELECT)
+      readResult "(Int,Int,Int,Int)" (args ! SELECT)
       >>= (checkConfigValidity . getConfigFromSpec)
   | member CONFIG args =
-      return $ readResult "source configuration" (args ! CONFIG)
+      readResult "source configuration" (args ! CONFIG)
       >>= checkConfigValidity
-  | otherwise = return (Content defaultConfiguration)
+  | otherwise = Content defaultConfiguration
 
 insert' :: (Ord k) => k -> a -> Map k a -> Map k a
 insert' = insertWith (const id)
@@ -222,7 +222,7 @@ setEchoesAndPrompts args
       (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: " . insert' P3 "SHUFFLE KEY: ")
       args
 
-parseArgs' :: (Bool, Bool, Bool) -> [String] -> IO (Result (Map OptionName String))
-parseArgs' trp rawArgs = handleWithMsg' "Parsing command-line arguments:" (parseArgs trp rawArgs) $ \args -> do
-  configArgs <- getConfigArgs args
-  return $ fmap setEchoesAndPrompts $ (configArgs >>= patchArgs . DM.union args)
+parseArgs' :: [String] -> IO (Result (Map OptionName String))
+parseArgs' rawArgs = handleWithMsgM' "Parsing command-line arguments:" (parseArgs (False, False, False) rawArgs) $ \args -> do
+  configArgs <- addTrace "Parsing arguments from config file:" <$> getConfigArgs args
+  return $ fmap setEchoesAndPrompts $ (configArgs >>= addTrace "Patching the public key:" . patchArgs . DM.union args)

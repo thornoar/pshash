@@ -28,8 +28,9 @@ currentVersion = "0.1.20.4"
 -- └─────────────────────┘
 
 getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Result [Char]
-getFinalHash config publicStr choiceStr shuffleStr = liftMsg "Computing pseudo-hash:" (getHash config)
-  (addTrace ("Reading the " ++ "{choice}" ++ " key:") choiceKey)
+getFinalHash config publicStr choiceStr shuffleStr =
+  (getHash config) <$>
+  (addTrace ("Reading the " ++ "{choice}" ++ " key:") choiceKey) <*>
   (addTrace ("Reading the " ++ "{shuffle}" ++ " key:") shuffleKey)
   where
     publicKey = getPublicKey publicStr
@@ -113,7 +114,7 @@ retrievePublicKey config choiceStr shuffleStr hashStr =
   let shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = getPrivateKey choiceStr
       choiceKey = shuffleKey >>= getHashI' config hashStr
-   in fmapMsg2 "Retrieving public key:" (getPublicStr <.> mod) (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
+   in fmap2 (getPublicStr <.> mod) (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
 
 retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =
@@ -121,7 +122,7 @@ retrieveChoiceKey config publicStr shuffleStr hashStr =
       shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = shuffleKey >>= getHashI' config hashStr
       choiceMergeSpr = chooseAndMergeSpread' config
-   in fmapMsg2 "Retrieving choice key:" mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
+   in fmap2 mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
 
 retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
 retrieveShuffleKey config publicStr choiceStr hashStr =
@@ -129,7 +130,7 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
       preChoiceKey = getPrivateKey choiceStr
       choiceKey = fmap2 mod (fmap (+ publicKey) preChoiceKey) (numberOfChoiceKeys' config)
       preHash = fmap (chooseAndMerge config) choiceKey
-   in raiseMsg2 "Retrieving shuffle key:" shuffleListI preHash hashStr
+   in bind2 shuffleListI preHash hashStr
 
 -- ┌─────────┐
 -- │ ACTIONS │
@@ -334,9 +335,9 @@ queryAction plain config kwd arg1 arg2 arg3 =
         replicate (8 - length kwd) ' ' ++ kwd ++ " key : " ++ show n ++ "\n" ++
         " incantation : " ++ getMnemonic n ++ "\n\n"
    in case kwd of
-    "public" -> handleWith printPublic $ retrievePublicKey config arg1 arg2 arg3
-    "choice" -> handleWith printPrivate $ retrieveChoiceKey config arg1 arg2 arg3
-    "shuffle" -> handleWith printPrivate $ retrieveShuffleKey config arg1 arg2 arg3
+    "public" -> handleWithMsgM "Retrieving public key" (retrievePublicKey config arg1 arg2 arg3) printPublic
+    "choice" -> handleWithMsgM "Retrieving choice key:" (retrieveChoiceKey config arg1 arg2 arg3) printPrivate
+    "shuffle" -> handleWithMsgM "Retrieving shuffle key:" (retrieveShuffleKey config arg1 arg2 arg3) printPrivate
     _ -> return . Error $ [("<Query keyword not recognized: \"{{" ++ kwd ++ "}}\".>") :=> []]
 
 listPairsAction :: Bool -> [([Char], Integer)] -> String -> String -> [Char] -> IO (Result ())
@@ -350,7 +351,7 @@ listPairsAction plain config publicStr limitStr hashStr =
       sequence' (io : rest) = io >>= \res -> case res of
         Error tr -> return (Error tr)
         Content () -> sequence' rest
-   in handleWithMsg' "Reading number of pairs to print:" mlimit $ \limit -> 
+   in handleWithMsgM' "Reading number of pairs to print:" mlimit $ \limit -> 
       if plain then do
         let format :: Integer -> Integer -> String
             format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) mnc) ++ " " ++ show shuffleKey
@@ -389,14 +390,14 @@ keygenAction plain amts = do
 spellgenAction :: Map OptionName String -> IO (Result ())
 spellgenAction args = do
   key <- getKeyStr args FIRST E1 P1
-  handleWithMsg "Generating mnemonic incantation:" (getPrivateKeyNum key) $ \n -> do
+  handleWithMsgM "Reading the numeric private key:" (getPrivateKeyNum key) $ \n -> do
     if (member PLAIN args) then putStrLn (getMnemonic n)
     else putStr $ "\n incantation : " ++ getMnemonic n ++ "\n\n"
 
 numgenAction :: Map OptionName String -> IO (Result ())
 numgenAction args = do
   mnem <- getKeyStr args FIRST E1 P1
-  handleWithMsg "Generating numeric key:" (getPrivateKeyMnemonic mnem) $ \k -> do
+  handleWithMsgM "Reading the mnemonic private key:" (getPrivateKeyMnemonic mnem) $ \k -> do
     if (member PLAIN args) then print k
     else putStr $ "\n numeric key : " ++ show k ++ "\n\n"
 
@@ -404,7 +405,7 @@ modgenAction :: Map OptionName String -> [(Integer, Integer)] -> IO (Result ())
 modgenAction args amts = do
   choiceStr <- getKeyStr args FIRST E1 P1
   shuffleStr <- getKeyStr args SECOND E2 P2
-  liftMsgM "Performing modulus operation:"
+  liftResultM
     (addTrace "Reading the {choice} key:" $ getPrivateKey choiceStr)
     (addTrace "Reading the {shuffle} key:" $ getPrivateKey shuffleStr) $
     \choice shuffle -> do
@@ -438,10 +439,10 @@ encryptionAction dec args = do
     _ -> readFileResult B.readFile fname
   g <- getStdGen
   let write = if outfile == "stdout" then B.putStr else B.writeFile outfile
-      mergeTrace4 :: String -> Result a -> Result b -> Result c -> Result d -> (a -> b -> c -> d -> e) -> Result e
-      mergeTrace4 msg ma mb mc md f = addTrace msg $ ma >>= \a -> mb >>= \b -> mc >>= \c -> md >>= Content . f a b c
+      merge4 :: Result a -> Result b -> Result c -> Result d -> (a -> b -> c -> d -> e) -> Result e
+      merge4 ma mb mc md f = ma >>= \a -> mb >>= \b -> mc >>= \c -> md >>= Content . f a b c
       curAddTrace kw = addTrace ("Reading the " ++ kw)
-  handleWith write $ mergeTrace4 ("Performing " ++ if dec then "decryption:" else "encryption:")
+  handleWith write $ merge4
     (curAddTrace "{number of rounds}:" mrounds)
     (curAddTrace "{choice key}:" mkey1)
     (curAddTrace "{shuffle key}:" mkey2)
@@ -485,7 +486,7 @@ inspectAction args
   | member CONFIGFILE args = do
     let path = args ! CONFIGFILE
     fileContentsH <- readFileResult readFile path
-    handleWithMsg ("Inspecting configuration file {" ++ path ++ "}:")
+    handleWithMsgM ("Reading file {" ++ path ++ "}:")
       (fmap lines fileContentsH >>= groupContents)
       (\ (len, grps) -> printGroups (member PLAIN args) (max len 10) grps)
   | otherwise = do
@@ -495,10 +496,12 @@ inspectAction args
           unless (member PLAIN args) $ putStr "\n no configuration files were found\n\n"
           return (Content ())
         processFiles ((_, Nothing) : rest) = processFiles rest
-        processFiles ((path, Just cnts) : _) = handleWithMsg ("Inspecting configuration file {" ++ path ++ "}:")
+        processFiles ((path, Just cnts) : _) = handleWithMsgM ("Inspecting configuration file {" ++ path ++ "}:")
           (groupContents $ lines cnts)
           (\ (len, grps) -> printGroups (member PLAIN args) (max len 10) grps)
     processFiles =<< mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
+
+-- loopAction :: Map OptionName String -> IO (Result ())
 
 hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Result ())
 hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr
