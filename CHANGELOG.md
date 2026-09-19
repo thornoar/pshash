@@ -142,7 +142,7 @@
 
 ## 0.1.13.3
 
-* Simlified the `factorial` and `factorial'` implementations.
+* Simplified the `factorial` and `factorial'` implementations.
 
 ## 0.1.13.2
 
@@ -158,7 +158,7 @@
 
 ## 0.1.12.0
 
-* Added a `--bo-color` flag to disable error message coloring (mostly useful on Windows).
+* Added a `--no-color` flag to disable error message coloring (mostly useful on Windows).
 
 ## 0.1.11.0
 
