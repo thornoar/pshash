@@ -33,8 +33,8 @@ defaultConfigFiles =
     "C:\\pshash.conf"
   ]
 
-checkConfigValidity :: [([Char], Integer)] -> Result [([Char], Integer)]
-checkConfigValidity [] = Error $ ["<The empty configuration is considered invalid.>" :=> []]
+checkConfigValidity :: Config -> Result Config
+checkConfigValidity [] = Error $ ["<The empty configuration \"{{[]}}\" is considered invalid.>" :=> []]
 checkConfigValidity [(lst, num)]
   | num < 0 = Error $ [("<Invalid configuration: number {{" ++ show num ++ "}} is negative.>") :=> []]
   | num > length' lst = Error $ ["<Invalid configuration: too many elements drawn.>" :=> [
@@ -57,7 +57,7 @@ readFileResult :: (FilePath -> IO a) -> FilePath -> IO (Result a)
 readFileResult rf = safeReadWithHandler rf handler
   where handler e = return . Error $ ["<Error reading file:>" :=> [ show e :=> [] ]]
 
-getConfig :: Map OptionName String -> Result [([Char], Integer)]
+getConfig :: Map OptionName String -> Result Config
 getConfig args
   | member KEYWORD args = case args ! KEYWORD of
       "max" -> Content maxConfiguration
@@ -95,7 +95,7 @@ parseArgs trp (['-', opt] : s : rest) = case opt of
   'e' -> insert' ENCRYPT s <$> parseArgs trp rest
   'd' -> insert' DECRYPT s <$> parseArgs trp rest
   'r' -> insert' ROUNDS s <$> parseArgs trp rest
-  ch -> Error $ [("<Unsupported option: \"{{" ++ ['-',ch] ++ "}}\".>") :=> []]
+  ch -> Error $ [("<Unsupported short option: \"{{" ++ ['-',ch] ++ "}}\".>") :=> []]
 parseArgs _ [['-', ch]] = Error $ [("<A short option ({{-" ++ [ch] ++ "}}) requires an argument. Use {{--help}} for details.>") :=> []]
 parseArgs trp (('-':'-':opt) : rest) = case opt of
   "pure" -> insert' PURE [] <$> parseArgs trp rest
@@ -125,30 +125,19 @@ parseArgs (b1, b2, b3) (s : rest)
   | otherwise = insert' FIRST s <$> parseArgs (True, False, False) rest
 
 getArgsFromContents :: String -> String -> Result (Map OptionName String)
-getArgsFromContents publicStr contents = findArgs $ map (splitBy ':') (lines contents)
+getArgsFromContents pubstr contents = findArgs $ map (splitBy ':') (lines contents)
   where
     findArgs :: [[String]] -> Result (Map OptionName String)
     findArgs [] = Content empty
     findArgs ((('#' : _) : _) : rest) = findArgs rest
     findArgs ([keywords, argStr] : rest) =
       let lst = splitBy ',' (filter (/= ' ') keywords) in
-      if "+all" `elem` lst || publicStr `elem` lst
-      then addTrace ("Parsing options for public key {" ++ publicStr ++ "}:") $ parseArgs (True, True, True) (words argStr)
+      if "+all" `elem` lst || pubstr `elem` lst
+      then addTrace ("Parsing options for public key {" ++ pubstr ++ "}:") $ parseArgs (True, True, True) (words argStr)
       else findArgs rest
     findArgs (lst : _) = Error $ ["<Incorrect syntax:>" :=> [
         ("In line {" ++ intercalate ":" lst ++ "}") :=> []
       ]]
-
-getArgsFromContentsMaybe :: Maybe String -> String -> String -> Result (Map OptionName String)
-getArgsFromContentsMaybe Nothing _ = \_ -> Error $ ["<Cannot use configuration file: public key was not pre-supplied. Either:>" :=> [
-    ("Disable configuration files by removing the " ++ "{--impure/-f}" ++ " options, or") :=> [],
-    ("Pass the " ++ "{--pure}" ++ " option for the same effect, or") :=> [],
-    ("{Pass the public key inline}" ++ " as one of the arguments, or") :=> [],
-    ("{Remove}" ++ " the configuration files.") :=> []
-  ]]
-getArgsFromContentsMaybe (Just pub) fname =
-  addTrace ("Reading configuration from {" ++ fname ++ "}:") .
-  getArgsFromContents pub
 
 replaceChar :: Char -> String -> String -> String
 replaceChar _ _ "" = ""
@@ -156,34 +145,29 @@ replaceChar old new (ch : rest)
   | ch == old = new ++ replaceChar old new rest
   | otherwise = ch : replaceChar old new rest
 
-getConfigArgs :: Map OptionName String -> IO (Result (Map OptionName String))
-getConfigArgs args
-  | any (`member` args) [PURE, QUERY, LIST, GENSPELL, GENNUM, ENCRYPT, DECRYPT, INSPECT] = return (Content args)
-  | member CONFIGFILE args = readFileResult readFile (args ! CONFIGFILE) >>= \x -> return $
-    getArgsFromContentsMaybe (DM.lookup FIRST args) (args ! CONFIGFILE) =<< x
+getConfigArgs :: Map OptionName String -> Maybe String -> IO (Result (Map OptionName String))
+getConfigArgs args Nothing = return (Content args)
+getConfigArgs args (Just pubstr)
+  | member PURE args = return (Content args)
+  | member CONFIGFILE args = do
+      let path = args ! CONFIGFILE
+      mcts <- readFileResult readFile path
+      return $ addTrace ("Reading settings from {" ++ path ++ "}:") $ mcts >>= getArgsFromContents pubstr
   | not (member IMPURE args) = return (Content args)
   | otherwise = do
       let processContents :: [(FilePath, Maybe String)] -> Result (Map OptionName String)
-          processContents [] = Content args
+          processContents ((path, Just cts) : _) = addTrace ("Reading settings from {" ++ path ++ "}:") $ getArgsFromContents pubstr cts
           processContents ((_, Nothing) : rest) = processContents rest
-          processContents ((path, Just contents) : _) = getArgsFromContentsMaybe (DM.lookup FIRST args) path contents
+          processContents [] = Content args
       homeDir <- getHomeDirectory
       return . processContents =<< mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
 
-patchArgs :: Map OptionName String -> Result (Map OptionName String)
-patchArgs args
-  | member QUERY args = Content args
-  | member PATCH args =
-    if member FIRST args
-    then do
+patchString :: Map OptionName String -> Bool -> String -> Result String
+patchString args inv str
+  | member PATCH args = do
       patchAmount <- (readResult "integer" (args ! PATCH) :: Result Integer)
-      Content $ insertWith const FIRST (shiftString patchAmount (args ! FIRST)) args
-    else Error $ ["<Cannot patch public key that was not pre-supplied. Either:>" :=> [
-        ("{Pass the public key inline} as one of the arguments, or") :=> [],
-        ("{Remove} the {-p} option.") :=> []
-      ]]
-  | member FIRST args = Content $ insertWith const FIRST (args ! FIRST) args
-  | otherwise = Content args
+      Content $ shiftString (if inv then -patchAmount else patchAmount) str
+  | otherwise = Content str
 
 setEchoesAndPrompts :: Map OptionName String -> Map OptionName String
 setEchoesAndPrompts args
@@ -219,20 +203,13 @@ setEchoesAndPrompts args
       (if member PLAIN args then insert' P1 "" else insert' P1 "MNEMONIC SPELL: ")
       args
   | member GENMOD args =
-      (if member SHOW args then insert' E1 "" . insert' E2 "" else id) $
-      (if member PLAIN args then insert' P1 "" . insert' P2 "" else insert' P1 "CHOICE KEY: " . insert' P2 "SHUFFLE KEY: ")
+      (if member SHOW args then insert' E1 "" . insert' E2 "" . insert' E3 "" else id) $
+      (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: " . insert' P3 "SHUFFLE KEY: ")
       args
   | otherwise =
       insert' E1 "" $ (if member SHOW args then insert' E2 "" . insert' E3 "" else id) $
       (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: " . insert' P3 "SHUFFLE KEY: ")
       args
 
-addConfigArgs :: Map OptionName String -> IO (Result (Map OptionName String))
-addConfigArgs args = do
-  configArgs <- addTrace "Parsing arguments from config file:" <$> getConfigArgs args
-  return $ DM.union args <$> configArgs
-
-parseArgs' :: [String] -> IO (Result (Map OptionName String))
-parseArgs' rawArgs = handleWithMsgM' "Parsing command-line arguments:" (parseArgs (False, False, False) rawArgs) $ \args -> do
-  configArgs <- addTrace "Parsing arguments from config file:" <$> getConfigArgs args
-  return $ fmap setEchoesAndPrompts $ (configArgs >>= addTrace "Patching the public key:" . patchArgs . DM.union args)
+addConfigArgs :: Map OptionName String -> Maybe String -> IO (Result (Map OptionName String))
+addConfigArgs args mpub = fmap (fmap $ DM.union args) (getConfigArgs args mpub)

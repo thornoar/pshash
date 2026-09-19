@@ -10,7 +10,7 @@ numberOfHashes :: [(Integer, Integer)] -> Integer
 numberOfHashes amts = product (zipWith cnk (map fst amts) snds) * factorial (sum snds)
   where snds = map snd amts
 
-numberOfHashes' :: [([Char], Integer)] -> Integer
+numberOfHashes' :: Config -> Integer
 numberOfHashes' = numberOfHashes . map dropElementInfo
 
 numberOfChoiceKeys :: [(Integer, Integer)] -> Integer

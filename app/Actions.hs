@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use list literal" #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Actions where
 
-import Data.Map (Map, member, (!), unionWith)
--- import qualified Data.Map as DM
+import Data.Map (Map, member, (!))
 import Data.ByteString (fromStrict)
 import qualified Data.ByteString.Lazy as B (readFile, writeFile, putStr, pack, splitAt, append)
 import System.Random (getStdGen, randomR, genByteString)
@@ -20,7 +20,6 @@ import Inverse
 import Info
 import Encryption
 import System.Directory (getHomeDirectory)
-import System.Exit (exitWith, ExitCode (ExitFailure))
 
 currentVersion :: String
 currentVersion = "0.1.20.4"
@@ -29,7 +28,7 @@ currentVersion = "0.1.20.4"
 -- │ FINAL HASH FUNCTION │
 -- └─────────────────────┘
 
-getFinalHash :: [([Char], Integer)] -> String -> String -> String -> Result [Char]
+getFinalHash :: Config -> String -> String -> String -> Result [Char]
 getFinalHash config publicStr choiceStr shuffleStr =
   (getHash config) <$>
   (addTrace ("Reading the " ++ "{choice}" ++ " key:") choiceKey) <*>
@@ -107,18 +106,14 @@ getKeyStr args opt echoOpt promptOpt
       echo = member echoOpt args
       getInput = if (os == "linux") then getInputFancy else getInputSimple
 
--- ┌─────────────────┐
--- │ QUERY FUNCTIONS │
--- └─────────────────┘
-
-retrievePublicKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result String
+retrievePublicKey :: Config -> String -> String -> [Char] -> Result String
 retrievePublicKey config choiceStr shuffleStr hashStr =
   let shuffleKey = getPrivateKey shuffleStr
       preChoiceKey = getPrivateKey choiceStr
       choiceKey = shuffleKey >>= getHashI' config hashStr
    in fmap2 (getPublicStr <.> mod) (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
 
-retrieveChoiceKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
+retrieveChoiceKey :: Config -> String -> String -> [Char] -> Result Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =
   let publicKey = getPublicKey publicStr
       shuffleKey = getPrivateKey shuffleStr
@@ -126,7 +121,7 @@ retrieveChoiceKey config publicStr shuffleStr hashStr =
       choiceMergeSpr = chooseAndMergeSpread' config
    in fmap2 mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
 
-retrieveShuffleKey :: [([Char], Integer)] -> String -> String -> [Char] -> Result Integer
+retrieveShuffleKey :: Config -> String -> String -> [Char] -> Result Integer
 retrieveShuffleKey config publicStr choiceStr hashStr =
   let publicKey = getPublicKey publicStr
       preChoiceKey = getPrivateKey choiceStr
@@ -134,13 +129,48 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
       preHash = fmap (chooseAndMerge config) choiceKey
    in bind2 shuffleListI preHash hashStr
 
+-- ┌────────────────┐
+-- │ ACTION HELPERS │
+-- └────────────────┘
+
+passConfig :: Maybe String -> Map OptionName String -> (Map OptionName String -> Config -> IO (Result a)) -> IO (Result a)
+passConfig mpub args act = do
+  mnewArgs <- addConfigArgs args mpub
+  handleWithMsgM' "Adding arguments from config file:" (setEchoesAndPrompts <$> mnewArgs) $ \newArgs ->
+    handleWithMsgM' "Parsing source configuration:" (getConfig newArgs) (act newArgs)
+
+passInputs ::
+  Map OptionName String ->
+  (Map OptionName String -> String -> String -> String -> IO (Result ())) ->
+  IO (Result ())
+passInputs args act = do
+  let args' = setEchoesAndPrompts args
+  first <- getKeyStr args' FIRST E1 P1
+  second <- getKeyStr args' SECOND E2 P2
+  third <- getKeyStr args' THIRD E3 P3
+  act args' first second third
+
+passInputsWithConfig ::
+  Map OptionName String ->
+  (Config -> String -> String -> String -> IO (Result ())) ->
+  IO (Result ())
+passInputsWithConfig args act = do
+  public <- getKeyStr args FIRST E1 P1
+  mnewArgs <- addConfigArgs args (Just public)
+  handleWithMsgM' "Adding arguments from config file:" (setEchoesAndPrompts <$> mnewArgs) $ \newArgs -> do
+    second <- getKeyStr newArgs SECOND E2 P2
+    third <- getKeyStr newArgs THIRD E3 P3
+    handleWithMsgM' "Applying public key patch:" (patchString newArgs False public) $ \public' ->
+      handleWithMsgM' "Parsing source configuration:" (getConfig newArgs) $ \config ->
+      act config public' second third
+
 -- ┌─────────┐
 -- │ ACTIONS │
 -- └─────────┘
 
-infoAction :: Bool -> [([Char], Integer)] -> String -> IO (Result ())
-infoAction plain config "help" = do
-      let show' :: [([Char], Integer)] -> String
+infoAction :: Bool -> String -> Config -> IO (Result ())
+infoAction plain "help" config = do
+      let show' :: Config -> String
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"    
       putStr . unlines $
           "usage: pshash [ --help | --version | --list | --inspect ]"
@@ -165,7 +195,7 @@ infoAction plain config "help" = do
         : "  SHUFFLE             stands for shuffle private key, a number"
         : ("                      between 0 and 10^" ++ show (getPowerOf 10 (numberOfShuffleKeys $ map snd config)))
         : ""
-        : "the two keys can each be given in two formats:"
+        : "the two private keys can each be given in two formats:"
         : "  * arithmetic: an expression with numbers and `^`, `*`, `+`"
         : "    symbols. This expression will be evaluated as usual."
         : "    For example, `6543 + 67^3^2 * 9888 + 23`."
@@ -184,31 +214,37 @@ infoAction plain config "help" = do
         : "                       * the NUMBER of pairs to compute, and"
         : "                       * the final HASH"
         : ""
-        : "  --inspect           Format and print the contents of a configuration file"
+        : "  --inspect           format and print the contents of a configuration file"
         : ""
         : "  --gen-keys          generate a random choice-shuffle keypair. The"
         : "                      key range depends on the configuration used"
         : ""
-        : "  --gen-spell         prompt for a arithmetic key (e.g. `34+78^3` or `456`)"
-        : "                      and print the mnemonic spell corresponding to this"
-        : "                      key"
+        : "  --gen-spell         prompt for an arithmetic key (e.g. `34+78^3` or `456`)"
+        : "                      and print the mnemonic spell corresponding to this key"
         : ""
         : "  --gen-num           prompt for a mnemonic key (e.g. `mufasa` or `begepo`)"
         : "                      and print the numeric value of this key"
         : ""
-        : "  --gen-mod           prompt for the CHOICE and SHUFFLE keys, and output"
-        : "                      these keys modulo the current source configuration."
-        : "                      For example, when used with `-k mediumpin`, the choice"
-        : "                      key will be printed modulo 151200 (the spread of the"
-        : "                      merge-choice function), while the shuffle key will be"
-        : "                      printed modulo 720 (the spread of the shuffle function)"
+        : "                      (both `--gen-spell` and `--gen-num` only use the first"
+        : "                      argument ARG_1)"
         : ""
-        : "  --ask-repeat        ask the user to repeat keys, which is useful when"
-        : "                      generating passwords for the first time"
+        : "  --gen-mod           interpret the three arguments as usual, and print"
+        : "                      the CHOICE and SHUFFLE keys modulo the current source"
+        : "                      configuration. For example, when combined with"
+        : "                      `-k mediumpin`, the CHOICE key will be printed modulo"
+        : "                      151200 (the spread of the merge-choice function), while"
+        : "                      the shuffle key will be printed modulo 720 (the spread"
+        : "                      of the shuffle function). The PUBLIC key may determine"
+        : "                      the source configuration if configuration files are"
+        : "                      enabled, i.e. if the `--impure` or `-f` options are"
+        : "                      used."
         : ""
-        : "  --show              do not conceal typed input"
+        : "  --ask-repeat        ask the user to repeat private keys, which is useful"
+        : "                      when generating passwords for the first time"
         : ""
-        : "  --plain             omit prompts and other auxiliary output when"
+        : "  --show              do not conceal typed private keys"
+        : ""
+        : "  --plain             omit prompts and other decorative output when"
         : "                      appropriate"
         : ""
         : "  --pure              ignore all configuration files, the default behavior"
@@ -238,7 +274,7 @@ infoAction plain config "help" = do
         : "                      [S]pecial characters, and [D]igits should be used"
         : ""
         : "  -c CONFIGURATION    specify the source configuration manually,"
-        : "                      as the Haskell [([Char], Integer)] type"
+        : "                      as the Haskell Config type"
         : ""
         : "  -i KEYWORD          show meta information. KEYWORD can be one of:"
         : "                       * help (same as `--help`)"
@@ -268,16 +304,15 @@ infoAction plain config "help" = do
         : "                      a line with the keyword \"+all\" as PUBLIC will apply"
         : "                      to all public keys"
         : ""
-        : "                      when using configuration files, the public key needs"
-        : "                      to be specified inline as a command line argument."
-        : "                      The program will match it with one of the entries in"
-        : "                      the file and use the corresponding ARGS"
+        : "                      the arguments given in the configuration file are"
+        : "                      superseded by those passed on the command line."
         : ""
         : "  -p SHIFT            shift all characters in the public key by the"
         : "                      specified amount. This option is generally discouraged,"
         : "                      but sometimes necessary to create multiple passwords"
-        : "                      with one set of keys. This option is automatically"
-        : "                      suppressed when the `-q` option is used."
+        : "                      with one set of keys. When using the `-q public` option"
+        : "                      in combination with `-p`, a reverse shift will be"
+        : "                      applied."
         : ""
         : "  -e FILE             encrypt FILE. Accepts three arguments:"
         : "                        * WRITE TO: the file to write the encrypted/decrypted"
@@ -294,11 +329,11 @@ infoAction plain config "help" = do
         : show' config
         : []
       return (Content ())
-infoAction plain _ "version" = do
+infoAction plain "version" _ = do
   unless plain $ putStr "The pshash pseudo-hash password manager, version "
   putStrLn currentVersion
   return (Content ())
-infoAction plain config "numbers" =
+infoAction plain "numbers" config =
   let amts = map dropElementInfo config
       numHashes = numberOfHashes amts
       numChoice = numberOfChoiceKeys amts
@@ -315,7 +350,7 @@ infoAction plain config "numbers" =
     "   pseudo-hash collisions : " ++ show numRepetitions ++ " > " ++ printBits numRepetitions ++ "\n\n" ++
     "    max public key length : " ++ show (maxLengthOfPublicKey amts) ++ " symbols\n\n"
   return (Content ())
-infoAction plain config "times" =
+infoAction plain "times" config =
   let amts = map dropElementInfo config
       bfTime = timeToCrack (numberOfHashes amts)
       khTime = timeToCrack (numberOfRepetitions $ map snd amts)
@@ -327,22 +362,31 @@ infoAction plain config "times" =
     printTimes "  password brute-force time" bfTime ++ "\n" ++
     printTimes " known password attack time" khTime ++ "\n\n"
   return (Content ())
-infoAction _ _ cmd = return . Error $ [("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []]
+infoAction _ cmd _ = return . Error $ [("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []]
 
-queryAction :: Bool -> [([Char], Integer)] -> String -> [Char] -> String -> String -> IO (Result ())
-queryAction plain config kwd arg1 arg2 arg3 =
+queryAction :: Bool -> String -> Map OptionName String -> [Char] -> String -> String -> IO (Result ())
+queryAction plain kwd args arg1 arg2 arg3 =
   let printPublic = if plain then print else \s -> putStr $ "\n public key : " ++ show s ++ "\n\n"
       printPrivate :: Integer -> IO ()
       printPrivate = if plain then print else \n -> putStr $ "\n" ++
         replicate (8 - length kwd) ' ' ++ kwd ++ " key : " ++ show n ++ "\n" ++
         " incantation : " ++ getMnemonic n ++ "\n\n"
+      privateAction msg f = do
+        mnewArgs <- addConfigArgs args (Just arg1)
+        handleWithMsgM' "Adding arguments from config file:" mnewArgs $ \newArgs ->
+          handleWithMsgM' "Parsing source configuration:" (getConfig newArgs) $ \config ->
+          handleWithMsgM' "Applying public key patch:" (patchString newArgs False arg1) $ \newArg1 ->
+          handleWithMsgM msg (f config newArg1 arg2 arg3) printPrivate
    in case kwd of
-    "public" -> handleWithMsgM "Retrieving public key" (retrievePublicKey config arg1 arg2 arg3) printPublic
-    "choice" -> handleWithMsgM "Retrieving choice key:" (retrieveChoiceKey config arg1 arg2 arg3) printPrivate
-    "shuffle" -> handleWithMsgM "Retrieving shuffle key:" (retrieveShuffleKey config arg1 arg2 arg3) printPrivate
+    "public" ->
+      handleWithMsgM' "Parsing source configuration:" (getConfig args) $ \config ->
+      handleWithMsgM' "Retrieving public key:" (retrievePublicKey config arg1 arg2 arg3) $ \str ->
+      handleWithMsgM "Un-applying the public key patch:" (patchString args True str) printPublic
+    "choice" -> privateAction "Retrieving choice key:" retrieveChoiceKey
+    "shuffle" -> privateAction "Retrieving shuffle key:" retrieveShuffleKey
     _ -> return . Error $ [("<Query keyword not recognized: \"{{" ++ kwd ++ "}}\".>") :=> []]
 
-listPairsAction :: Bool -> [([Char], Integer)] -> String -> String -> [Char] -> IO (Result ())
+listPairsAction :: Bool -> Config -> String -> String -> [Char] -> IO (Result ())
 listPairsAction plain config publicStr limitStr hashStr =
   let mnc = numberOfChoiceKeys' config
       mns = numberOfShuffleKeys' config
@@ -376,10 +420,11 @@ listPairsAction plain config publicStr limitStr hashStr =
         putStrLn ""
         return res
 
-keygenAction :: Bool -> [(Integer, Integer)] -> IO (Result ())
-keygenAction plain amts = do
+keygenAction :: Bool -> Config -> IO (Result ())
+keygenAction plain config = do
   g <- getStdGen
-  let choice = fst $ randomR (0, numberOfChoiceKeys amts) g :: Integer
+  let amts = map dropElementInfo config
+      choice = fst $ randomR (0, numberOfChoiceKeys amts) g :: Integer
       shuffle = fst $ randomR (0, numberOfShuffleKeys $ map snd amts) g :: Integer
   if plain then print choice >> print shuffle
   else putStr $ "\n" ++
@@ -403,10 +448,11 @@ numgenAction args = do
     if (member PLAIN args) then print k
     else putStr $ "\n numeric key : " ++ show k ++ "\n\n"
 
-modgenAction :: Map OptionName String -> [(Integer, Integer)] -> IO (Result ())
-modgenAction args amts = do
-  choiceStr <- getKeyStr args FIRST E1 P1
-  shuffleStr <- getKeyStr args SECOND E2 P2
+modgenAction :: Map OptionName String -> Config -> IO (Result ())
+modgenAction args config = do
+  let amts = map dropElementInfo config
+  choiceStr <- getKeyStr args SECOND E2 P2
+  shuffleStr <- getKeyStr args THIRD E3 P3
   liftResultM
     (addTrace "Reading the {choice} key:" $ getPrivateKey choiceStr)
     (addTrace "Reading the {shuffle} key:" $ getPrivateKey shuffleStr) $
@@ -428,7 +474,6 @@ modgenAction args amts = do
 encryptionAction ::
   Bool ->
   Map OptionName String ->
-  -- (Int -> (ByteString, ByteString) -> Integer -> Integer -> ByteString) ->
   IO (Result ())
 encryptionAction dec args = do
   let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
@@ -529,5 +574,5 @@ inspectAction args
 --         loop
 --   switch $ go <$> mkey1 <*> mkey2
 
-hashAction :: [([Char], Integer)] -> String -> String -> String -> IO (Result ())
+hashAction :: Config -> String -> String -> String -> IO (Result ())
 hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr

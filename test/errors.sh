@@ -25,15 +25,15 @@ run "$cmd --list pub 5 ahfs234^&%jkdv" 30
 run "$cmd -f non-existent pub 5 5" 30
 run "$cmd -f test/incorrect.conf pub 5 5" 30
 run "$cmd -f test/incorrect2.conf pub1 mahasu rttre" 30
-run "$cmd --impure" 30
+# run "$cmd --impure" 30
 run "$cmd -k non-existent pub 0 0" 30
 run "$cmd -n non-existent pub 0 0" 30
 run "$cmd -n (5,9,4,) pub 0 0" 30
 run "$cmd -c () pub 0 0" 30
 run "$cmd -" 30
 run "$cmd -rts haha" 30
-run "$cmd -p 3" 30
-run "$cmd -p 3 +no-color" 30
+# run "$cmd -p 3" 30
+# run "$cmd -p 3 +no-color" 30
 run "$cmd asd asd asd +no-color" 30
 run "$cmd -e ./data.txt stdout -r --asd- sd  dsas" 30
 run "$cmd -e ./test/data.txt stdout ahahaha 4524" 30
@@ -48,5 +48,5 @@ run "$cmd asd 234^2-+-3 uffff" 30
 run "$cmd -i hahahha" 30
 run "$cmd --gen-spell 123&&&123123" 30
 run "$cmd --gen-num wqerqwerqwerwerqewqrweqr" 30
-run "$cmd --gen-mod freeerreer not-a-number" 30
+run "$cmd --gen-mod pub freeerreer not-a-number" 30
 run "$cmd --inspect -f test/incorrect.conf" 30

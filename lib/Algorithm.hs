@@ -31,7 +31,7 @@ insertAt _ _ _ = []
 dropElementInfo :: ([a], Integer) -> (Integer, Integer)
 dropElementInfo (src, m) = (length' src, m)
 
-getConfigFromSpec :: (Integer, Integer, Integer, Integer) -> [([Char], Integer)]
+getConfigFromSpec :: (Integer, Integer, Integer, Integer) -> Config
 getConfigFromSpec (a,b,c,d) = [(sourceLower, a), (sourceUpper, b), (sourceSpecial, c), (sourceNumbers, d)]
 
 shiftString :: Integer -> String -> String
@@ -68,6 +68,8 @@ composeHashing f spr g a key = g b nextKey
 -- │ PRE-DEFINED STRINGS FROM WHICH PSEUDO-HASHES WILL BE DRAWN │
 -- └────────────────────────────────────────────────────────────┘
 
+type Config = [([Char], Integer)]
+
 sourceLower :: [Char]
 sourceLower = "ckapzfitqdxnwehrolmbyvsujg"
 
@@ -80,31 +82,31 @@ sourceSpecial = "=!*@?$%#&-+^"
 sourceNumbers :: [Char]
 sourceNumbers = "1952074386"
 
-maxConfiguration :: [([Char], Integer)]
+maxConfiguration :: Config
 maxConfiguration = [(sourceLower, 26), (sourceUpper, 26), (sourceSpecial, 12), (sourceNumbers, 10)]
 
-defaultConfiguration :: [([Char], Integer)]
+defaultConfiguration :: Config
 defaultConfiguration = [(sourceLower, 8), (sourceUpper, 8), (sourceSpecial, 5), (sourceNumbers, 4)]
 
-mediumConfiguration :: [([Char], Integer)]
+mediumConfiguration :: Config
 mediumConfiguration = [(sourceLower, 5), (sourceUpper, 5), (sourceSpecial, 5), (sourceNumbers, 5)]
 
-shortConfiguration :: [([Char], Integer)]
+shortConfiguration :: Config
 shortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceSpecial, 4), (sourceNumbers, 4)]
 
-anlongConfiguration :: [([Char], Integer)]
+anlongConfiguration :: Config
 anlongConfiguration = [(sourceLower, 7), (sourceUpper, 7), (sourceNumbers, 7)]
 
-anshortConfiguration :: [([Char], Integer)]
+anshortConfiguration :: Config
 anshortConfiguration = [(sourceLower, 4), (sourceUpper, 4), (sourceNumbers, 4)]
 
-pinCodeConfiguration :: [([Char], Integer)]
+pinCodeConfiguration :: Config
 pinCodeConfiguration = [(sourceNumbers, 4)]
 
-mediumPinCodeConfiguration :: [([Char], Integer)]
+mediumPinCodeConfiguration :: Config
 mediumPinCodeConfiguration = [(sourceNumbers, 6)]
 
-longPinCodeConfiguration :: [([Char], Integer)]
+longPinCodeConfiguration :: Config
 longPinCodeConfiguration = [(sourceNumbers, 8)]
 
 -- ┌───────────────────────────┐
