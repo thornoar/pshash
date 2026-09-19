@@ -1,5 +1,9 @@
 # Revision history for `pshash`
 
+## 0.1.21.0
+
+* Better error messages, tighter integration of `--impure` and `-p`, and a new `--loop` option.
+
 ## 0.1.20.4
 
 * Added another configuration keyword: `max`.

@@ -10,7 +10,7 @@ import Algorithm
 import Data.List (intercalate)
 
 data OptionName =
-    KEYWORD | SELECT | CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT | ROUNDS
+    CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT | ROUNDS
   | CONFIGFILE | INSPECT
   | PURE | IMPURE | LIST | PLAIN | SHOW | ASKREPEAT | HELP | VERSION | LOOP
   | GENKEYS | GENSPELL | GENNUM | GENMOD
@@ -58,25 +58,25 @@ readFileResult rf = safeReadWithHandler rf handler
   where handler e = return . Error $ ["<Error reading file:>" :=> [ show e :=> [] ]]
 
 getConfig :: Map OptionName String -> Result Config
-getConfig args
-  | member KEYWORD args = case args ! KEYWORD of
-      "max" -> Content maxConfiguration
-      "long" -> Content defaultConfiguration
-      "medium" -> Content mediumConfiguration
-      "short" -> Content shortConfiguration
-      "anlong" -> Content anlongConfiguration
-      "anshort" -> Content anshortConfiguration
-      "pin" -> Content pinCodeConfiguration
-      "mediumpin" -> Content mediumPinCodeConfiguration
-      "longpin" -> Content longPinCodeConfiguration
-      str -> Error $ [("<Unrecognized configuration keyword: \"{{" ++ str ++ "}}\".>") :=> []]
-  | member SELECT args =
-      readResult "(Int,Int,Int,Int)" (args ! SELECT)
-      >>= (checkConfigValidity . getConfigFromSpec)
-  | member CONFIG args =
-      readResult "source configuration" (args ! CONFIG)
-      >>= checkConfigValidity
-  | otherwise = Content defaultConfiguration
+getConfig args = case DM.lookup CONFIG args of
+  Just ('k':rest) -> case rest of
+    "max" -> Content maxConfiguration
+    "long" -> Content defaultConfiguration
+    "medium" -> Content mediumConfiguration
+    "short" -> Content shortConfiguration
+    "anlong" -> Content anlongConfiguration
+    "anshort" -> Content anshortConfiguration
+    "pin" -> Content pinCodeConfiguration
+    "mediumpin" -> Content mediumPinCodeConfiguration
+    "longpin" -> Content longPinCodeConfiguration
+    str -> Error $ [("<Unrecognized configuration keyword: \"{{" ++ str ++ "}}\".>") :=> []]
+  Just ('s':rest) -> 
+    readResult "(Int,Int,Int,Int)" rest
+    >>= (checkConfigValidity . getConfigFromSpec)
+  Just ('c':rest) -> 
+    readResult "source configuration" rest
+    >>= checkConfigValidity
+  _ -> Content defaultConfiguration
 
 insert' :: (Ord k) => k -> a -> Map k a -> Map k a
 insert' = insertWith (const id)
@@ -85,9 +85,9 @@ parseArgs :: (Bool, Bool, Bool) -> [String] -> Result (Map OptionName String)
 parseArgs _ [] = Content empty
 parseArgs trp (('+':_) : rest) = parseArgs trp rest
 parseArgs trp (['-', opt] : s : rest) = case opt of
-  'k' -> insert' KEYWORD s <$> parseArgs trp rest
-  'n' -> insert' SELECT s <$> parseArgs trp rest
-  'c' -> insert' CONFIG s <$> parseArgs trp rest
+  'k' -> insert' CONFIG ('k':s) <$> parseArgs trp rest
+  'n' -> insert' CONFIG ('s':s) <$> parseArgs trp rest
+  'c' -> insert' CONFIG ('c':s) <$> parseArgs trp rest
   'i' -> insert' INFO s <$> parseArgs trp rest
   'q' -> insert' QUERY s <$> parseArgs trp rest
   'f' -> insert' CONFIGFILE s <$> parseArgs trp rest

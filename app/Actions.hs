@@ -3,7 +3,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Actions where
 
-import Data.Map (Map, member, (!))
+import Data.Map (Map, member, (!), unionWith)
+import qualified Data.Map as DM
 import Data.ByteString (fromStrict)
 import qualified Data.ByteString.Lazy as B (readFile, writeFile, putStr, pack, splitAt, append)
 import System.Random (getStdGen, randomR, genByteString)
@@ -22,7 +23,7 @@ import Encryption
 import System.Directory (getHomeDirectory)
 
 currentVersion :: String
-currentVersion = "0.1.20.4"
+currentVersion = "0.1.21.0"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -49,6 +50,7 @@ readChar echo hideNum num = do
       bs = replicate lns '\b' ++ replicate lns ' ' ++ replicate lns '\b'
   unless hideNum $ hPutStr stderr numstr
   ch <- getChar
+  let chord = ord ch
   if ch == '\n' then return ""
   else if ch == '\b' || ch == '\DEL' then do
     unless hideNum $ hPutStr stderr bs
@@ -56,7 +58,12 @@ readChar echo hideNum num = do
       when echo $ hPutStr stderr "\b \b"
       rest <- readChar echo hideNum (num - 1)
       return (ch : rest)
-  else do
+  else if
+    (chord >= 97 && chord <= 122) ||
+    (chord >= 48 && chord <= 57) ||
+    elem ch [' ', '+', '*', '^'] ||
+    (echo && elem ch ['[', ']', '(', ')', ',', '-', '\\', '\'', '\"', ':'])
+  then do
     when echo $ hPutChar stderr ch
     unless hideNum $ hPutStr stderr bs
     rest <- readChar echo hideNum (num + 1)
@@ -64,6 +71,9 @@ readChar echo hideNum num = do
       '\b' : rest' -> rest'
       '\DEL' : rest' -> rest'
       _ -> ch : rest
+  else do
+    unless hideNum $ hPutStr stderr bs
+    readChar echo hideNum num
 
 getInputSimple :: Bool -> Bool -> String -> IO String
 getInputSimple echo askRepeat prompt = do
@@ -98,13 +108,15 @@ getInputFancy echo askRepeat prompt = do
       getInputFancy echo askRepeat prompt
   else return input
 
+getInput :: Bool -> Bool -> String -> IO String
+getInput = if (os == "linux") then getInputFancy else getInputSimple
+
 getKeyStr :: Map OptionName String -> OptionName -> OptionName -> OptionName -> IO String
 getKeyStr args opt echoOpt promptOpt
   | member opt args = return $ args ! opt
   | otherwise = getInput echo (member ASKREPEAT args && not echo) (args ! promptOpt)
     where
       echo = member echoOpt args
-      getInput = if (os == "linux") then getInputFancy else getInputSimple
 
 retrievePublicKey :: Config -> String -> String -> [Char] -> Result String
 retrievePublicKey config choiceStr shuffleStr hashStr =
@@ -144,11 +156,10 @@ passInputs ::
   (Map OptionName String -> String -> String -> String -> IO (Result ())) ->
   IO (Result ())
 passInputs args act = do
-  let args' = setEchoesAndPrompts args
-  first <- getKeyStr args' FIRST E1 P1
-  second <- getKeyStr args' SECOND E2 P2
-  third <- getKeyStr args' THIRD E3 P3
-  act args' first second third
+  first <- getKeyStr args FIRST E1 P1
+  second <- getKeyStr args SECOND E2 P2
+  third <- getKeyStr args THIRD E3 P3
+  act args first second third
 
 passInputsWithConfig ::
   Map OptionName String ->
@@ -173,7 +184,7 @@ infoAction plain "help" config = do
       let show' :: Config -> String
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"    
       putStr . unlines $
-          "usage: pshash [ --help | --version | --list | --inspect ]"
+          "usage: pshash [ --help | --version | --list | --inspect | --loop ]"
         : "              [ --gen-keys | --gen-spell | --gen-num | --gen-mod ]"
         : "              [ --ask-repeat | --show | --plain ]"
         : "              [ --pure | --impure ]"
@@ -215,6 +226,10 @@ infoAction plain "help" config = do
         : "                       * the final HASH"
         : ""
         : "  --inspect           format and print the contents of a configuration file"
+        : ""
+        : "  --loop              treat ARG_1 and ARG_2 as the CHOICE and SHUFFLE keys,"
+        : "                      entering an interactive prompt where different PUBLIC"
+        : "                      keys and different options can be supplied"
         : ""
         : "  --gen-keys          generate a random choice-shuffle keypair. The"
         : "                      key range depends on the configuration used"
@@ -548,31 +563,47 @@ inspectAction args
           (\ (len, grps) -> printGroups (member PLAIN args) (max len 10) grps)
     processFiles =<< mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
 
--- loopAction :: Map OptionName String -> IO (Result ())
--- loopAction args = do
---   mkey1 <- addTrace "Reading the choice key:" . getPrivateKey <$> getKeyStr args FIRST E1 P1
---   mkey2 <- addTrace "Reading the shuffle key:" . getPrivateKey <$> getKeyStr args SECOND E2 P2
---   let go :: Integer -> Integer -> IO ()
---       go choice shuffle = do
---         putStrLn "\n Private keys were pre-supplied.\n Enter additional arguments.\n"
---         let loop :: IO ()
---             loop = do
---               input <- getInputSimple True False "> "
---               if (input == "exit") then return () else do
---                 let rawArgs = words input
---                 let overrideArgs = parseArgs (True, True, False) rawArgs
---                 let mnewArgs = fmap (unionWith (const id) args) $ addTrace "Parsing override arguments:" overrideArgs
---                     hash = mnewArgs >>= \newArgs -> addTrace "Setting the source configuration:" (getConfig newArgs) >>= \config ->
---                       let
---                         -- public <- getKeyStr newArgs THIRD E3 P3
---                         public = getPublicKey <$> case DM.lookup FIRST newArgs of
---                           Nothing -> Error ["Reading the public key:" :=> ["<In loop mode, the public key must be given inline>" :=> []]]
---                           Just str -> Content str
---                         choiceKey = fmap2 mod ((choice +) <$> public) (chooseAndMergeSpread' config)
---                        in Content $ getHash config choice shuffle
---                 toIO rawArgs $ handleWith putStrLn hash
---         loop
---   switch $ go <$> mkey1 <*> mkey2
+toIO :: [String] -> IO (Result ()) -> IO ()
+toIO rawArgs action = do
+  let color
+        | "+no-color" `elem` rawArgs = False
+        | "+color" `elem` rawArgs = True
+        | os == "linux" || os == "linux-android" = True
+        | otherwise = False
+      errorWord = if color then "\ESC[1;31mError:\ESC[0m" else "ERROR:"
+  res <- action
+  case res of
+    Error trs -> do
+      hPutStrLn stderr errorWord
+      printTraceList [] (map (formatTrace color) trs)
+      -- exitWith (ExitFailure 1)
+    Content () -> return ()
+
+loopAction :: Map OptionName String -> IO (Result ())
+loopAction args = do
+  hSetBuffering stdin NoBuffering
+  mkey1 <- addTrace "Reading the choice key:" . getPrivateKey <$> getKeyStr args FIRST E1 P1
+  mkey2 <- addTrace "Reading the shuffle key:" . getPrivateKey <$> getKeyStr args SECOND E2 P2
+  flip handleWith ((,) <$> mkey1 <*> mkey2) $ \ (choice, shuffle) -> do
+    unless (member PLAIN args) $ putStrLn "\n Private keys were pre-supplied.\n Enter the public key and additional arguments to generate pseudo-hashes.\n Type \"exit\" or hit Ctrl+C to leave the loop.\n"
+    let loop :: IO ()
+        loop = (getInput True False "> ") >>= \input -> case input of
+          "exit" -> return ()
+          [] -> loop
+          _ -> do
+            let rawArgs = words input
+                overrideArgs = parseArgs (True, True, False) rawArgs
+                mnewArgs = fmap (unionWith (const id) args) $ addTrace "Parsing override arguments:" overrideArgs
+            finalArgs <- handleWithMsgM' "Adding arguments from config file:" mnewArgs $ \a -> addConfigArgs a (DM.lookup THIRD a)
+            let hash = finalArgs >>= \newArgs -> addTrace "Setting the source configuration:" (getConfig newArgs) >>= \config ->
+                  let public = getPublicKey <$> case DM.lookup THIRD newArgs of
+                        Nothing -> Error ["Reading the public key:" :=> ["<In loop mode, the public key must be given inline>" :=> []]]
+                        Just str -> Content str
+                      choiceKey = fmap2 mod ((choice +) <$> public) (chooseAndMergeSpread' config)
+                   in fmap (\x -> getHash config x shuffle) choiceKey
+            toIO rawArgs $ handleWith putStrLn hash
+            loop
+    loop
 
 hashAction :: Config -> String -> String -> String -> IO (Result ())
 hashAction config publicStr choiceStr shuffleStr = handleWith putStrLn $ getFinalHash config publicStr choiceStr shuffleStr
