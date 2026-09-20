@@ -1,6 +1,6 @@
 module Parsing where
 
-import Control.Exception (IOException, catch)
+import Control.Exception (catch, SomeException)
 import Data.Map (Map, empty, insertWith, member, (!))
 import qualified Data.Map as DM
 import System.Directory (getHomeDirectory)
@@ -12,7 +12,7 @@ import Data.List (intercalate)
 data OptionName =
     CONFIG | INFO | QUERY | PATCH | ENCRYPT | DECRYPT | ROUNDS
   | CONFIGFILE | INSPECT
-  | PURE | IMPURE | LIST | PLAIN | SHOW | ASKREPEAT | HELP | VERSION | LOOP
+  | PURE | IMPURE | LIST | PLAIN | SHOW | ASKREPEAT | HELP | VERSION | LOOP | CLIP | NOCLIP
   | GENKEYS | GENSPELL | GENNUM | GENMOD
   | FIRST | SECOND | THIRD
   | E1 | E2 | E3 | P1 | P2 | P3
@@ -45,7 +45,7 @@ checkConfigValidity [(lst, num)]
   | otherwise = Content [(lst, num)]
 checkConfigValidity (src : rest) = liftA2 (++) (checkConfigValidity [src]) (checkConfigValidity rest)
 
-safeReadWithHandler :: (Monad m) => (FilePath -> IO a) -> (IOException -> IO (m a)) -> FilePath -> IO (m a)
+safeReadWithHandler :: (Monad m) => (FilePath -> IO a) -> (SomeException -> IO (m a)) -> FilePath -> IO (m a)
 safeReadWithHandler rf handler path = (return <$> rf path) `catch` handler
 
 readFileMaybe :: (FilePath -> IO a) -> FilePath -> IO (FilePath, Maybe a)
@@ -110,6 +110,8 @@ parseArgs trp (('-':'-':opt) : rest) = case opt of
   "gen-num" -> insert' GENNUM [] <$> parseArgs trp rest
   "gen-mod" -> insert' GENMOD [] <$> parseArgs trp rest
   "loop" -> insert' LOOP [] <$> parseArgs trp rest
+  "clip" -> insert' CLIP [] <$> parseArgs trp rest
+  "no-clip" -> insert' NOCLIP [] <$> parseArgs trp rest
   "help" -> insert' INFO "help" <$> parseArgs trp rest
   "version" -> insert' INFO "version" <$> parseArgs trp rest
   str -> Error $ [("<Unsupported long option: {{--" ++ str ++ "}}.>") :=> []]
@@ -123,6 +125,9 @@ parseArgs (b1, b2, b3) (s : rest)
   | b2 = insert' THIRD s <$> parseArgs (True, True, True) rest
   | b1 = insert' SECOND s <$> parseArgs (True, True, False) rest
   | otherwise = insert' FIRST s <$> parseArgs (True, False, False) rest
+
+isClip :: Map OptionName String -> Bool
+isClip args = member CLIP args && not (member NOCLIP args)
 
 getArgsFromContents :: String -> String -> Result (Map OptionName String)
 getArgsFromContents pubstr contents = findArgs $ map (splitBy ':') (lines contents)

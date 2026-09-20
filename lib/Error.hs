@@ -3,7 +3,7 @@ module Error where
 import Text.Read (readMaybe)
 import Data.Char (toUpper)
 import System.IO (stderr, hPutStrLn)
-import Control.Monad (liftM)
+import Control.Monad (liftM, join)
 
 -- ┌────────────────┐
 -- │ ERROR HANDLING │
@@ -48,6 +48,9 @@ switch rma = case rma of
 liftResultM :: (Monad m) => Result a -> Result b -> (a -> b -> m c) -> m (Result c)
 liftResultM ma mb f = switch (liftA2 f ma mb)
 
+liftResultM' :: (Monad m) => Result a -> Result b -> (a -> b -> m (Result c)) -> m (Result c)
+liftResultM' ma mb f = fmap join (switch $ liftA2 f ma mb)
+
 (<.>) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
 (<.>) g f a = g . f a
 
@@ -75,27 +78,13 @@ raiseMsg msg f ma = case ma of
 raiseMsg2 :: String -> (a -> b -> Result c) -> (Result a -> b -> Result c)
 raiseMsg2 msg f ma b = raiseMsg msg (`f` b) ma
 
--- liftMsg2 :: String -> (a -> b -> c) -> Result a -> Result b -> Result c
--- liftMsg2 msg f ma mb = case (ma, mb) of
---   (Content a, Content b) -> Content (f a b)
---   (Error trs, Content _) -> Error [msg :=> trs]
---   (Content _, Error trs) -> Error [msg :=> trs]
---   (Error trs1, Error trs2) -> Error [msg :=> trs1 ++ trs2]
-
--- liftMsgM2 :: (Monad m) => String -> Result a -> Result b -> (a -> b -> m c) -> m (Result c)
--- liftMsgM2 msg ma mb f = case (ma, mb) of
---   (Content a, Content b) -> f a b >>= return . Content
---   (Error trs, Content _) -> return $ Error [msg :=> trs]
---   (Content _, Error trs) -> return $ Error [msg :=> trs]
---   (Error trs1, Error trs2) -> return $ Error [msg :=> trs1 ++ trs2]
-
 handleWith :: (Monad m) => (a -> m b) -> Result a -> m (Result b)
 handleWith f (Content a) = f a >>= return . Content
 handleWith _ (Error trs) = return (Error trs)
 
-handleWithM :: (Monad m) => (a -> m (Result b)) -> Result a -> m (Result b)
-handleWithM f (Content a) = f a
-handleWithM _ (Error trs) = return (Error trs)
+handleWith' :: (Monad m) => (a -> m (Result b)) -> Result a -> m (Result b)
+handleWith' f (Content a) = f a
+handleWith' _ (Error trs) = return (Error trs)
 
 handleWithMsgM :: (Monad m) => String -> Result a -> (a -> m b) -> m (Result b)
 handleWithMsgM _ (Content a) f = f a >>= return . Content
