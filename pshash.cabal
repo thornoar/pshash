@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               pshash
-version:            0.1.22.0
+version:            0.1.23.0
 synopsis:           Password generator using hashing functions
 license:            MIT
 license-file:       LICENSE
@@ -35,7 +35,9 @@ executable pshash
         pshash-lib,
         bytestring,
         random >= 1.2.1,
-        process
+        process,
+        haskeline,
+        transformers
     hs-source-dirs:   app
     default-language: Haskell2010
     ghc-options:

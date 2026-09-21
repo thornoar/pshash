@@ -9,9 +9,9 @@ import Data.ByteString (fromStrict)
 import qualified Data.ByteString.Lazy as B (readFile, writeFile, putStr, pack, splitAt, append)
 import System.Random (getStdGen, randomR, genByteString)
 import Data.Char (ord)
-import System.IO (stderr, hPutStr, hPutChar, hPutStrLn, stdin, hSetEcho, BufferMode (NoBuffering), hSetBuffering)
+import System.IO (stderr, hPutStrLn, stdin, BufferMode (NoBuffering), hSetBuffering)
 import System.Info (os)
-import Control.Monad (unless, when)
+import Control.Monad (unless)
 
 import Algorithm
 import Error
@@ -26,10 +26,12 @@ import System.Process (readProcess, callProcess)
 import Control.Exception (catch, SomeException)
 import System.Exit (ExitCode)
 import System.IO.Error (isDoesNotExistError, isPermissionError)
--- import GHC.IO.Exception (IOException(IOError))
+import System.Console.Haskeline (runInputT, getPassword, defaultSettings, getInputLine, InputT, handleInterrupt, withInterrupt, Settings (..), noCompletion)
+import Control.Monad.Trans.Class (lift)
+import Data.Maybe (fromMaybe)
 
 currentVersion :: String
-currentVersion = "0.1.22.0"
+currentVersion = "0.1.23.0"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -49,74 +51,29 @@ getFinalHash config publicStr choiceStr shuffleStr =
 -- │ HELPER FUNCTIONS │
 -- └──────────────────┘
 
-readChar :: Bool -> Bool -> Int -> IO String
-readChar echo hideNum num = do
-  let numstr = "(" ++ show num ++ " letters)"
-      lns = length numstr
-      bs = replicate lns '\b' ++ replicate lns ' ' ++ replicate lns '\b'
-  unless hideNum $ hPutStr stderr numstr
-  ch <- getChar
-  let chord = ord ch
-  if ch == '\n' then return ""
-  else if ch == '\b' || ch == '\DEL' then do
-    unless hideNum $ hPutStr stderr bs
-    if num == 0 then readChar echo hideNum num else do
-      when echo $ hPutStr stderr "\b \b"
-      rest <- readChar echo hideNum (num - 1)
-      return (ch : rest)
-  else if
-    (chord >= 97 && chord <= 122) ||
-    (chord >= 48 && chord <= 57) ||
-    (chord >= 65 && chord <= 90) ||
-    elem ch sourceSpecial ||
-    (echo && elem ch [' ', '[', ']', '(', ')', ',', '-', '\\', '\'', '\"', ':'])
-  then do
-    when echo $ hPutChar stderr ch
-    unless hideNum $ hPutStr stderr bs
-    rest <- readChar echo hideNum (num + 1)
-    return $ case rest of
-      '\b' : rest' -> rest'
-      '\DEL' : rest' -> rest'
-      _ -> ch : rest
-  else do
-    unless hideNum $ hPutStr stderr bs
-    readChar echo hideNum num
+getInputWrapped :: Bool -> String -> InputT IO String
+getInputWrapped echo prompt = fmap (fromMaybe "") $ case echo of
+  True -> getInputLine prompt
+  False -> getPassword (Just '#') prompt
 
-getInputSimple :: Bool -> Bool -> String -> IO String
-getInputSimple echo askRepeat prompt = do
-  hSetEcho stdin echo
-  unless (null prompt) $ hPutStr stderr prompt
-  input <- getLine
-  unless echo $ hPutChar stderr '\n'
-  if askRepeat then do
-    unless (null prompt) $ hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
-    inputRepeat <- getLine
-    unless echo $ hPutChar stderr '\n'
-    if input == inputRepeat then return input
-    else do
-      hPutStrLn stderr "Inputs do not match. Try again."
-      getInputSimple echo askRepeat prompt
-  else return input
-
-getInputFancy :: Bool -> Bool -> String -> IO String
-getInputFancy echo askRepeat prompt = do
-  hSetBuffering stdin NoBuffering
-  hSetEcho stdin False
-  hPutStr stderr prompt
-  input <- readChar echo (echo || null prompt) 0
-  unless (null prompt && not echo) $ hPutChar stderr '\n'
-  if askRepeat then do
-    unless (null prompt) $ hPutStr stderr ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
-    inputRepeat <- readChar echo (echo || null prompt) 0
-    unless (null prompt && not echo) $ hPutChar stderr '\n'
-    if input == inputRepeat then return input
-    else do
-      unless (null prompt) $ hPutStrLn stderr "Inputs do not match. Try again."
-      getInputFancy echo askRepeat prompt
-  else return input
+inputSettings :: Bool -> Settings IO
+inputSettings True = defaultSettings
+inputSettings False = Settings {
+    complete = noCompletion,
+    historyFile = Nothing,
+    autoAddHistory = False
+  }
 
 getInput :: Bool -> Bool -> String -> IO String
-getInput = if (os == "linux") then getInputFancy else getInputSimple
+getInput echo askRepeat prompt = do
+  input <- runInputT (inputSettings echo) (getInputWrapped echo prompt)
+  let finish = unless echo (hPutStrLn stderr $ "\\_(" ++ (show $ length input) ++ " characters)") >> return input
+  if askRepeat then do
+    inputRepeat <- runInputT (inputSettings echo) $ getInputWrapped echo ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
+    if input == inputRepeat then finish else do
+      hPutStrLn stderr "Inputs do not match. Try again."
+      getInput echo askRepeat prompt
+  else finish
 
 getKeyStr :: Map OptionName String -> OptionName -> OptionName -> OptionName -> IO String
 getKeyStr args opt echoOpt promptOpt
@@ -634,25 +591,24 @@ loopAction args = do
   mkey1 <- addTrace "Reading the choice key:" . getPrivateKey <$> getKeyStr args FIRST E1 P1
   mkey2 <- addTrace "Reading the shuffle key:" . getPrivateKey <$> getKeyStr args SECOND E2 P2
   flip handleWith ((,) <$> mkey1 <*> mkey2) $ \ (choice, shuffle) -> do
-    unless (member PLAIN args) $ putStrLn "\n Private keys were pre-supplied.\n Enter the public key and additional arguments to generate pseudo-hashes.\n Type \"exit\" or hit Ctrl+C to leave the loop.\n"
-    let loop :: IO ()
-        loop = (getInput True False "> ") >>= \input -> case input of
-          "exit" -> return ()
+    unless (member PLAIN args) $ putStrLn "\n Private keys were pre-supplied.\n Enter the public key and additional arguments to generate pseudo-hashes.\n Hit Ctrl+C to leave the loop.\n"
+    let loop :: InputT IO ()
+        loop = (getInputWrapped True "> ") >>= \input -> case input of
           [] -> loop
           _ -> do
             let rawArgs = words input
                 overrideArgs = parseArgs (True, True, False) rawArgs
                 mnewArgs = fmap (unionWith (const id) args) $ addTrace "Parsing override arguments:" overrideArgs
-            mfinalArgs <- handleWith' (\a -> addTrace "Adding arguments from config file:" <$> addConfigArgs a (DM.lookup THIRD a)) mnewArgs
+            mfinalArgs <- lift $ handleWith' (\a -> addTrace "Adding arguments from config file:" <$> addConfigArgs a (DM.lookup THIRD a)) mnewArgs
             let pair = mfinalArgs >>= \finalArgs -> addTrace "Setting the source configuration:" (getConfig finalArgs) >>= \config ->
                   let public = getPublicKey <$> case DM.lookup THIRD finalArgs of
                         Nothing -> Error ["Reading the public key:" :=> ["<In loop mode, the public key must be given inline>" :=> []]]
                         Just str -> Content str
                       choiceKey = fmap2 mod ((choice +) <$> public) (chooseAndMergeSpread' config)
                    in fmap (\x -> (isClip finalArgs, getHash config x shuffle)) choiceKey
-            toIO rawArgs $ handleWith' (uncurry outputStrLn) pair
+            lift $ toIO rawArgs $ handleWith' (uncurry outputStrLn) pair
             loop
-    loop
+    handleInterrupt (putStrLn "\n Leaving the hash generation loop.\n") $ runInputT defaultSettings $ withInterrupt loop
 
 hashAction :: Bool -> Config -> String -> String -> String -> IO (Result ())
 hashAction clip config publicStr choiceStr shuffleStr = handleWith' (outputStrLn clip) $ getFinalHash config publicStr choiceStr shuffleStr

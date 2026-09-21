@@ -1,5 +1,9 @@
 # Revision history for `pshash`
 
+## 0.1.23.0
+
+* Now using Haskeline for console input
+
 ## 0.1.22.0
 
 * Added clipboard support and fixed minor bugs.
