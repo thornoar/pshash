@@ -1,6 +1,7 @@
 { pkgs, pname }:
 
 let
+  ncursesStatic = pkgs.ncurses.override { enableStatic = true; };
   haskellPackages = let
     fixGHC = pkg:
       pkg.override {
@@ -17,6 +18,8 @@ let
 in pkgs.haskell.lib.overrideCabal pkg (old: {
   enableSharedExecutables = false;
   enableSharedLibraries = false;
+  isExecutable = true;
+  # buildInputs = (old.buildInputs or []) ++ [ ncursesStatic ];
   configureFlags = [
     "--ghc-option=-optl=-static"
     "--extra-lib-dirs=${pkgs.gmp6.override { withStatic = true; }}/lib"
@@ -24,5 +27,6 @@ in pkgs.haskell.lib.overrideCabal pkg (old: {
     "--extra-lib-dirs=${
       pkgs.libffi.overrideAttrs (old: { dontDisableStatic = true; })
     }/lib"
+    "--extra-lib-dirs=${ncursesStatic}/lib"
   ];
 })
