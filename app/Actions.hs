@@ -67,7 +67,7 @@ inputSettings False = Settings {
 getInput :: Bool -> Bool -> String -> IO String
 getInput echo askRepeat prompt = do
   input <- runInputT (inputSettings echo) (getInputWrapped echo prompt)
-  let finish = unless echo (hPutStrLn stderr $ "\\_(" ++ (show $ length input) ++ " characters)") >> return input
+  let finish = unless (echo || null prompt) (hPutStrLn stderr $ "\\_(" ++ (show $ length input) ++ " characters)") >> return input
   if askRepeat then do
     inputRepeat <- runInputT (inputSettings echo) $ getInputWrapped echo ("(repeat)" ++ replicate (length prompt - 10) ' ' ++ ": ")
     if input == inputRepeat then finish else do
