@@ -600,7 +600,7 @@ For the primary implementation of the $\h(-, -, -)$ function, we have chosen the
 
 The primary implementation is a CLI program running in the console. It was designed without any GUI in order to make it more lightweight and portable, as well as faster. It is fully open-source, with source code available on GitHub \cite{pshash-src}, together with installation instructions.
 
-The general invocation of \texttt{pshash} is \verb|$ pshash PUBLIC CHOICE SHUFFLE|, providing the public key and the choice-shuffle private key-pair. To avoid passing secrets directly as command-line arguments, the user may omit any of the three arguments and provide them via \texttt{stdin}. In addition, the program has many flags and options, all of which can be viewed by invoking \verb|$ pshash --help|. We will expand on some of the most important features below. Note that some of the details may differ depending on the version of \texttt{pshash}. Here we consider version \texttt{0.1.20.0}.
+The general invocation of \texttt{pshash} is \verb|$ pshash PUBLIC CHOICE SHUFFLE|, providing the public key and the choice-shuffle private key-pair. To avoid passing secrets directly as command-line arguments, the user may omit any of the three arguments and provide them via \texttt{stdin}. In addition, the program has many flags and options, all of which can be viewed by invoking \verb|$ pshash --help|. We will expand on some of the most important features below. Note that some of the details may differ depending on the version of \texttt{pshash}. Here we consider version \texttt{0.1.23.0}.
 
 \subsection{Simplified Key Input and Generation} \label{input}
 
@@ -630,6 +630,8 @@ These problems are solved in the implementation of \texttt{pshash} as follows:
     but it is feasible (and gets progressively easier with practice), and the nature of \texttt{pshash} is such that the security properties of passwords rely directly on the amount of entropy in the keys.\\
     To generate an incantation, the user may invoke \verb|$ pshash --gen-spell|. They will be prompted for the numeric key (which can be typed as an arithmetic expression), after which the incantation will be printed as output. The \verb|$ pshash --gen-keys| command will also automatically print corresponding incantations.\\
 \end{itemize}
+
+Apart from remembering the keys, the user will have to input these keys quite frequently, since they are never stored physically. It can become very inconvenient to precisely type about 70 characters each time one needs to generate a password. To combat this problem, the primary \texttt{pshash} implementation offers the \verb|--loop| and \verb|--clip| flags. Executing \verb|$ pshash --loop| will prompt the user for the two \textit{private} keys and bring them to an interactive prompt, where different public keys can be supplied. On demand, \texttt{pshash} will take a public key and produce a pseudo-hash using it and the two pre-supplied private keys. This way, the user only need to type in the private keys once. Additionally, the user may pass \verb|--clip| (together with \verb|--loop|, or inside the interactive prompt) to immediately copy the resulting pseudo-hashes to the system clipboard. This flag relies on external programs (\texttt{clip.exe} on Windows, \texttt{xclip}/\texttt{wl-copy} on Linux), so the user must make sure to install them, otherwise \texttt{pshash} will return an error upon trying to pass the \verb|--clip| flag.
 
 \subsection{Error Messages}
 
@@ -676,6 +678,20 @@ We readily see that \verb|$ pshash PUBLIC -p 0| is equivalent to \verb|$ pshash 
 
 This way, a user who needs a new password for, say, \verb|spotify|, can invoke \verb|$ pshash spotify -p 1| instead of\\ \verb|$ pshash spotify|. In order not to keep all patch values in their head, the user may also save them in the configuration file.
 
+\subsection{Shortening Keys}%
+The relevant length of the private keys depends on the source configuration. For the default configuration given in Section \ref{security}, the length of the choice key is about $2^{142}$, while the length of the shuffle key is about $2^{83}$. However, for smaller configurations the relevant key size is also much smaller. For example, the configuration which produces 6-digit pin codes only requires choice keys in the range from $0$ to $151200$ (the spread of the merge-choice function) and shuffle keys in range from $0$ to $720$ (the spread of the shuffle function). This is because the resulting passwords (6-digit number sequences) have very little entropy, so the keys also need not have much entropy.
+
+Let $\conf$ be a source configuration, and let $\conf'$ be another, smaller configuration (for instance, $\conf$ may be as defined in Section \ref{security}, resulting in 25-letter pseudo-hashes, while $\conf'$ selects a 6-digit pin code, resulting only in 6-letter hashes). $(k_1, k_2)$ be a pair of private keys where $k_1 \in \left(\#^\mc (\conf)\right)$ and $k_2 \in \left(\#^\s (\conf)\right)$. From the periodicity of the function $\h(\conf', -, -)$ with respect to both arguments, we see that
+\[
+  \h(\conf', k_1, k_2) = \h(\conf', k'_1, k'_2),
+\]
+where $k'_1 = \li^{\#^\mc (\conf')} k_1$ and $k'_2 = \li^{\#^\s (\conf')}k_2$. The key-pair $(k'_1, k'_2)$ is thus equivalent to $(k_1, k_2)$ for $\conf'$, but may be much easier to remember. The primary \texttt{pshash} implementation includes the \verb|--gen-mod| operation, which prompts for two private keys and reduces them modulo the used source configuration. For example, \verb|$ pshash -k mediumpin --gen-mod| will reduce
+\begin{align*}
+  3945833357794975306816070866530177716272967 \ &\longrightarrow \ 14567\\
+  9720291686847129543734580 \ &\longrightarrow \ 660
+\end{align*}
+And when generating 6-digit pin codes, the user may now simply supply $14567$ and $660$.
+
 \subsection{File Encryption}
 
 Recall that the $\s(-, k)$ function from Subsection \ref{subv} can shuffle any ordered list of distinct elements, given a key $k$. This allows us to transform the \texttt{pshash} algorithm into a simple block cipher (\cite{serious}, page 93). For a number of rounds $r$ and two private keys $k_1, k_2$, we define a permutation by
@@ -696,10 +712,10 @@ which is simply the number of all permutations on $64$ elements.
 
 Now, to encrypt/decrypt byte streams of length other than 64, we run our block cipher in (a slightly modified) counter mode (\cite{serious}, page 118). In particular, let a plaintext $P$ of arbitrary size be given, along with two keys $k_1, k_2$. We calculate the permutation $\varphi$ based on $k_1, k_2$, and we also generate a random 64-byte block $IV$. Now, we build a sequence $(B_i)_{i = 0}^\infty$ of 64-byte blocks as follows:
 \begin{itemize}
-  \item We set $B_0$ to $IV \oplus DS$, where $DS$ is a fixed random 64-byte block generated beforehand and hard-coded in the executable;
+  \item We set $B_0$ to $e_\varphi (IV \oplus DS)$, where $DS$ is a fixed random 64-byte block generated beforehand and hard-coded in the executable;
   \item If $B_i$ is computed, we set $B_{i+1} = e_\varphi (B_i \oplus DS)$.
 \end{itemize}
-Now, to encrypt $P$, we simply concatenate $(B_i)$ into a stream of bytes $B$ and then XOR it with $P$, prepending the initial value $IV$ for decryption:
+Now, to encrypt $P$, we simply concatenate $(B_i)_{i = 0}^\infty$ into a stream of bytes $B$ and then XOR it with $P$, prepending the initial value $IV$ for decryption:
 \[
   C = e(P) = IV \parallel (P \oplus B).
 \]
