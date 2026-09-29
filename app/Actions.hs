@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Actions where
 
-import Data.Map (Map, member, (!), unionWith)
+import Data.Map (member, (!), unionWith)
 import qualified Data.Map as DM
 import Data.ByteString (fromStrict)
 import qualified Data.ByteString.Lazy as B (readFile, writeFile, putStr, pack, splitAt, append)
@@ -75,7 +75,7 @@ getInput echo askRepeat prompt = do
       getInput echo askRepeat prompt
   else finish
 
-getKeyStr :: Map OptionName String -> OptionName -> OptionName -> OptionName -> IO String
+getKeyStr :: Arguments -> OptionName -> OptionName -> OptionName -> IO String
 getKeyStr args opt echoOpt promptOpt
   | member opt args = return $ args ! opt
   | otherwise = getInput echo (member ASKREPEAT args && not echo) (args ! promptOpt)
@@ -109,15 +109,15 @@ retrieveShuffleKey config publicStr choiceStr hashStr =
 -- │ ACTION HELPERS │
 -- └────────────────┘
 
-passConfig :: Maybe String -> Map OptionName String -> (Map OptionName String -> Config -> IO (Result a)) -> IO (Result a)
+passConfig :: Maybe String -> Arguments -> (Arguments -> Config -> IO (Result a)) -> IO (Result a)
 passConfig mpub args act = do
   mnewArgs <- addConfigArgs args mpub
   handleWithMsgM' "Adding arguments from config file:" (setEchoesAndPrompts <$> mnewArgs) $ \newArgs ->
     handleWithMsgM' "Parsing source configuration:" (getConfig newArgs) (act newArgs)
 
 passInputs ::
-  Map OptionName String ->
-  (Map OptionName String -> String -> String -> String -> IO (Result ())) ->
+  Arguments ->
+  (Arguments -> String -> String -> String -> IO (Result ())) ->
   IO (Result ())
 passInputs args act = do
   first <- getKeyStr args FIRST E1 P1
@@ -126,7 +126,7 @@ passInputs args act = do
   act args first second third
 
 passInputsWithConfig ::
-  Map OptionName String ->
+  Arguments ->
   (Config -> String -> String -> String -> IO (Result ())) ->
   IO (Result ())
 passInputsWithConfig args act = do
@@ -381,7 +381,7 @@ infoAction plain clip "times" config =
    in outputStrLn clip text
 infoAction _ _ cmd _ = return . Error $ [("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []]
 
-queryAction :: Bool -> Bool -> String -> Map OptionName String -> [Char] -> String -> String -> IO (Result ())
+queryAction :: Bool -> Bool -> String -> Arguments -> [Char] -> String -> String -> IO (Result ())
 queryAction plain clip kwd args arg1 arg2 arg3 =
   let printPublic = if plain then outputStrLn clip . show else \s -> outputStrLn clip $ "\n public key : " ++ show s ++ "\n"
       printPrivate :: Integer -> IO (Result ())
@@ -454,19 +454,19 @@ keygenAction plain clip config = do
           " incantation : " ++ getMnemonic shuffle ++ "\n"
   outputStrLn clip text
 
-spellgenAction :: Map OptionName String -> IO (Result ())
+spellgenAction :: Arguments -> IO (Result ())
 spellgenAction args = do
   key <- getKeyStr args FIRST E1 P1
   handleWithMsgM' "Reading the numeric private key:" (getPrivateKeyNum key) $ \n ->
     outputStrLn (isClip args) (if member PLAIN args then getMnemonic n else "\n incantation : " ++ getMnemonic n ++ "\n")
 
-numgenAction :: Map OptionName String -> IO (Result ())
+numgenAction :: Arguments -> IO (Result ())
 numgenAction args = do
   mnem <- getKeyStr args FIRST E1 P1
   handleWithMsgM' "Reading the mnemonic private key:" (getPrivateKeyMnemonic mnem) $ \k ->
     outputStrLn (isClip args) (if member PLAIN args then show k else "\n numeric key : " ++ show k ++ "\n")
 
-modgenAction :: Map OptionName String -> Config -> IO (Result ())
+modgenAction :: Arguments -> Config -> IO (Result ())
 modgenAction args config = do
   let amts = map dropElementInfo config
   choiceStr <- getKeyStr args SECOND E2 P2
@@ -494,7 +494,7 @@ modgenAction args config = do
 
 encryptionAction ::
   Bool ->
-  Map OptionName String ->
+  Arguments ->
   IO (Result ())
 encryptionAction dec args = do
   let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
@@ -549,7 +549,7 @@ printGroups plain len grps = do
   putStr . unlines $ map (if plain then formatPairPlain else formatPairFancy) grps
   unless plain (putStrLn "")
 
-inspectAction :: Map OptionName String -> IO (Result ())
+inspectAction :: Arguments -> IO (Result ())
 inspectAction args
   | member CONFIGFILE args = do
     let path = args ! CONFIGFILE
@@ -585,7 +585,7 @@ toIO rawArgs action = do
       -- exitWith (ExitFailure 1)
     Content () -> return ()
 
-loopAction :: Map OptionName String -> IO (Result ())
+loopAction :: Arguments -> IO (Result ())
 loopAction args = do
   hSetBuffering stdin NoBuffering
   mkey1 <- addTrace "Reading the choice key:" . getPrivateKey <$> getKeyStr args FIRST E1 P1

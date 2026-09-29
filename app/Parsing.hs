@@ -18,6 +18,8 @@ data OptionName =
   | E1 | E2 | E3 | P1 | P2 | P3
   deriving (Eq, Ord, Show)
 
+type Arguments = Map OptionName String
+
 -- ┌───────────────────────┐
 -- │ READING CONFIGURATION │
 -- └───────────────────────┘
@@ -57,7 +59,7 @@ readFileResult :: (FilePath -> IO a) -> FilePath -> IO (Result a)
 readFileResult rf = safeReadWithHandler rf handler
   where handler e = return . Error $ ["<Error reading file:>" :=> [ show e :=> [] ]]
 
-getConfig :: Map OptionName String -> Result Config
+getConfig :: Arguments -> Result Config
 getConfig args = case DM.lookup CONFIG args of
   Just ('k':rest) -> case rest of
     "max" -> Content maxConfiguration
@@ -81,7 +83,7 @@ getConfig args = case DM.lookup CONFIG args of
 insert' :: (Ord k) => k -> a -> Map k a -> Map k a
 insert' = insertWith (const id)
 
-parseArgs :: (Bool, Bool, Bool) -> [String] -> Result (Map OptionName String)
+parseArgs :: (Bool, Bool, Bool) -> [String] -> Result (Arguments)
 parseArgs _ [] = Content empty
 parseArgs trp (('+':_) : rest) = parseArgs trp rest
 parseArgs trp (['-', opt] : s : rest) = case opt of
@@ -126,13 +128,13 @@ parseArgs (b1, b2, b3) (s : rest)
   | b1 = insert' SECOND s <$> parseArgs (True, True, False) rest
   | otherwise = insert' FIRST s <$> parseArgs (True, False, False) rest
 
-isClip :: Map OptionName String -> Bool
+isClip :: Arguments -> Bool
 isClip args = member CLIP args && not (member NOCLIP args)
 
-getArgsFromContents :: String -> String -> Result (Map OptionName String)
+getArgsFromContents :: String -> String -> Result (Arguments)
 getArgsFromContents pubstr contents = findArgs $ map (splitBy ':') (lines contents)
   where
-    findArgs :: [[String]] -> Result (Map OptionName String)
+    findArgs :: [[String]] -> Result (Arguments)
     findArgs [] = Content empty
     findArgs ((('#' : _) : _) : rest) = findArgs rest
     findArgs ([keywords, argStr] : rest) =
@@ -150,7 +152,7 @@ replaceChar old new (ch : rest)
   | ch == old = new ++ replaceChar old new rest
   | otherwise = ch : replaceChar old new rest
 
-getConfigArgs :: Map OptionName String -> Maybe String -> IO (Result (Map OptionName String))
+getConfigArgs :: Arguments -> Maybe String -> IO (Result (Arguments))
 getConfigArgs args Nothing = return (Content args)
 getConfigArgs args (Just pubstr)
   | member PURE args = return (Content args)
@@ -160,21 +162,21 @@ getConfigArgs args (Just pubstr)
       return $ addTrace ("Reading settings from {" ++ path ++ "}:") $ mcts >>= getArgsFromContents pubstr
   | not (member IMPURE args) = return (Content args)
   | otherwise = do
-      let processContents :: [(FilePath, Maybe String)] -> Result (Map OptionName String)
+      let processContents :: [(FilePath, Maybe String)] -> Result (Arguments)
           processContents ((path, Just cts) : _) = addTrace ("Reading settings from {" ++ path ++ "}:") $ getArgsFromContents pubstr cts
           processContents ((_, Nothing) : rest) = processContents rest
           processContents [] = Content args
       homeDir <- getHomeDirectory
       return . processContents =<< mapM (readFileMaybe readFile . replaceChar '~' homeDir) defaultConfigFiles
 
-patchString :: Map OptionName String -> Bool -> String -> Result String
+patchString :: Arguments -> Bool -> String -> Result String
 patchString args inv str
   | member PATCH args = do
       patchAmount <- (readResult "integer" (args ! PATCH) :: Result Integer)
       Content $ shiftString (if inv then -patchAmount else patchAmount) str
   | otherwise = Content str
 
-setEchoesAndPrompts :: Map OptionName String -> Map OptionName String
+setEchoesAndPrompts :: Arguments -> Arguments
 setEchoesAndPrompts args
   | member INFO args || member GENKEYS args = args
   | member QUERY args =
@@ -216,5 +218,5 @@ setEchoesAndPrompts args
       (if member PLAIN args then insert' P1 "" . insert' P2 "" . insert' P3 "" else insert' P1 "PUBLIC KEY: " . insert' P2 "CHOICE KEY: " . insert' P3 "SHUFFLE KEY: ")
       args
 
-addConfigArgs :: Map OptionName String -> Maybe String -> IO (Result (Map OptionName String))
+addConfigArgs :: Arguments -> Maybe String -> IO (Result (Arguments))
 addConfigArgs args mpub = fmap (fmap $ DM.union args) (getConfigArgs args mpub)

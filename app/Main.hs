@@ -1,6 +1,6 @@
 module Main where
 
-import Data.Map (Map, member, (!))
+import Data.Map (member, (!))
 import System.Environment (getArgs)
 
 import Error
@@ -12,7 +12,7 @@ import qualified Data.Map as DM
 -- │ USER INTERFACE │
 -- └────────────────┘
 
-performAction :: Map OptionName String -> IO (Result ())
+performAction :: Arguments -> IO (Result ())
 performAction args
   | member INFO args = addTrace "Getting meta information:" <$> passConfig (DM.lookup FIRST args) args (const $ infoAction (member PLAIN args) (isClip args) (args ! INFO))
   | member QUERY args = addTrace "Performing a query operation:" <$> passInputs args (queryAction (member PLAIN args) (isClip args) (args ! QUERY))
