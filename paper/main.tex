@@ -106,7 +106,7 @@ In this paper, we describe a new ``on-the-fly'' password generation algorithm \t
 \begin{itemize}
   \item \texttt{pshash} is extremely minimalistic (written in under 200 lines of code) and standalone, which makes it very portable and easy to implement on any platform and in any programming language that supports arbitrary-precision arithmetic (see Section \ref{impl} for a discussion of \texttt{pshash}'s implementation). The program is detached from any external service or browser.
 
-  \item Our algorithm uses a custom universal hash function instead of the ``industry standards'' of cryptographic hashing such as SHA-256 or Salsa20. This means that our algorithm is immune to attacks targeting these hash functions, such as dictionary attacks which use pre-computed hash tables.
+  \item Our algorithm uses a custom universal hash function instead of the industry standards of cryptographic hashing such as SHA-256 or Salsa20. This means that our algorithm is immune to attacks targeting these hash functions, such as dictionary attacks which use pre-computed hash tables.
 \end{itemize}
 
 The above benefits come at the cost of convenience, which means that \texttt{pshash} is probably ill-suited for mass adoption. However, it fits perfectly for technically educated users who do not mind memorizing a couple of 20+ digit numbers.
