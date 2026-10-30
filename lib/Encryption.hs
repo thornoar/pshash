@@ -1,10 +1,10 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE BangPatterns #-}
-module Encryption where
+module Encryption (procrypt, defaultSize, defaultRounds) where
 
 import Algorithm (Shifting, shift, shuffleList)
 import GHC.Bits (xor)
-import qualified Data.ByteString.Lazy as B (ByteString, pack, concat, packZipWith, map, index, replicate)
+import qualified Data.ByteString.Lazy as B (ByteString, pack, concat, packZipWith, map, index)
 
 instance Shifting Int where
   shift = (2^)
@@ -49,5 +49,5 @@ procrypt r (iv, cts) k1 k2 =
       stream = B.concat (buildStream perm iv)
    in xorbs cts stream
 
-allZero :: B.ByteString
-allZero = B.replicate (fromIntegral defaultSize) 0
+-- allZero :: B.ByteString
+-- allZero = B.replicate (fromIntegral defaultSize) 0

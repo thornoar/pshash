@@ -1,5 +1,9 @@
 # Revision history for `pshash`
 
+## 0.1.23.1
+
+* Improved error reporting and the behavior of `--loop`.
+
 ## 0.1.23.0
 
 * Now using Haskeline for console input

@@ -26,26 +26,23 @@ import System.Process (readProcess, callProcess)
 import Control.Exception (catch, SomeException)
 import System.Exit (ExitCode)
 import System.IO.Error (isDoesNotExistError, isPermissionError)
-import System.Console.Haskeline (runInputT, getPassword, defaultSettings, getInputLine, InputT, handleInterrupt, withInterrupt, Settings (..), noCompletion)
+import System.Console.Haskeline (runInputT, getPassword, defaultSettings, getInputLine, InputT, handleInterrupt, withInterrupt, Settings (..), noCompletion, outputStrLn)
 import Control.Monad.Trans.Class (lift)
 import Data.Maybe (fromMaybe)
 
 currentVersion :: String
-currentVersion = "0.1.23.0"
+currentVersion = "0.1.23.1"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
 -- └─────────────────────┘
 
 getFinalHash :: Config -> String -> String -> String -> Result [Char]
-getFinalHash config publicStr choiceStr shuffleStr =
-  (getHash config) <$>
-  (addTrace ("Reading the " ++ "{choice}" ++ " key:") choiceKey) <*>
-  (addTrace ("Reading the " ++ "{shuffle}" ++ " key:") shuffleKey)
+getFinalHash config publicStr choiceStr shuffleStr = (getHash config) <$> choiceKey <*> shuffleKey
   where
-    publicKey = getPublicKey publicStr
-    choiceKey = fmap2 mod ((+publicKey) <$> getPrivateKey choiceStr) (chooseAndMergeSpread' config)
-    shuffleKey = getPrivateKey shuffleStr
+    publicKey = getPublicKeyMsg publicStr
+    choiceKey = fmap2 mod ((+) <$> publicKey <*> getChoiceKeyMsg choiceStr) (chooseAndMergeSpread' config)
+    shuffleKey = getShuffleKeyMsg shuffleStr
 
 -- ┌──────────────────┐
 -- │ HELPER FUNCTIONS │
@@ -84,24 +81,24 @@ getKeyStr args opt echoOpt promptOpt
 
 retrievePublicKey :: Config -> String -> String -> [Char] -> Result String
 retrievePublicKey config choiceStr shuffleStr hashStr =
-  let shuffleKey = getPrivateKey shuffleStr
-      preChoiceKey = getPrivateKey choiceStr
+  let shuffleKey = getShuffleKeyMsg shuffleStr
+      preChoiceKey = getChoiceKeyMsg choiceStr
       choiceKey = shuffleKey >>= getHashI' config hashStr
    in fmap2 (getPublicStr <.> mod) (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
 
 retrieveChoiceKey :: Config -> String -> String -> [Char] -> Result Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =
-  let publicKey = getPublicKey publicStr
-      shuffleKey = getPrivateKey shuffleStr
+  let publicKey = getPublicKeyMsg publicStr
+      shuffleKey = getShuffleKeyMsg shuffleStr
       preChoiceKey = shuffleKey >>= getHashI' config hashStr
       choiceMergeSpr = chooseAndMergeSpread' config
-   in fmap2 mod (fmap2 (-) preChoiceKey publicKey) choiceMergeSpr
+   in fmap2 mod ((-) <$> preChoiceKey <*> publicKey) choiceMergeSpr
 
 retrieveShuffleKey :: Config -> String -> String -> [Char] -> Result Integer
 retrieveShuffleKey config publicStr choiceStr hashStr =
-  let publicKey = getPublicKey publicStr
-      preChoiceKey = getPrivateKey choiceStr
-      choiceKey = fmap2 mod (fmap (+ publicKey) preChoiceKey) (numberOfChoiceKeys' config)
+  let publicKey = getPublicKeyMsg publicStr
+      preChoiceKey = getChoiceKeyMsg choiceStr
+      choiceKey = fmap2 mod ((+) <$> publicKey <*> preChoiceKey) (numberOfChoiceKeys' config)
       preHash = fmap (chooseAndMerge config) choiceKey
    in bind2 shuffleListI preHash hashStr
 
@@ -167,9 +164,9 @@ setClipboardSafe text = setClipboardUnsafe text `catch` handleExitCode `catch` h
     catchAll :: SomeException -> IO (Result ())
     catchAll _ = return $ Error ["<An error occured while trying to set the system clipboard.>" :=> []]
 
-outputStrLn :: Bool -> String -> IO (Result ())
-outputStrLn True = fmap (addTrace "Sending text to the clipboard:") . setClipboardSafe
-outputStrLn False = fmap Content . putStrLn
+sendStrLn :: Bool -> String -> IO (Result ())
+sendStrLn True = fmap (addTrace "Sending text to the clipboard:") . setClipboardSafe
+sendStrLn False = fmap Content . putStrLn
 
 -- ┌─────────┐
 -- │ ACTIONS │
@@ -179,7 +176,7 @@ infoAction :: Bool -> Bool -> String -> Config -> IO (Result ())
 infoAction plain clip "help" config = do
       let show' :: Config -> String
           show' config' = "[\n" ++ concatMap ((++ "\n") . ("  " ++) . show) config' ++ "]"
-      outputStrLn clip . unlines $
+      sendStrLn clip . unlines $
           "usage: pshash [ --help | --version | --list | --inspect | --loop | --clip ]"
         : "              [ --gen-keys | --gen-spell | --gen-num | --gen-mod ]"
         : "              [ --ask-repeat | --show | --plain ]"
@@ -349,7 +346,7 @@ infoAction plain clip "help" config = do
         : show' config : []
 infoAction plain clip "version" _ =
   let text = (if plain then "" else "The pshash pseudo-hash password manager, version ") ++ currentVersion
-   in outputStrLn clip text
+   in sendStrLn clip text
 infoAction plain clip "numbers" config =
   let amts = map dropElementInfo config
       numHashes = numberOfHashes amts
@@ -366,7 +363,7 @@ infoAction plain clip "numbers" config =
           "   number of shuffle keys : " ++ show numShuffle ++ " > " ++ printBits numShuffle ++ "\n" ++
           "   pseudo-hash collisions : " ++ show numRepetitions ++ " > " ++ printBits numRepetitions ++ "\n\n" ++
           "    max public key length : " ++ show (maxLengthOfPublicKey amts) ++ " symbols\n"
-   in outputStrLn clip text
+   in sendStrLn clip text
 infoAction plain clip "times" config =
   let amts = map dropElementInfo config
       bfTime = timeToCrack (numberOfHashes amts)
@@ -378,14 +375,14 @@ infoAction plain clip "times" config =
           "       assumed attack speed : " ++ "10 billion operations per second\n" ++
           printTimes "  password brute-force time" bfTime ++ "\n" ++
           printTimes " known password attack time" khTime ++ "\n"
-   in outputStrLn clip text
+   in sendStrLn clip text
 infoAction _ _ cmd _ = return . Error $ [("<Info command not recognized: {{" ++ cmd ++ "}}.>") :=> []]
 
 queryAction :: Bool -> Bool -> String -> Arguments -> [Char] -> String -> String -> IO (Result ())
 queryAction plain clip kwd args arg1 arg2 arg3 =
-  let printPublic = if plain then outputStrLn clip . show else \s -> outputStrLn clip $ "\n public key : " ++ show s ++ "\n"
+  let printPublic = if plain then sendStrLn clip . show else \s -> sendStrLn clip $ "\n public key : " ++ show s ++ "\n"
       printPrivate :: Integer -> IO (Result ())
-      printPrivate = if plain then outputStrLn clip . show else \n -> outputStrLn clip $
+      printPrivate = if plain then sendStrLn clip . show else \n -> sendStrLn clip $
         "\n" ++
         replicate (8 - length kwd) ' ' ++ kwd ++ " key : " ++ show n ++ "\n" ++
         " incantation : " ++ getMnemonic n ++ "\n"
@@ -408,14 +405,15 @@ listPairsAction :: Bool -> Config -> String -> String -> [Char] -> IO (Result ()
 listPairsAction plain config publicStr limitStr hashStr =
   let mnc = numberOfChoiceKeys' config
       mns = numberOfShuffleKeys' config
-      publicKey = getPublicKey publicStr
-      mlimit = readResult "integer" limitStr :: Result Integer
+      mpublicKey = getPublicKeyMsg publicStr
+      mlimit = addTrace "Reading number of pairs to print:" (readResult "integer" limitStr :: Result Integer)
       sequence' :: [IO (Result ())] -> IO (Result ())
       sequence' [] = return (Content ())
       sequence' (io : rest) = io >>= \res -> case res of
         Error tr -> return (Error tr)
         Content () -> sequence' rest
-   in handleWithMsgM' "Reading number of pairs to print:" mlimit $ \limit -> 
+   in flip handleWith' ((,) <$> mlimit <*> mpublicKey) $ \ (limit, publicKey) ->
+   -- in handleWithMsgM' "Reading number of pairs to print:" mlimit $ \limit -> 
       if plain then do
         let format :: Integer -> Integer -> String
             format shuffleKey preChoiceKey = show (mod (preChoiceKey - publicKey) mnc) ++ " " ++ show shuffleKey
@@ -452,19 +450,19 @@ keygenAction plain clip config = do
           " incantation : " ++ getMnemonic choice ++ "\n\n" ++
           " shuffle key : " ++ show shuffle ++ "\n" ++
           " incantation : " ++ getMnemonic shuffle ++ "\n"
-  outputStrLn clip text
+  sendStrLn clip text
 
 spellgenAction :: Arguments -> IO (Result ())
 spellgenAction args = do
   key <- getKeyStr args FIRST E1 P1
   handleWithMsgM' "Reading the numeric private key:" (getPrivateKeyNum key) $ \n ->
-    outputStrLn (isClip args) (if member PLAIN args then getMnemonic n else "\n incantation : " ++ getMnemonic n ++ "\n")
+    sendStrLn (isClip args) (if member PLAIN args then getMnemonic n else "\n incantation : " ++ getMnemonic n ++ "\n")
 
 numgenAction :: Arguments -> IO (Result ())
 numgenAction args = do
   mnem <- getKeyStr args FIRST E1 P1
   handleWithMsgM' "Reading the mnemonic private key:" (getPrivateKeyMnemonic mnem) $ \k ->
-    outputStrLn (isClip args) (if member PLAIN args then show k else "\n numeric key : " ++ show k ++ "\n")
+    sendStrLn (isClip args) (if member PLAIN args then show k else "\n numeric key : " ++ show k ++ "\n")
 
 modgenAction :: Arguments -> Config -> IO (Result ())
 modgenAction args config = do
@@ -472,8 +470,8 @@ modgenAction args config = do
   choiceStr <- getKeyStr args SECOND E2 P2
   shuffleStr <- getKeyStr args THIRD E3 P3
   liftResultM'
-    (addTrace "Reading the {choice} key:" $ getPrivateKey choiceStr)
-    (addTrace "Reading the {shuffle} key:" $ getPrivateKey shuffleStr) $
+    (getChoiceKeyMsg choiceStr)
+    (getShuffleKeyMsg shuffleStr) $
     \choice shuffle -> do
       let choiceSpr = numberOfChoiceKeys amts
           shuffleSpr = numberOfShuffleKeys (map snd amts)
@@ -490,7 +488,7 @@ modgenAction args config = do
               "         incantation : " ++ getMnemonic newChoice ++ "\n\n" ++
               " shorter shuffle key : " ++ show newShuffle ++ "\n" ++
               "         incantation : " ++ getMnemonic newShuffle ++ "\n\n"
-      outputStrLn (isClip args) text
+      sendStrLn (isClip args) text
 
 encryptionAction ::
   Bool ->
@@ -500,8 +498,8 @@ encryptionAction dec args = do
   let mrounds = if member ROUNDS args then readResult "integer" (args ! ROUNDS) else Content defaultRounds
       fname = args ! if dec then DECRYPT else ENCRYPT
   outfile <- getKeyStr args FIRST E1 P1
-  mkey1 <- getPrivateKey <$> getKeyStr args SECOND E2 P2
-  mkey2 <- getPrivateKey <$> getKeyStr args THIRD E3 P3
+  mkey1 <- getChoiceKeyMsg <$> getKeyStr args SECOND E2 P2
+  mkey2 <- getShuffleKeyMsg <$> getKeyStr args THIRD E3 P3
   mcts <- case fname of
     "stdin" -> fmap (Content . B.pack . map (fromIntegral . ord)) getContents
     _ -> readFileResult B.readFile fname
@@ -588,27 +586,28 @@ toIO rawArgs action = do
 loopAction :: Arguments -> IO (Result ())
 loopAction args = do
   hSetBuffering stdin NoBuffering
-  mkey1 <- addTrace "Reading the choice key:" . getPrivateKey <$> getKeyStr args FIRST E1 P1
-  mkey2 <- addTrace "Reading the shuffle key:" . getPrivateKey <$> getKeyStr args SECOND E2 P2
+  mkey1 <- getChoiceKeyMsg <$> getKeyStr args FIRST E1 P1
+  mkey2 <- getShuffleKeyMsg <$> getKeyStr args SECOND E2 P2
   flip handleWith ((,) <$> mkey1 <*> mkey2) $ \ (choice, shuffle) -> do
-    unless (member PLAIN args) $ putStrLn "\n Private keys were pre-supplied.\n Enter the public key and additional arguments to generate pseudo-hashes.\n Hit Ctrl+C to leave the loop.\n"
+    unless (member PLAIN args) $ putStrLn "\n Private keys were pre-supplied.\n Enter the public key and additional arguments to generate pseudo-hashes.\n Type \":exit\" to leave the loop.\n"
     let loop :: InputT IO ()
-        loop = (getInputWrapped True "> ") >>= \input -> case input of
+        loop = handleInterrupt loop $ (getInputWrapped True "> ") >>= \input -> case input of
           [] -> loop
+          ":exit" -> outputStrLn "\n Leaving the hash generation loop.\n"
           _ -> do
             let rawArgs = words input
                 overrideArgs = parseArgs (True, True, False) rawArgs
                 mnewArgs = fmap (unionWith (const id) args) $ addTrace "Parsing override arguments:" overrideArgs
             mfinalArgs <- lift $ handleWith' (\a -> addTrace "Adding arguments from config file:" <$> addConfigArgs a (DM.lookup THIRD a)) mnewArgs
             let pair = mfinalArgs >>= \finalArgs -> addTrace "Setting the source configuration:" (getConfig finalArgs) >>= \config ->
-                  let public = getPublicKey <$> case DM.lookup THIRD finalArgs of
-                        Nothing -> Error ["Reading the public key:" :=> ["<In loop mode, the public key must be given inline>" :=> []]]
+                  let public = getPublicKeyMsg =<< case DM.lookup THIRD finalArgs of
+                        Nothing -> Error ["<In loop mode, the public key must be given inline.>" :=> []]
                         Just str -> Content str
                       choiceKey = fmap2 mod ((choice +) <$> public) (chooseAndMergeSpread' config)
                    in fmap (\x -> (isClip finalArgs, getHash config x shuffle)) choiceKey
-            lift $ toIO rawArgs $ handleWith' (uncurry outputStrLn) pair
+            lift $ toIO rawArgs $ handleWith' (uncurry sendStrLn) pair
             loop
-    handleInterrupt (putStrLn "\n Leaving the hash generation loop.\n") $ runInputT defaultSettings $ withInterrupt loop
+    runInputT defaultSettings $ withInterrupt $  loop
 
 hashAction :: Bool -> Config -> String -> String -> String -> IO (Result ())
-hashAction clip config publicStr choiceStr shuffleStr = handleWith' (outputStrLn clip) $ getFinalHash config publicStr choiceStr shuffleStr
+hashAction clip config publicStr choiceStr shuffleStr = handleWith' (sendStrLn clip) $ getFinalHash config publicStr choiceStr shuffleStr

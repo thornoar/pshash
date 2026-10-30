@@ -1,26 +1,31 @@
-module Keys where
+module Keys (getPublicKeyMsg, getChoiceKeyMsg, getShuffleKeyMsg, getPublicStr, getMnemonic, getPrivateKeyNum, getPrivateKeyMnemonic) where
 
 import Error
-import Data.Char (ord, chr)
 import Data.List (elemIndex)
+import Data.Char (chr, ord)
 
 -- ┌────────────────────────┐
 -- │ READING THE PUBLIC KEY │
 -- └────────────────────────┘
 
-getPublicKey' :: String -> Integer
-getPublicKey' "" = 0
-getPublicKey' (c:cs) = toInteger (ord c) + 128 * getPublicKey' cs
-
-getPublicKey :: String -> Integer
+getPublicKey :: String -> Result Integer
 getPublicKey = getPublicKey' . reverse
+  where
+    getPublicKey' :: String -> Result Integer
+    getPublicKey' "" = Content 0
+    getPublicKey' (c:cs) = case ord c of
+      n | n >= 128 -> Error $ [("<`" ++ [c] ++ "` is not an ASCII character, it cannot be used in the public key.>") :=> []]
+      n -> (toInteger n +) . (128 *) <$> getPublicKey' cs
 
-getPublicStr' :: Integer -> String
-getPublicStr' 0 = ""
-getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128)
+getPublicKeyMsg :: String -> Result Integer
+getPublicKeyMsg = addTrace "Reading the {public} key" . getPublicKey
 
 getPublicStr :: Integer -> String
 getPublicStr = reverse . getPublicStr'
+  where
+    getPublicStr' :: Integer -> String
+    getPublicStr' 0 = ""
+    getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128)
 
 -- ┌──────────────────────┐
 -- │ READING PRIVATE KEYS │
@@ -65,6 +70,12 @@ getPrivateKey s = case getPrivateKeyNum s of
   Error tr1 -> case getPrivateKeyMnemonic s of
     Content n -> Content n
     Error tr2 -> Error $ ["Both arithmetic and mnemonic read methods failed:" :=> tr1 ++ tr2]
+
+getChoiceKeyMsg :: String -> Result Integer
+getChoiceKeyMsg = addTrace ("Reading the {choice} key:") . getPrivateKey
+
+getShuffleKeyMsg :: String -> Result Integer
+getShuffleKeyMsg = addTrace ("Reading the {shuffle} key:") . getPrivateKey
 
 -- ┌────────────────────────┐
 -- │ CONSTRUCTING MNEMONICS │

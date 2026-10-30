@@ -1,4 +1,4 @@
-module Inverse where
+module Inverse (getHashI, getHashI', shuffleListI) where
 
 import Data.List (elemIndex)
 import Algorithm
