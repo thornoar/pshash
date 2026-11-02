@@ -84,7 +84,7 @@ retrievePublicKey config choiceStr shuffleStr hashStr =
   let shuffleKey = getShuffleKeyMsg shuffleStr
       preChoiceKey = getChoiceKeyMsg choiceStr
       choiceKey = shuffleKey >>= getHashI' config hashStr
-   in fmap2 (getPublicStr <.> mod) (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
+   in fmap2 ((getPublicStr .) . mod) (liftA2 (-) choiceKey preChoiceKey) (numberOfPublicKeys' config)
 
 retrieveChoiceKey :: Config -> String -> String -> [Char] -> Result Integer
 retrieveChoiceKey config publicStr shuffleStr hashStr =

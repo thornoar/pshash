@@ -48,6 +48,3 @@ procrypt r (iv, cts) k1 k2 =
       !perm = B.pack $ map fromIntegral $ fpow r enc [0 .. (defaultSize-1)]
       stream = B.concat (buildStream perm iv)
    in xorbs cts stream
-
--- allZero :: B.ByteString
--- allZero = B.replicate (fromIntegral defaultSize) 0

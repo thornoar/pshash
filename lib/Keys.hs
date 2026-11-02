@@ -9,23 +9,21 @@ import Data.Char (chr, ord)
 -- └────────────────────────┘
 
 getPublicKey :: String -> Result Integer
-getPublicKey = getPublicKey' . reverse
-  where
-    getPublicKey' :: String -> Result Integer
-    getPublicKey' "" = Content 0
-    getPublicKey' (c:cs) = case ord c of
-      n | n >= 128 -> Error $ [("<`" ++ [c] ++ "` is not an ASCII character, it cannot be used in the public key.>") :=> []]
-      n -> (toInteger n +) . (128 *) <$> getPublicKey' cs
+getPublicKey = getPublicKey' . reverse where
+  getPublicKey' :: String -> Result Integer
+  getPublicKey' "" = Content 0
+  getPublicKey' (c:cs) = case ord c of
+    n | n >= 128 -> Error $ [("<`" ++ [c] ++ "` is not an ASCII character, it cannot be used in the public key.>") :=> []]
+    n -> (toInteger n +) . (128 *) <$> getPublicKey' cs
 
 getPublicKeyMsg :: String -> Result Integer
 getPublicKeyMsg = addTrace "Reading the {public} key" . getPublicKey
 
 getPublicStr :: Integer -> String
-getPublicStr = reverse . getPublicStr'
-  where
-    getPublicStr' :: Integer -> String
-    getPublicStr' 0 = ""
-    getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128)
+getPublicStr = reverse . getPublicStr' where
+  getPublicStr' :: Integer -> String
+  getPublicStr' 0 = ""
+  getPublicStr' key = chr (fromInteger (mod key 128)) : getPublicStr' (div key 128)
 
 -- ┌──────────────────────┐
 -- │ READING PRIVATE KEYS │
@@ -47,9 +45,7 @@ readMnemonic :: [[Char]] -> Result [Char]
 readMnemonic [] = Content []
 readMnemonic (pt:rest) = case elemIndex pt commonCombinations of
   Nothing -> Error $ [("<Unknown mnemonic syllable: \"{{" ++ pt ++ "}}\".>") :=> []]
-  Just n ->
-    let sn = show n
-     in fmap ((replicate (2 - length sn) '0' ++ sn) ++) (readMnemonic rest)
+  Just n -> let sn = show n in fmap ((replicate (2 - length sn) '0' ++ sn) ++) (readMnemonic rest)
 
 getPrivateKeyMnemonic :: [Char] -> Result Integer
 getPrivateKeyMnemonic lst = readResult "mnemonic" =<< (readMnemonic . getPairs . filter (/= ' ')) lst
@@ -81,22 +77,19 @@ getShuffleKeyMsg = addTrace ("Reading the {shuffle} key:") . getPrivateKey
 -- │ CONSTRUCTING MNEMONICS │
 -- └────────────────────────┘
 
-includeSpaces :: [String] -> [String]
-includeSpaces [s1, s2, s3] = [s1, s2, s3]
-includeSpaces (s1 : s2 : s3 : rest) = s1 : s2 : s3 : " " : includeSpaces rest
-includeSpaces strs = strs
-
 getPairs :: [a] -> [[a]]
 getPairs (a1:a2:rest) = [a1,a2] : getPairs rest
 getPairs [] = []
 getPairs [a] = [[a]]
 
-getCombinations :: [Int] -> [String]
-getCombinations = foldr (\ n -> ((commonCombinations !! n) :)) []
-
 getMnemonic :: Integer -> String
-getMnemonic n =
-  let nstr = show n
-      nums :: [Int]
-      nums = map read $ getPairs $ if mod (length nstr) 2 == 1 then '0':nstr else nstr
-   in concat $ includeSpaces (getCombinations nums)
+getMnemonic n = concat $ includeSpaces (getCombinations nums) where
+  nstr = show n
+  nums :: [Int]
+  nums = map read $ getPairs $ if mod (length nstr) 2 == 1 then '0':nstr else nstr
+  includeSpaces :: [String] -> [String]
+  includeSpaces [s1, s2, s3] = [s1, s2, s3]
+  includeSpaces (s1 : s2 : s3 : rest) = s1 : s2 : s3 : " " : includeSpaces rest
+  includeSpaces strs = strs
+  getCombinations :: [Int] -> [String]
+  getCombinations = foldr (\k -> ((commonCombinations !! k) :)) []

@@ -51,9 +51,6 @@ liftResultM ma mb f = switch (liftA2 f ma mb)
 liftResultM' :: (Monad m) => Result a -> Result b -> (a -> b -> m (Result c)) -> m (Result c)
 liftResultM' ma mb f = fmap join (switch $ liftA2 f ma mb)
 
-(<.>) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
-(<.>) g f a = g . f a
-
 -- ┌─────────────────┐
 -- │ ADDING MESSAGES │
 -- └─────────────────┘
@@ -134,18 +131,16 @@ formatTrace :: Bool -> Trace -> Trace
 formatTrace True (msg :=> trs) = formatWithColor msg :=> map (formatTrace True) trs
 formatTrace False (msg :=> trs) = formatWithoutColor msg False :=> map (formatTrace False) trs
 
--- formatTraces :: Bool -> [Trace] -> [Trace]
-
 -- ┌─────────────────────┐
 -- │ AUXILIARY FUNCTIONS │
 -- └─────────────────────┘
 
-readResult :: (Read a) => String -> String -> Result a
+readResult :: Read a => String -> String -> Result a
 readResult msg str = case readMaybe str of
   Nothing -> Error $ [("<Failed to read \"{{" ++ str ++ "}}\" as {{" ++ msg ++ "}}.>") :=> []]
   Just a -> Content a
 
-splitBy :: (Eq a) => a -> [a] -> [[a]]
+splitBy :: Eq a => a -> [a] -> [[a]]
 splitBy _ [] = [[]]
 splitBy a (a':rest)
   | a == a' = [] : splitBy a rest
