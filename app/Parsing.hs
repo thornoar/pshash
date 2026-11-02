@@ -59,6 +59,9 @@ readFileResult :: (FilePath -> IO a) -> FilePath -> IO (Result a)
 readFileResult rf = safeReadWithHandler rf handler
   where handler e = return . Error $ ["<Error reading file:>" :=> [ show e :=> [] ]]
 
+getConfigFromSpec :: (Integer, Integer, Integer, Integer) -> Config
+getConfigFromSpec (a,b,c,d) = [(sourceLower, a), (sourceUpper, b), (sourceSpecial, c), (sourceNumbers, d)]
+
 getConfig :: Arguments -> Result Config
 getConfig args = case DM.lookup CONFIG args of
   Just ('k':rest) -> case rest of

@@ -53,6 +53,10 @@ shuffleListI' (r:rest) key =
   let nextLen = length' rest
       (keyDiv, keyMod) = divMod key (nextLen + 1)
       nextKey = keyDiv + shift r
+      insertAt :: a -> Integer -> [a] -> [a]
+      insertAt a 0 lst = a:lst
+      insertAt a n (l:lst) = l : insertAt a (n-1) lst
+      insertAt _ _ _ = []
    in insertAt r keyMod (shuffleListI' rest nextKey)
 
 mergeTwoListsI :: (Shifting a, Eq a, Show a) => ([a], [a]) -> [a] -> Result Integer

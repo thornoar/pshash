@@ -18,21 +18,8 @@ cnk n k = div (factorial' n k) (factorial k)
 length' :: [a] -> Integer
 length' = toInteger . length
 
-take' :: Integer -> [a] -> [a]
-take' 0 _ = []
-take' _ [] = []
-take' n (a:as) = a : take' (n-1) as
-
-insertAt :: a -> Integer -> [a] -> [a]
-insertAt a 0 lst = a:lst
-insertAt a n (l:lst) = l : insertAt a (n-1) lst
-insertAt _ _ _ = []
-
 dropElementInfo :: ([a], Integer) -> (Integer, Integer)
 dropElementInfo (src, m) = (length' src, m)
-
-getConfigFromSpec :: (Integer, Integer, Integer, Integer) -> Config
-getConfigFromSpec (a,b,c,d) = [(sourceLower, a), (sourceUpper, b), (sourceSpecial, c), (sourceNumbers, d)]
 
 shiftString :: Integer -> String -> String
 shiftString amt = map (chr . fromInteger . (`mod` 128) . (+ amt) . toInteger . ord)
@@ -51,18 +38,13 @@ combineHashing f g a = g . f a
 
 mapHashing :: (Shifting b) => (a -> Integer -> b) -> (a -> Integer) -> ([a] -> Integer -> [b])
 mapHashing _ _ [] _ = []
-mapHashing f spr (a : as) key = b : mapHashing f spr as nextKey
+mapHashing f spr (a : as) key = b : mapHashing f spr as (keyDiv + shift b)
   where
-    (keyDiv, keyMod) = divMod key $ spr a
-    b = f a keyMod
-    nextKey = keyDiv + shift b
+  (keyDiv, keyMod) = divMod key (spr a)
+  b = f a keyMod
 
 composeHashing :: (Shifting b) => (a -> Integer -> b) -> (a -> Integer) -> (b -> Integer -> c) -> (a -> Integer -> c)
-composeHashing f spr g a key = g b nextKey
-  where
-    (keyDiv, keyMod) = divMod key $ spr a
-    b = f a keyMod
-    nextKey = keyDiv + shift b
+composeHashing f spr g a key = (\ (kd, km) -> let b = f a km in g b (kd + shift b)) (divMod key $ spr a)
 
 -- ┌────────────────────────────────────────────────────────────┐
 -- │ PRE-DEFINED STRINGS FROM WHICH PSEUDO-HASHES WILL BE DRAWN │
@@ -118,8 +100,8 @@ chooseOrdered (_, 0) _ = []
 chooseOrdered ([], _) _ = []
 chooseOrdered (src, m) key = curElt : chooseOrdered (filter (/= curElt) src, m - 1) (keyDiv + shift curElt)
   where
-    (keyDiv, keyMod) = divMod key $ length' src
-    curElt = src !! fromIntegral keyMod
+  (keyDiv, keyMod) = divMod key $ length' src
+  curElt = src !! fromIntegral keyMod
 
 shuffleList :: (Eq a, Shifting a) => [a] -> Integer -> [a]
 shuffleList src = chooseOrdered (src, length' src)
@@ -143,9 +125,9 @@ mergeTwoLists (elt1:rest1, elt2:rest2) key
   | curKey < spr1 = elt1 : mergeTwoLists (rest1, elt2:rest2) (curKey + shift elt1)
   | otherwise = elt2 : mergeTwoLists (elt1:rest1, rest2) (curKey - spr1 + shift elt2)
   where
-    spr1 = mergeTwoListsSpread (length' rest1, length' rest2 + 1)
-    spr2 = mergeTwoListsSpread (length' rest1 + 1, length' rest2)
-    curKey = mod key (spr1 + spr2)
+  spr1 = mergeTwoListsSpread (length' rest1, length' rest2 + 1)
+  spr2 = mergeTwoListsSpread (length' rest1 + 1, length' rest2)
+  curKey = mod key (spr1 + spr2)
 
 mergeTwoListsSpread :: (Integer, Integer) -> Integer
 mergeTwoListsSpread (m1, m2) = div (factorial (m1 + m2)) (factorial m1 * factorial m2)
