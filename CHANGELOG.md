@@ -1,5 +1,9 @@
 # Revision history for `pshash`
 
+## 0.1.23.2
+
+* Changed the behavior of `--loop` to be more general.
+
 ## 0.1.23.1
 
 * Improved error reporting and the behavior of `--loop`.

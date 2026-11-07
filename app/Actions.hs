@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Actions where
 
-import Data.Map (member, (!), unionWith)
+import Data.Map (member, (!), unionWith, delete)
 import qualified Data.Map as DM
 import Data.ByteString (fromStrict)
 import qualified Data.ByteString.Lazy as B (readFile, writeFile, putStr, pack, splitAt, append)
@@ -31,7 +31,7 @@ import Control.Monad.Trans.Class (lift)
 import Data.Maybe (fromMaybe)
 
 currentVersion :: String
-currentVersion = "0.1.23.1"
+currentVersion = "0.1.23.2"
 
 -- ┌─────────────────────┐
 -- │ FINAL HASH FUNCTION │
@@ -583,31 +583,52 @@ toIO rawArgs action = do
       -- exitWith (ExitFailure 1)
     Content () -> return ()
 
+clearKeyArgs :: Arguments -> Arguments
+clearKeyArgs = delete FIRST . delete SECOND . delete THIRD
+
 loopAction :: Arguments -> IO (Result ())
 loopAction args = do
   hSetBuffering stdin NoBuffering
-  mkey1 <- getChoiceKeyMsg <$> getKeyStr args FIRST E1 P1
-  mkey2 <- getShuffleKeyMsg <$> getKeyStr args SECOND E2 P2
-  flip handleWith ((,) <$> mkey1 <*> mkey2) $ \ (choice, shuffle) -> do
-    unless (member PLAIN args) $ putStrLn "\n Private keys were pre-supplied.\n Enter the public key and additional arguments to generate pseudo-hashes.\n Type \":exit\" to leave the loop.\n"
-    let loop :: InputT IO ()
-        loop = handleInterrupt loop $ (getInputWrapped True "> ") >>= \input -> case input of
-          [] -> loop
-          ":exit" -> outputStrLn "\n Leaving the hash generation loop.\n"
-          _ -> do
-            let rawArgs = words input
-                overrideArgs = parseArgs (True, True, False) rawArgs
-                mnewArgs = fmap (unionWith (const id) args) $ addTrace "Parsing override arguments:" overrideArgs
-            mfinalArgs <- lift $ handleWith' (\a -> addTrace "Adding arguments from config file:" <$> addConfigArgs a (DM.lookup THIRD a)) mnewArgs
-            let pair = mfinalArgs >>= \finalArgs -> addTrace "Setting the source configuration:" (getConfig finalArgs) >>= \config ->
-                  let public = getPublicKeyMsg =<< case DM.lookup THIRD finalArgs of
-                        Nothing -> Error ["<In loop mode, the public key must be given inline.>" :=> []]
-                        Just str -> Content str
-                      choiceKey = fmap2 mod ((choice +) <$> public) (chooseAndMergeSpread' config)
-                   in fmap (\x -> (isClip finalArgs, getHash config x shuffle)) choiceKey
-            lift $ toIO rawArgs $ handleWith' (uncurry sendStrLn) pair
-            loop
-    runInputT defaultSettings $ withInterrupt $  loop
+  key1 <- getKeyStr args FIRST E1 P1
+  key2 <- getKeyStr args SECOND E2 P2
+  unless (member PLAIN args) $ putStrLn "\n Private keys were pre-supplied.\n Enter the public key and additional arguments to generate pseudo-hashes.\n Type \":exit\" to leave the loop.\n"
+  let loop :: InputT IO (Result ())
+      loop = handleInterrupt loop $ (getInputWrapped True "> ") >>= \input -> case input of
+        [] -> loop
+        ":exit" -> do
+          unless (member PLAIN args) $ outputStrLn "\n Leaving the hash generation loop.\n"
+          return (Content ())
+        ":keys" -> lift $ loopAction (clearKeyArgs args)
+        ":help" -> do
+          outputStrLn "\n Available commands:\n"
+          outputStrLn " :exit    exit the loop"
+          outputStrLn " :help    show this help message"
+          outputStrLn " :keys    re-enter the keys\n"
+          loop
+        _ -> do
+          let rawArgs = words input
+              overrideArgs = parseArgs (False, False, False) rawArgs
+              mnewArgs = fmap
+                (setEchoesAndPrompts . insert' SECOND key1 . insert' THIRD key2 . unionWith (const id) (delete LOOP $ clearKeyArgs args)) $
+                addTrace "Parsing override arguments:" overrideArgs
+          lift $ toIO rawArgs (handleWith' performAction mnewArgs)
+          loop 
+  runInputT defaultSettings $ withInterrupt loop
 
 hashAction :: Bool -> Config -> String -> String -> String -> IO (Result ())
 hashAction clip config publicStr choiceStr shuffleStr = handleWith' (sendStrLn clip) $ getFinalHash config publicStr choiceStr shuffleStr
+
+performAction :: Arguments -> IO (Result ())
+performAction args
+  | member INFO args = addTrace "Getting meta information:" <$> passConfig (DM.lookup FIRST args) args (const $ infoAction (member PLAIN args) (isClip args) (args ! INFO))
+  | member QUERY args = addTrace "Performing a query operation:" <$> passInputs args (queryAction (member PLAIN args) (isClip args) (args ! QUERY))
+  | member LIST args = addTrace "Listing key pairs:" <$> passInputsWithConfig args (listPairsAction (member PLAIN args))
+  | member ENCRYPT args = addTrace "Decrypting file:" <$> encryptionAction False args
+  | member DECRYPT args = addTrace "Encrypting file:" <$> encryptionAction True args
+  | member LOOP args = addTrace "Running pseudo-hash generation loop:" <$> loopAction args
+  | member GENKEYS args = addTrace "Generating private keys:" <$> passConfig (DM.lookup FIRST args) args (const $ keygenAction (member PLAIN args) (isClip args))
+  | member GENSPELL args = addTrace "Producing a mnemonic incantation:" <$> spellgenAction args
+  | member GENNUM args = addTrace "Converting an incantation to numeric form:" <$> numgenAction args
+  | member GENMOD args = addTrace "Performing modular reduction on keys:" <$> passConfig (DM.lookup FIRST args) args modgenAction
+  | member INSPECT args = addTrace "Inspecting configuration file:" <$> inspectAction args
+  | otherwise = addTrace "Computing pseudo-hash:" <$> passInputsWithConfig args (hashAction $ isClip args)
