@@ -146,7 +146,7 @@ setClipboardUnsafe text = case os of
     isWayland <- lookupEnv "WAYLAND_DISPLAY"
     case isWayland of
       Nothing -> readProcess "xclip" ["-selection", "clipboard", "-i"] text >> return ()
-      Just _ -> callProcess "wl-copy" [text]
+      Just _ -> callProcess "wl-copy" ["--", text]
     return (Content ())
   "mingw32" -> readProcess "clip.exe" [] text >> return (Content ())
   _ -> return $ Error [("<Clipboard output is not supported on {{" ++ os ++ "}}.>") :=> []]
